@@ -11,13 +11,29 @@ const ALIGN_ITEMS_COLOR: Color = Color::rgb(1., 0.066, 0.349);
 const JUSTIFY_CONTENT_COLOR: Color = Color::rgb(0.102, 0.522, 1.);
 const MARGIN: Val = Val::Px(5.);
 
+// Seems like there should be a mutex in here.
 static mut PROMISES: OnceCell<Vec<PromiseOut<String>>> = OnceCell::new();
+static mut PROMISES_VERSION: u32 = 0;
 
+// event
 struct ShowPrompt(bool);
+
+#[derive(Resource)]
+// resource
+struct GlobalPromptState {
+    active: bool,
+    version: u32,
+}
+
+struct PromptState {
+    prompt: String,
+    input: String,
+    promise: PromiseOut<String>
+}
 
 #[derive(Component)]
 struct Prompt {
-    active: bool,
+    // active: bool,
     // promises: Vec<PromiseOut<String>>
 }
 
@@ -27,6 +43,7 @@ struct CommandTask(Task<()>);
 fn main() {
     App::new()
         .add_event::<ShowPrompt>()
+        .insert_resource(GlobalPromptState { version: 0, active: false })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: [870., 1066.].into(),
@@ -49,33 +66,45 @@ fn handle_tasks(
         if let Some(_) = future::block_on(future::poll_once(&mut task.0)) {
             // Add our new PbrBundle of components to our tagged entity
             println!("Task handled.");
+            commands.entity(entity).despawn();
+            // commands.entity(entity).remove::<CommandTask>();
+        } else {
+            // println!("Task not handled.");
         }
-        // commands.entity(entity).remove::<CommandTask>();
-        commands.entity(entity).despawn();
     }
 }
+// [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]i
 
 /// prints every char coming in; press enter to echo the full string
 fn prompt_input(
     mut commands: Commands,
+    mut prompt_state: ResMut<GlobalPromptState>,
     mut char_evr: EventReader<ReceivedCharacter>,
+    mut show_prompt: EventWriter<ShowPrompt>,
     keys: Res<Input<KeyCode>>,
-    // mut string: Local<String>,
     mut query: Query<(&mut Prompt, &mut Text)>) {
+
     if keys.just_pressed(KeyCode::Tab) {
         let thread_pool = AsyncComputeTaskPool::get();
         let task = thread_pool.spawn(async move {
             ask_name().await;
         });
         commands.spawn(CommandTask(task));
-
-        for (mut prompt, mut text) in query.iter_mut() {
-            prompt.active = true;
-        }
         return;
     }
+    let version = unsafe { PROMISES_VERSION };
+    if prompt_state.version != version {
+        let new_state = unsafe { PROMISES.get().expect("No promises").len() } > 0;
+        if prompt_state.active != new_state {
+            prompt_state.active = new_state;
+            println!("show prompt {}", new_state);
+            show_prompt.send(ShowPrompt(new_state));
+        }
+        prompt_state.version = version;
+    }
+
     for (mut prompt, mut text) in query.iter_mut() {
-        if prompt.active {
+        if prompt_state.active {
             if keys.just_pressed(KeyCode::Back) {
                 let _ = text.sections[1].value.pop();
                 continue;
@@ -89,8 +118,8 @@ fn prompt_input(
                 text.sections[1].value.clear();
                 println!("Got result {}", result);
                 let promise = unsafe { PROMISES.get_mut() }.expect("no promises").pop().expect("no promise");
+                unsafe { PROMISES_VERSION += 1 };
                 promise.resolve(result);
-                prompt.active = false;
             }
         }
     }
@@ -100,12 +129,16 @@ fn user_read(prompt: &str) -> PromiseOut<String> {
     let promise: PromiseOut<String> = PromiseOut::default();
     println!("promise added");
     unsafe { PROMISES.get_mut() }.expect("no promises").push(promise.clone());
+    unsafe { PROMISES_VERSION += 1 };
     return promise;
 }
 
 fn prompt_visibility(mut show_prompt: EventReader<ShowPrompt>,
-                     query: Query<(&Parent, &Prompt), Changed<Prompt>>,
+                     query: Query<(&Parent, &Prompt)>,
                      mut q_parent: Query<&mut Visibility>) {
+    if show_prompt.is_empty() {
+        return;
+    }
     let show = show_prompt.iter().fold(false, |acc, x| acc || x.0);
     for (parent, prompt) in query.iter() {
         if let Ok(mut v) = q_parent.get_mut(parent.get()) {
@@ -123,6 +156,8 @@ async fn ask_name() {
     println!("ask name called");
     if let Ok(name) = &*user_read("What's your name? ").await {
         println!("Hello, {}", name);
+    } else {
+        println!("Got err in ask now");
     }
 }
 
@@ -146,6 +181,7 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|builder| {
             builder
                 .spawn(NodeBundle {
+                    visibility: Visibility::Hidden,
                     style: Style {
                         flex_direction: FlexDirection::Row,
                         flex_grow: 1.,
@@ -180,7 +216,7 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                     },
                                 )
                             ]))
-                            .insert(Prompt { active: false,
+                            .insert(Prompt { // active: false,
                                              // promises: vec![]
                             });
                 });

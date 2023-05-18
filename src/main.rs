@@ -12,7 +12,7 @@ const JUSTIFY_CONTENT_COLOR: Color = Color::rgb(0.102, 0.522, 1.);
 const MARGIN: Val = Val::Px(5.);
 
 // Seems like there should be a mutex in here.
-static mut PROMISES: OnceCell<Vec<PromiseOut<String>>> = OnceCell::new();
+static mut PROMISES: OnceCell<Vec<PromptState>> = OnceCell::new();
 static mut PROMISES_VERSION: u32 = 0;
 
 // event
@@ -25,6 +25,12 @@ struct GlobalPromptState {
     version: u32,
 }
 
+// struct PromptParam<'a> {
+//     prompt: &'a str,
+//     input: Option<&'a str>
+// }
+
+#[derive(Debug)]
 struct PromptState {
     prompt: String,
     input: String,
@@ -47,7 +53,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: [870., 1066.].into(),
-                title: "Bevy Text Layout Example".to_string(),
+                title: "Bevy Prompt Example".to_string(),
                 ..Default::default()
             }),
             ..Default::default()
@@ -58,6 +64,7 @@ fn main() {
         .add_system(handle_tasks)
         .run();
 }
+
 fn handle_tasks(
     mut commands: Commands,
     mut command_tasks: Query<(Entity, &mut CommandTask)>,
@@ -99,6 +106,14 @@ fn prompt_input(
             prompt_state.active = new_state;
             println!("show prompt {}", new_state);
             show_prompt.send(ShowPrompt(new_state));
+
+            if new_state {
+                if let Some(prompt_state) = unsafe { PROMISES.get() }.expect("No promises").last() {
+                    for (mut prompt, mut text) in query.iter_mut() {
+                        text.sections[0].value.clone_from(&prompt_state.prompt);
+                    }
+                }
+            }
         }
         prompt_state.version = version;
     }
@@ -117,18 +132,21 @@ fn prompt_input(
                 let result = text.sections[1].value.clone();
                 text.sections[1].value.clear();
                 println!("Got result {}", result);
-                let promise = unsafe { PROMISES.get_mut() }.expect("no promises").pop().expect("no promise");
+                let prompt_state = unsafe { PROMISES.get_mut() }.expect("no promises").pop().expect("no promise");
                 unsafe { PROMISES_VERSION += 1 };
-                promise.resolve(result);
+                prompt_state.promise.resolve(result);
             }
         }
     }
 }
 
+// use Into<PromptState>
 fn user_read(prompt: &str) -> PromiseOut<String> {
     let promise: PromiseOut<String> = PromiseOut::default();
     println!("promise added");
-    unsafe { PROMISES.get_mut() }.expect("no promises").push(promise.clone());
+    unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
+                                                                           input: String::from(""),
+                                                                           promise: promise.clone() });
     unsafe { PROMISES_VERSION += 1 };
     return promise;
 }

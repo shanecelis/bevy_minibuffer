@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use std::future::Future;
 use std::sync::Arc;
+use std::rc::Rc;
 use promise_out::PromiseOut;
 use once_cell::sync::OnceCell;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
@@ -41,6 +42,19 @@ struct PromptState {
 struct Prompt {
     // active: bool,
     // promises: Vec<PromiseOut<String>>
+}
+
+struct PromptProvider {
+  prompts: Vec<Rc<ProxyPrompt>>
+}
+
+impl PromptProvider {
+  fn new_prompt(&mut self) -> Rc<ProxyPrompt> {
+    let prompt: ProxyPrompt = default();
+    let cell = Rc::new(prompt);
+    self.prompts.push(cell.clone());
+    cell
+  }
 }
 
 #[derive(Component)]
@@ -176,10 +190,10 @@ enum NanoError {
   Message(&'static str)
 }
 
-
+// XXX: Rename to NanoConsole?
 trait NanoPrompt {
   // type Output : Future<Output = Result<String, NanoError>>;
-  type Output;// : Future<Output = Result<String, String>>;
+  type Output : Future<Output = Arc<Result<String, String>>>;
   fn prompt_get_mut(&mut self) -> &mut String;
   fn input_get_mut(&mut self) -> &mut String;
   fn message_get_mut(&mut self) -> &mut String;
@@ -201,6 +215,17 @@ struct ProxyPrompt {
   prompt: String,
   message: String,
   input: String,
+  promise: Option<PromiseOut<String>>
+}
+
+impl Default for ProxyPrompt {
+  fn default() -> Self {
+    Self {
+      prompt: String::from(""),
+      message: String::from(""),
+      input: String::from(""),
+      promise: None }
+  }
 }
 
 impl NanoPrompt for ProxyPrompt {
@@ -225,7 +250,7 @@ impl NanoPrompt for ProxyPrompt {
   }
   fn read(&mut self) -> Self::Output {
     let promise = PromiseOut::default();
-    // self.promise = Some(promise.clone());
+    self.promise = Some(promise.clone());
     // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
     //                                                                        input: String::from(""),
     //                                                                        promise: promise.clone() });
@@ -334,8 +359,19 @@ async fn ask_name() {
     }
 }
 
+async fn ask_name2(mut prompt: impl NanoPrompt) {
+    println!("ask name called");
+    if let Ok(name) = &*prompt.read_string("What's your name? ").await {
+        println!("Hello, {}", name);
+    } else {
+        println!("Got err in ask now");
+    }
+}
+
 fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
+    // This just has to be initialized somewhere.
     unsafe { PROMISES.set(vec![]) }.unwrap();
+
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     commands.spawn(Camera2dBundle::default());
     commands

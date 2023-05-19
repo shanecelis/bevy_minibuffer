@@ -46,6 +46,14 @@ struct Prompt {
 #[derive(Component)]
 struct CommandTask(Task<()>);
 
+impl CommandTask {
+    fn new(future: impl Future<Output = ()> + Send + 'static) -> Self {
+        let thread_pool = AsyncComputeTaskPool::get();
+        let task = thread_pool.spawn(future);
+        Self(task)
+    }
+}
+
 fn main() {
     App::new()
         .add_event::<ShowPrompt>()
@@ -65,14 +73,14 @@ fn main() {
         .run();
 }
 
+
 fn handle_tasks(
     mut commands: Commands,
     mut command_tasks: Query<(Entity, &mut CommandTask)>,
 ) {
     for (entity, mut task) in &mut command_tasks {
         if let Some(_) = future::block_on(future::poll_once(&mut task.0)) {
-            // Add our new PbrBundle of components to our tagged entity
-            println!("Task handled.");
+            // println!("Task handled.");
             commands.entity(entity).despawn();
             // commands.entity(entity).remove::<CommandTask>();
         } else {
@@ -92,11 +100,17 @@ fn prompt_input(
     mut query: Query<(&mut Prompt, &mut Text)>) {
 
     if keys.just_pressed(KeyCode::Tab) {
-        let thread_pool = AsyncComputeTaskPool::get();
-        let task = thread_pool.spawn(async move {
-            ask_name().await;
-        });
-        commands.spawn(CommandTask(task));
+        // let thread_pool = AsyncComputeTaskPool::get();
+        // let task = thread_pool.spawn(async move {
+        //     ask_name().await;
+        // });
+        // commands.spawn(CommandTask(task));
+        //
+        // commands.spawn(CommandTask::new(async move {
+        //     ask_name().await;
+        // }));
+
+        commands.spawn(CommandTask::new(ask_name()));
         return;
     }
     let version = unsafe { PROMISES_VERSION };
@@ -120,17 +134,21 @@ fn prompt_input(
 
     for (mut prompt, mut text) in query.iter_mut() {
         if prompt_state.active {
+          let mut text_prompt = TextPrompt { text: &mut text };
             if keys.just_pressed(KeyCode::Back) {
-                let _ = text.sections[1].value.pop();
+                // let _ = text.sections[1].value.pop();
+                let _ = text_prompt.input_get_mut().pop();
                 continue;
             }
             for ev in char_evr.iter() {
-                text.sections[1].value.push(ev.char);
+                // text.sections[1].value.push(ev.char);
+                text_prompt.input_get_mut().push(ev.char);
             }
             if keys.just_pressed(KeyCode::Return) {
                 // Let's return this somewhere.
-                let result = text.sections[1].value.clone();
-                text.sections[1].value.clear();
+                // let result = text.sections[1].value.clone();
+                let result = text_prompt.input_get_mut().clone();
+                // text.sections[1].value.clear();
                 println!("Got result {}", result);
                 let prompt_state = unsafe { PROMISES.get_mut() }.expect("no promises").pop().expect("no promise");
                 unsafe { PROMISES_VERSION += 1 };
@@ -139,6 +157,143 @@ fn prompt_input(
         }
     }
 }
+
+struct Nanobuffer {
+  prompt: String,
+  message: String,
+  input: String,
+  inline_message: String,
+  is_reading: bool,
+}
+
+trait PromptString {
+  fn set(s: &str);
+  fn clear();
+}
+
+enum NanoError {
+  Cancelled,
+  Message(&'static str)
+}
+
+
+trait NanoPrompt {
+  // type Output : Future<Output = Result<String, NanoError>>;
+  type Output;// : Future<Output = Result<String, String>>;
+  fn prompt_get_mut(&mut self) -> &mut String;
+  fn input_get_mut(&mut self) -> &mut String;
+  fn message_get_mut(&mut self) -> &mut String;
+  fn prompt_get(&self) -> &String;
+  fn input_get(&self) -> &String;
+  fn message_get(&self) -> &String;
+  fn read(&mut self) -> Self::Output;
+
+  fn read_string(&mut self, prompt: &str) -> Self::Output {
+    self.input_get_mut().clear();
+    let p = self.prompt_get_mut();
+    p.clear();
+    p.extend(prompt.chars());
+    self.read()
+  }
+}
+
+struct ProxyPrompt {
+  prompt: String,
+  message: String,
+  input: String,
+}
+
+impl NanoPrompt for ProxyPrompt {
+  type Output = PromiseOut<String>;
+  fn prompt_get_mut(&mut self) -> &mut String {
+    &mut self.prompt
+  }
+  fn input_get_mut(&mut self) -> &mut String {
+    &mut self.input
+  }
+  fn message_get_mut(&mut self) -> &mut String {
+    &mut self.message
+  }
+  fn prompt_get(&self) -> &String {
+    &self.prompt
+  }
+  fn input_get(&self) -> &String {
+    &self.input
+  }
+  fn message_get(&self) -> &String {
+    &self.message
+  }
+  fn read(&mut self) -> Self::Output {
+    let promise = PromiseOut::default();
+    // self.promise = Some(promise.clone());
+    // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
+    //                                                                        input: String::from(""),
+    //                                                                        promise: promise.clone() });
+    unsafe { PROMISES_VERSION += 1 };
+    return promise;
+  }
+}
+
+struct TextPrompt<'a> { text: &'a mut Text,
+                    // promise: Option<PromiseOut<String>>
+}
+
+impl<'a> NanoPrompt for TextPrompt<'a> {
+  type Output = PromiseOut<String>;
+  fn prompt_get_mut(&mut self) -> &mut String {
+    &mut self.text.sections[0].value
+  }
+  fn input_get_mut(&mut self) -> &mut String {
+    &mut self.text.sections[1].value
+  }
+  fn message_get_mut(&mut self) -> &mut String {
+    &mut self.text.sections[2].value
+  }
+  fn prompt_get(&self) -> &String {
+    &self.text.sections[0].value
+  }
+  fn input_get(&self) -> &String {
+    &self.text.sections[1].value
+  }
+  fn message_get(&self) -> &String {
+    &self.text.sections[2].value
+  }
+  fn read(&mut self) -> Self::Output {
+    let promise = PromiseOut::default();
+    // self.promise = Some(promise.clone());
+    // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
+    //                                                                        input: String::from(""),
+    //                                                                        promise: promise.clone() });
+    unsafe { PROMISES_VERSION += 1 };
+    return promise;
+  }
+}
+
+// impl Nanobuffer {
+//   is_reading() -> bool;
+//   read_string() -> impl Future<Result<String, String>>; //nanobuffer::Error
+//   read<T>() -> impl Future<Result<T, String>>;
+// }
+
+// public interface INanobuffer {
+//   /** Shows a message to the user when not reading. */
+//   public string Message { get; set; }
+//   /** Prompt shown when reading. */
+//   public string Prompt { get; set; }
+//   /** Input line from user. Set before Read() for default input. */
+//   public string Input { get; set; }
+//   /** Message shown when prompting. */
+//   public string ErrorMessage { get; set; }
+//   /** Returns true if currently reading from user. (This is a read only property.) */
+//   public bool IsReading { get; }
+
+//   /** Read input from the user with the given parser and token. Cancel based
+//       on token. */
+//   public
+//     Task<T>
+//     Read<T>(TryParseSource<T> tryParse,
+//                          CancellationToken token);
+// }
 
 // use Into<PromptState>
 fn user_read(prompt: &str) -> PromiseOut<String> {

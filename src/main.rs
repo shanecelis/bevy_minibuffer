@@ -6,7 +6,7 @@ use once_cell::sync::OnceCell;
 use promise_out::PromiseOut;
 use std::future::Future;
 use std::rc::Rc;
-use std::sync::{Arc, Weak, Mutex};
+use std::sync::{Arc, Mutex, Weak};
 
 const ALIGN_ITEMS_COLOR: Color = Color::rgb(1., 0.066, 0.349);
 const JUSTIFY_CONTENT_COLOR: Color = Color::rgb(0.102, 0.522, 1.);
@@ -47,13 +47,14 @@ struct Prompt {
 #[derive(Resource)]
 struct PromptProvider {
     // This is a sink.
-    prompts: Arc<Mutex<Vec<(ProxyPrompt, PromiseOut<String>)>>>
+    prompts: Arc<Mutex<Vec<(ProxyPrompt, PromiseOut<String>)>>>,
 }
-
 
 impl Default for PromptProvider {
     fn default() -> Self {
-        Self { prompts: Arc::new(Mutex::new(vec![])) }
+        Self {
+            prompts: Arc::new(Mutex::new(vec![])),
+        }
     }
 }
 
@@ -72,7 +73,7 @@ struct ProxyPrompt {
     message: String,
     input: String,
     // promise: Option<PromiseOut<String>>,
-    prompts: Arc<Mutex<Vec<(ProxyPrompt, PromiseOut<String>)>>>
+    prompts: Arc<Mutex<Vec<(ProxyPrompt, PromiseOut<String>)>>>,
 }
 
 impl ProxyPrompt {
@@ -85,7 +86,6 @@ impl ProxyPrompt {
             prompts,
         }
     }
-
 }
 
 // impl Default for ProxyPrompt {
@@ -121,7 +121,10 @@ impl NanoPrompt for ProxyPrompt {
     }
     fn read(&mut self) -> Self::Output {
         let promise = PromiseOut::default();
-        self.prompts.lock().unwrap().push((self.clone(), promise.clone()));
+        self.prompts
+            .lock()
+            .unwrap()
+            .push((self.clone(), promise.clone()));
         // self.promise = Some(promise.clone());
         // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
         //                                                                        input: String::from(""),
@@ -182,7 +185,7 @@ fn handle_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut C
 fn prompt_input(
     mut commands: Commands,
     mut prompt_provider: ResMut<PromptProvider>,
-    mut prompt_state: ResMut<GlobalPromptState>,
+    // mut prompt_state: ResMut<GlobalPromptState>,
     mut char_evr: EventReader<ReceivedCharacter>,
     mut show_prompt: EventWriter<ShowPrompt>,
     keys: Res<Input<KeyCode>>,
@@ -203,24 +206,24 @@ fn prompt_input(
         commands.spawn(CommandTask::new(ask_name2(prompt_provider.new_prompt())));
         return;
     }
-    let version = unsafe { PROMISES_VERSION };
-    if prompt_state.version != version {
-        let new_state = unsafe { PROMISES.get().expect("No promises").len() } > 0;
-        if prompt_state.active != new_state {
-            prompt_state.active = new_state;
-            println!("show prompt {}", new_state);
-            show_prompt.send(ShowPrompt(new_state));
+    // let version = unsafe { PROMISES_VERSION };
+    // if prompt_state.version != version {
+    //     let new_state = unsafe { PROMISES.get().expect("No promises").len() } > 0;
+    //     if prompt_state.active != new_state {
+    //         prompt_state.active = new_state;
+    //         println!("show prompt {}", new_state);
+    //         show_prompt.send(ShowPrompt(new_state));
 
-            if new_state {
-                if let Some(prompt_state) = unsafe { PROMISES.get() }.expect("No promises").last() {
-                    for (mut prompt, mut text) in query.iter_mut() {
-                        text.sections[0].value.clone_from(&prompt_state.prompt);
-                    }
-                }
-            }
-        }
-        prompt_state.version = version;
-    }
+    //         if new_state {
+    //             if let Some(prompt_state) = unsafe { PROMISES.get() }.expect("No promises").last() {
+    //                 for (mut prompt, mut text) in query.iter_mut() {
+    //                     text.sections[0].value.clone_from(&prompt_state.prompt);
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     prompt_state.version = version;
+    // }
 
     for (mut prompt, mut text) in query.iter_mut() {
         if prompt_state.active {
@@ -231,7 +234,9 @@ fn prompt_input(
                 continue;
             }
 
-            text_prompt.input_get_mut().extend(char_evr.iter().map(|ev| ev.char));
+            text_prompt
+                .input_get_mut()
+                .extend(char_evr.iter().map(|ev| ev.char));
             // for ev in char_evr.iter() {
             //     // text.sections[1].value.push(ev.char);
             //     text_prompt.input_get_mut().push(ev.char);
@@ -271,8 +276,6 @@ enum NanoError {
     Message(&'static str),
 }
 
-
-
 // XXX: Rename to NanoConsole?
 trait NanoPrompt {
     // type Output : Future<Output = Result<String, NanoError>>;
@@ -293,7 +296,6 @@ trait NanoPrompt {
         self.read()
     }
 }
-
 
 // impl<T> NanoPrompt for Arc<T> where T: NanoPrompt {
 //     type Output = <T as NanoPrompt>::Output;

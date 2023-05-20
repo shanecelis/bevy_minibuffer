@@ -6,7 +6,7 @@ use once_cell::sync::OnceCell;
 use promise_out::PromiseOut;
 use std::future::Future;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::sync::{Arc, Weak, Mutex};
 
 const ALIGN_ITEMS_COLOR: Color = Color::rgb(1., 0.066, 0.349);
 const JUSTIFY_CONTENT_COLOR: Color = Color::rgb(0.102, 0.522, 1.);
@@ -44,16 +44,90 @@ struct Prompt {
     // promises: Vec<PromiseOut<String>>
 }
 
+#[derive(Resource)]
 struct PromptProvider {
-    prompts: Vec<Rc<ProxyPrompt>>,
+    // This is a sink.
+    prompts: Arc<Mutex<Vec<(ProxyPrompt, PromiseOut<String>)>>>
+}
+
+
+impl Default for PromptProvider {
+    fn default() -> Self {
+        Self { prompts: Arc::new(Mutex::new(vec![])) }
+    }
 }
 
 impl PromptProvider {
-    fn new_prompt(&mut self) -> Rc<ProxyPrompt> {
-        let prompt: ProxyPrompt = default();
-        let cell = Rc::new(prompt);
-        self.prompts.push(cell.clone());
-        cell
+    fn new_prompt(&mut self) -> ProxyPrompt {
+        let prompt = ProxyPrompt::new(self.prompts.clone());
+        // let cell = Arc::new(prompt);
+        // self.prompts.push(Arc::downgrade(&cell));
+        prompt
+    }
+}
+
+#[derive(Clone)]
+struct ProxyPrompt {
+    prompt: String,
+    message: String,
+    input: String,
+    // promise: Option<PromiseOut<String>>,
+    prompts: Arc<Mutex<Vec<(ProxyPrompt, PromiseOut<String>)>>>
+}
+
+impl ProxyPrompt {
+    fn new(prompts: Arc<Mutex<Vec<(ProxyPrompt, PromiseOut<String>)>>>) -> Self {
+        Self {
+            prompt: String::from(""),
+            message: String::from(""),
+            input: String::from(""),
+            // promise: None,
+            prompts,
+        }
+    }
+
+}
+
+// impl Default for ProxyPrompt {
+//     fn default() -> Self {
+//         Self {
+//             prompt: String::from(""),
+//             message: String::from(""),
+//             input: String::from(""),
+//             promise: None,
+//         }
+//     }
+// }
+
+impl NanoPrompt for ProxyPrompt {
+    type Output = PromiseOut<String>;
+    fn prompt_get_mut(&mut self) -> &mut String {
+        &mut self.prompt
+    }
+    fn input_get_mut(&mut self) -> &mut String {
+        &mut self.input
+    }
+    fn message_get_mut(&mut self) -> &mut String {
+        &mut self.message
+    }
+    fn prompt_get(&self) -> &String {
+        &self.prompt
+    }
+    fn input_get(&self) -> &String {
+        &self.input
+    }
+    fn message_get(&self) -> &String {
+        &self.message
+    }
+    fn read(&mut self) -> Self::Output {
+        let promise = PromiseOut::default();
+        self.prompts.lock().unwrap().push((self.clone(), promise.clone()));
+        // self.promise = Some(promise.clone());
+        // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
+        //                                                                        input: String::from(""),
+        //                                                                        promise: promise.clone() });
+        // unsafe { PROMISES_VERSION += 1 };
+        return promise;
     }
 }
 
@@ -71,6 +145,7 @@ impl CommandTask {
 fn main() {
     App::new()
         .add_event::<ShowPrompt>()
+        .init_resource::<PromptProvider>()
         .insert_resource(GlobalPromptState {
             version: 0,
             active: false,
@@ -106,6 +181,7 @@ fn handle_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut C
 /// prints every char coming in; press enter to echo the full string
 fn prompt_input(
     mut commands: Commands,
+    mut prompt_provider: ResMut<PromptProvider>,
     mut prompt_state: ResMut<GlobalPromptState>,
     mut char_evr: EventReader<ReceivedCharacter>,
     mut show_prompt: EventWriter<ShowPrompt>,
@@ -123,7 +199,8 @@ fn prompt_input(
         //     ask_name().await;
         // }));
 
-        commands.spawn(CommandTask::new(ask_name()));
+        // commands.spawn(CommandTask::new(ask_name()));
+        commands.spawn(CommandTask::new(ask_name2(prompt_provider.new_prompt())));
         return;
     }
     let version = unsafe { PROMISES_VERSION };
@@ -153,10 +230,12 @@ fn prompt_input(
                 let _ = text_prompt.input_get_mut().pop();
                 continue;
             }
-            for ev in char_evr.iter() {
-                // text.sections[1].value.push(ev.char);
-                text_prompt.input_get_mut().push(ev.char);
-            }
+
+            text_prompt.input_get_mut().extend(char_evr.iter().map(|ev| ev.char));
+            // for ev in char_evr.iter() {
+            //     // text.sections[1].value.push(ev.char);
+            //     text_prompt.input_get_mut().push(ev.char);
+            // }
             if keys.just_pressed(KeyCode::Return) {
                 // Let's return this somewhere.
                 // let result = text.sections[1].value.clone();
@@ -192,6 +271,8 @@ enum NanoError {
     Message(&'static str),
 }
 
+
+
 // XXX: Rename to NanoConsole?
 trait NanoPrompt {
     // type Output : Future<Output = Result<String, NanoError>>;
@@ -213,54 +294,69 @@ trait NanoPrompt {
     }
 }
 
-struct ProxyPrompt {
-    prompt: String,
-    message: String,
-    input: String,
-    promise: Option<PromiseOut<String>>,
-}
 
-impl Default for ProxyPrompt {
-    fn default() -> Self {
-        Self {
-            prompt: String::from(""),
-            message: String::from(""),
-            input: String::from(""),
-            promise: None,
-        }
-    }
-}
+// impl<T> NanoPrompt for Arc<T> where T: NanoPrompt {
+//     type Output = <T as NanoPrompt>::Output;
+//     fn prompt_get_mut(&mut self) -> &mut String {
+//         self.prompt_get_mut()
+//     }
+//     fn input_get_mut(&mut self) -> &mut String {
+//         self.input_get_mut()
+//     }
+//     fn message_get_mut(&mut self) -> &mut String {
+//         self.message_get_mut()
+//     }
+//     fn prompt_get(&self) -> &String {
+//         self.prompt_get()
+//     }
+//     fn input_get(&self) -> &String {
+//         self.input_get()
+//     }
+//     fn message_get(&self) -> &String {
+//         self.message_get()
+//     }
+//     fn read(&mut self) -> Self::Output {
+//         self.read()
+//     }
+// }
 
-impl NanoPrompt for ProxyPrompt {
-    type Output = PromiseOut<String>;
-    fn prompt_get_mut(&mut self) -> &mut String {
-        &mut self.prompt
-    }
-    fn input_get_mut(&mut self) -> &mut String {
-        &mut self.input
-    }
-    fn message_get_mut(&mut self) -> &mut String {
-        &mut self.message
-    }
-    fn prompt_get(&self) -> &String {
-        &self.prompt
-    }
-    fn input_get(&self) -> &String {
-        &self.input
-    }
-    fn message_get(&self) -> &String {
-        &self.message
-    }
-    fn read(&mut self) -> Self::Output {
-        let promise = PromiseOut::default();
-        self.promise = Some(promise.clone());
-        // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
-        //                                                                        input: String::from(""),
-        //                                                                        promise: promise.clone() });
-        unsafe { PROMISES_VERSION += 1 };
-        return promise;
-    }
-}
+// impl NanoPrompt for Arc<ProxyPrompt> {
+
+//     type Output = <ProxyPrompt as NanoPrompt>::Output;
+//     fn prompt_get_mut(&mut self) -> &mut String {
+//         (*self).prompt_get_mut()
+//     }
+//     fn input_get_mut(&mut self) -> &mut String {
+//         (*self).input_get_mut()
+//     }
+//     fn message_get_mut(&mut self) -> &mut String {
+//         (*self).message_get_mut()
+//     }
+//     fn prompt_get(&self) -> &String {
+//         (**self).prompt_get()
+//     }
+//     fn input_get(&self) -> &String {
+//         (**self).input_get()
+//     }
+//     fn message_get(&self) -> &String {
+//         (**self).message_get()
+//     }
+//     fn read(&mut self) -> Self::Output {
+//         // let promise = PromiseOut::default();
+
+//         let c = self.clone();
+//         let this = Arc::get_mut(self).expect("no arc proxy prompt");
+//         // this.promise = Some(promise.clone());
+
+//         let prompts = Arc::get_mut(&mut this.prompts).expect("no arc prompts");
+//         prompts.push(c);
+//         // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
+//         //                                                                        input: String::from(""),
+//         //                                                                        promise: promise.clone() });
+//         // unsafe { PROMISES_VERSION += 1 };
+//         return (*self).read();
+//     }
+// }
 
 struct TextPrompt<'a> {
     text: &'a mut Text,
@@ -370,7 +466,7 @@ async fn ask_name() {
 }
 
 async fn ask_name2(mut prompt: impl NanoPrompt) {
-    println!("ask name called");
+    println!("ask name 2 called");
     if let Ok(name) = &*prompt.read_string("What's your name? ").await {
         println!("Hello, {}", name);
     } else {

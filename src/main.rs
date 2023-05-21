@@ -1,9 +1,10 @@
 //! Demonstrates how the `AlignItems` and `JustifyContent` properties can be composed to layout text.
 use bevy::prelude::*;
+use bevy::ecs::schedule::ScheduleLabel;
 use bevy::ecs::prelude::Commands;
 use bevy::ecs::system::{CommandQueue, SystemState};
 // use bevy::ecs::storage::Resources;
-use bevy::app::SystemAppConfig;
+// use bevy::app::SystemAppConfig;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
 use once_cell::sync::OnceCell;
@@ -22,13 +23,20 @@ static mut PROMISES_VERSION: u32 = 0;
 
 // event
 struct ShowPrompt(bool);
-struct RunCommandEvent(SystemAppConfig);
-
+struct RunCommandEvent(Box<dyn ScheduleLabel>);
 impl RunCommandEvent {
-  fn new<M>(system: impl IntoSystemAppConfig<M>) -> Self {
-    Self(system.into_app_config())
+  fn into_parts(self) -> Box<dyn ScheduleLabel> {
+    self.0
   }
 }
+
+// impl RunCommandEvent {
+//   fn new<M>(system: impl IntoSystemAppConfig<M>) -> Self {
+//     Self(system.into_app_config())
+//   }
+// }
+#[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct OnDemand;
 
 
 #[derive(Resource)]
@@ -166,10 +174,10 @@ impl CommandTask {
 }
 
 
-  static OnDemand: &str = "on_demand";
 fn main() {
     App::new()
         .add_event::<ShowPrompt>()
+        .add_event::<RunCommandEvent>()
         .init_resource::<PromptProvider>()
         .insert_resource(GlobalPromptState {
             version: 0,
@@ -191,13 +199,29 @@ fn main() {
         //   // CoreStage::PostUpdate,
         //   run_commands)
         //   https://github.com/bevyengine/bevy/pull/4090#issuecomment-1355636382
-        .add_system_to(OnDemand, foo)
+        .add_systems(OnDemand, ask_name3)
         .add_system(bar)
         .run();
 }
 
 fn bar(world: &mut World) {
-  world.run_schedule(OnDemand);
+  // world.run_schedule(OnDemand);
+
+  let mut event_system_state = SystemState::<(
+        EventReader<RunCommandEvent>
+    )>::new(world);
+    let schedules: Vec<Box<dyn ScheduleLabel>> = {
+      let (mut events) = event_system_state.get_mut(world);
+      events.iter().map(|e| e.0.clone()).collect()
+    };
+
+    for schedule in schedules {
+  //   for RunCommandEvent(ref schedule) in events.iter() {//.map(|e| e.into_parts()) {
+  // // for RunCommandEvent(system) in run_commands.iter() {
+      world.run_schedule(schedule)
+  //   // system.run((), &mut world);
+
+  }
 }
 
 fn foo() {
@@ -258,7 +282,7 @@ fn prompt_input(
 
         // commands.spawn(CommandTask::new(ask_name()));
         // commands.spawn(CommandTask::new(ask_name3(prompt_provider.new_prompt())));
-        run_command.send(RunCommandEvent::new(ask_name3));
+        run_command.send(RunCommandEvent(Box::new(OnDemand)));
         return;
     }
     // let version = unsafe { PROMISES_VERSION };
@@ -556,17 +580,18 @@ async fn ask_name2(mut prompt: impl NanoPrompt) {
 
 }
 
-fn ask_name3<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) {
+fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptProvider>) {
     let mut prompt = prompt_provider.new_prompt();
-    println!("ask name 3 called");
-    // if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
-    //   if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
-    //     println!("Hello, {} {}", first_name, last_name);
-    //   }
-    // } else {
-    //     println!("Got err in ask now");
-    // }
-
+    commands.spawn(CommandTask::new(async move {
+      println!("ask name 3 called");
+      if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
+        if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
+          println!("Hello, {} {}", first_name, last_name);
+        }
+      } else {
+          println!("Got err in ask now");
+      }
+    }));
 }
 
 fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -580,7 +605,7 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
             style: Style {
                 // Fill the entire window.
                 // Does it have to fill the whole window?
-                size: Size::all(Val::Percent(100.)),
+                width: Val::Percent(100.),
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::FlexEnd,
                 ..Default::default()

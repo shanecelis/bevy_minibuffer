@@ -1,5 +1,9 @@
 //! Demonstrates how the `AlignItems` and `JustifyContent` properties can be composed to layout text.
 use bevy::prelude::*;
+use bevy::ecs::prelude::Commands;
+use bevy::ecs::system::{CommandQueue, SystemState};
+// use bevy::ecs::storage::Resources;
+use bevy::app::SystemAppConfig;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
 use once_cell::sync::OnceCell;
@@ -18,6 +22,14 @@ static mut PROMISES_VERSION: u32 = 0;
 
 // event
 struct ShowPrompt(bool);
+struct RunCommandEvent(SystemAppConfig);
+
+impl RunCommandEvent {
+  fn new<M>(system: impl IntoSystemAppConfig<M>) -> Self {
+    Self(system.into_app_config())
+  }
+}
+
 
 #[derive(Resource)]
 // resource
@@ -153,6 +165,8 @@ impl CommandTask {
     }
 }
 
+
+  static OnDemand: &str = "on_demand";
 fn main() {
     App::new()
         .add_event::<ShowPrompt>()
@@ -173,8 +187,39 @@ fn main() {
         .add_system(prompt_visibility)
         .add_system(prompt_input)
         .add_system(handle_tasks)
+        // .add_system(
+        //   // CoreStage::PostUpdate,
+        //   run_commands)
+        //   https://github.com/bevyengine/bevy/pull/4090#issuecomment-1355636382
+        .add_system_to(OnDemand, foo)
+        .add_system(bar)
         .run();
 }
+
+fn bar(world: &mut World) {
+  world.run_schedule(OnDemand);
+}
+
+fn foo() {
+  println!("Running foo");
+
+}
+// fn run_commands(//mut commands: Commands, mut run_commands: EventReader<RunCommandEvent>,
+//                 world: &mut World) {//, resources: &mut Resources<true>) {
+//   // https://bevy-cheatbook.github.io/programming/res.html
+//   let mut command = Commands::new(&mut CommandQueue::default(), &world);
+//   let mut event_system_state = SystemState::<(
+//         EventReader<RunCommandEvent>
+//     )>::new(world);
+//     let (mut events) = event_system_state.get_mut(world);
+
+//     for RunCommandEvent(system) in events.iter() {
+//   // for RunCommandEvent(system) in run_commands.iter() {
+//     system.run((), &mut world);
+
+//   }
+
+// }
 
 fn handle_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut CommandTask)>) {
     for (entity, mut task) in &mut command_tasks {
@@ -196,6 +241,7 @@ fn prompt_input(
     // mut prompt_state: ResMut<GlobalPromptState>,
     mut char_evr: EventReader<ReceivedCharacter>,
     mut show_prompt: EventWriter<ShowPrompt>,
+    mut run_command: EventWriter<RunCommandEvent>,
     keys: Res<Input<KeyCode>>,
     mut query: Query<&mut Text, With<Prompt>>,
 ) {
@@ -211,7 +257,8 @@ fn prompt_input(
         // }));
 
         // commands.spawn(CommandTask::new(ask_name()));
-        commands.spawn(CommandTask::new(ask_name2(prompt_provider.new_prompt())));
+        // commands.spawn(CommandTask::new(ask_name3(prompt_provider.new_prompt())));
+        run_command.send(RunCommandEvent::new(ask_name3));
         return;
     }
     // let version = unsafe { PROMISES_VERSION };
@@ -501,11 +548,25 @@ async fn ask_name() {
 
 async fn ask_name2(mut prompt: impl NanoPrompt) {
     println!("ask name 2 called");
-    if let Ok(name) = &*prompt.read_string("What's your name? ").await {
+    if let Ok(name) = &*prompt.read_string("What's your first name? ").await {
         println!("Hello, {}", name);
     } else {
         println!("Got err in ask now");
     }
+
+}
+
+fn ask_name3<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) {
+    let mut prompt = prompt_provider.new_prompt();
+    println!("ask name 3 called");
+    // if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
+    //   if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
+    //     println!("Hello, {} {}", first_name, last_name);
+    //   }
+    // } else {
+    //     println!("Got err in ask now");
+    // }
+
 }
 
 fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -557,7 +618,7 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 },
                             ),
                             TextSection::new(
-                                "",
+                                "input",
                                 TextStyle {
                                     font: font.clone(),
                                     font_size: 24.0,
@@ -565,7 +626,7 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 },
                             ),
                             TextSection::new(
-                                "message",
+                                " message",
                                 TextStyle {
                                     font,
                                     font_size: 24.0,

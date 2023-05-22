@@ -12,6 +12,8 @@ use promise_out::PromiseOut;
 use std::future::Future;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, Weak};
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 const ALIGN_ITEMS_COLOR: Color = Color::rgb(1., 0.066, 0.349);
 const JUSTIFY_CONTENT_COLOR: Color = Color::rgb(0.102, 0.522, 1.);
@@ -36,7 +38,7 @@ impl RunCommandEvent {
 //   }
 // }
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct OnDemand;
+pub struct CommandOneShot(String);
 
 
 #[derive(Resource)]
@@ -141,6 +143,7 @@ impl NanoPrompt for ProxyPrompt {
         &self.prompt
     }
     fn input_get(&self) -> &String {
+
         &self.input
     }
     fn message_get(&self) -> &String {
@@ -173,8 +176,35 @@ impl CommandTask {
     }
 }
 
+struct Dummy;
+
+impl Future for Dummy {
+  type Output = ();
+  fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+     Poll::Ready(())
+  }
+}
+
+async fn silly() -> Dummy {
+  Dummy {}
+}
+
+fn silly2(
+    mut prompt_provider: ResMut<PromptProvider>,
+) -> impl Future<Output = ()> {
+  async {
+  Dummy.await;
+  }
+
+}
+
 
 fn main() {
+    let sys = IntoSystem::into_system(ask_name4);
+    // let sys = IntoSystem::into_system(task_sink::<Dummy>);
+    // let sys2 = IntoSystem::into_system(silly2);
+    let name = sys.name();
+  println!("sys name {}", name);
     App::new()
         .add_event::<ShowPrompt>()
         .add_event::<RunCommandEvent>()
@@ -195,40 +225,54 @@ fn main() {
         .add_system(prompt_visibility)
         .add_system(prompt_input)
         .add_system(handle_tasks)
-        // .add_system(
-        //   // CoreStage::PostUpdate,
-        //   run_commands)
-        //   https://github.com/bevyengine/bevy/pull/4090#issuecomment-1355636382
-        .add_systems(OnDemand, ask_name3)
-        .add_system(bar)
+        // .add_systems(Last, run_commands_hack)
+        .add_systems(PreUpdate, run_commands)
+        // .add_systems(CommandOneShot(name.into_owned()), ask_name3)
+        .add_systems(CommandOneShot(name.into_owned()), ask_name4.pipe(task_sink))
+        // .add_systems(PostUpdate, run_commands)
         .run();
 }
 
-fn bar(world: &mut World) {
-  // world.run_schedule(OnDemand);
-
-  let mut event_system_state = SystemState::<(
-        EventReader<RunCommandEvent>
-    )>::new(world);
+fn run_commands(world: &mut World) {
+    let mut event_system_state = SystemState::<(EventReader<RunCommandEvent>)>::new(world);
     let schedules: Vec<Box<dyn ScheduleLabel>> = {
-      let (mut events) = event_system_state.get_mut(world);
-      events.iter().map(|e| e.0.clone()).collect()
+        let mut events = event_system_state.get_mut(world);
+        let mut look = false;
+        if events.len() > 0 {
+            println!("event count {}", events.len());
+            look = true;
+        }
+        let results = events.iter().map(|e| e.0.clone()).collect();
+
+        if look {
+            println!("events after iter count {}", events.len());
+        }
+        events.clear();
+        if look {
+            println!("events after clear count {}", events.len());
+        }
+        results
     };
 
     for schedule in schedules {
-  //   for RunCommandEvent(ref schedule) in events.iter() {//.map(|e| e.into_parts()) {
-  // // for RunCommandEvent(system) in run_commands.iter() {
-      world.run_schedule(schedule)
-  //   // system.run((), &mut world);
+        match world.try_run_schedule(schedule) {
+          Err(e) => println!("Problem running command: {:?}", e),
+          _ => {}
+        }
+    }
+}
 
+fn run_commands_hack(mut events: EventReader<RunCommandEvent>) {
+
+        if events.len() > 0 {
+            println!("hack: event count {}", events.len());
+            // look = true;
+        }
+  if ! events.is_empty() {
+      events.clear();
   }
 }
 
-fn foo() {
-  println!("Running foo");
-
-}
-// fn run_commands(//mut commands: Commands, mut run_commands: EventReader<RunCommandEvent>,
 //                 world: &mut World) {//, resources: &mut Resources<true>) {
 //   // https://bevy-cheatbook.github.io/programming/res.html
 //   let mut command = Commands::new(&mut CommandQueue::default(), &world);
@@ -270,6 +314,7 @@ fn prompt_input(
     mut query: Query<&mut Text, With<Prompt>>,
 ) {
     if keys.just_pressed(KeyCode::Tab) {
+      println!("tab pressed");
         // let thread_pool = AsyncComputeTaskPool::get();
         // let task = thread_pool.spawn(async move {
         //     ask_name().await;
@@ -282,7 +327,7 @@ fn prompt_input(
 
         // commands.spawn(CommandTask::new(ask_name()));
         // commands.spawn(CommandTask::new(ask_name3(prompt_provider.new_prompt())));
-        run_command.send(RunCommandEvent(Box::new(OnDemand)));
+        run_command.send(RunCommandEvent(Box::new(CommandOneShot("nanoprompt::ask_name4".to_owned()))));
         return;
     }
     // let version = unsafe { PROMISES_VERSION };
@@ -580,6 +625,7 @@ async fn ask_name2(mut prompt: impl NanoPrompt) {
 
 }
 
+// Take a look at pipe system. https://docs.rs/bevy/latest/bevy/ecs/system/trait.SystemParamFunction.html
 fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptProvider>) {
     let mut prompt = prompt_provider.new_prompt();
     commands.spawn(CommandTask::new(async move {
@@ -591,6 +637,38 @@ fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptP
       } else {
           println!("Got err in ask now");
       }
+    }));
+}
+
+// async fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) {
+//     let mut prompt = prompt_provider.new_prompt();
+//     println!("ask name 3 called");
+//     if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
+//       if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
+//         println!("Hello, {} {}", first_name, last_name);
+//       }
+//     } else {
+//         println!("Got err in ask now");
+//     }
+// }
+
+fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) -> impl Future<Output = ()>{
+    let mut prompt = prompt_provider.new_prompt();
+    println!("ask name 3 called");
+    async move {
+    if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
+      if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
+        println!("Hello, {} {}", first_name, last_name);
+      }
+    } else {
+        println!("Got err in ask now");
+    }
+    }
+}
+
+fn task_sink<T : Future<Output = ()> + Send + 'static>(In(future): In<T>, mut commands: Commands) {
+    commands.spawn(CommandTask::new(async move {
+      future.await
     }));
 }
 

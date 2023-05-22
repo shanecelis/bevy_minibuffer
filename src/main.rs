@@ -1,8 +1,8 @@
 //! Demonstrates how the `AlignItems` and `JustifyContent` properties can be composed to layout text.
-use bevy::prelude::*;
-use bevy::ecs::schedule::ScheduleLabel;
 use bevy::ecs::prelude::Commands;
+use bevy::ecs::schedule::ScheduleLabel;
 use bevy::ecs::system::{CommandQueue, SystemState};
+use bevy::prelude::*;
 // use bevy::ecs::storage::Resources;
 // use bevy::app::SystemAppConfig;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
@@ -10,9 +10,9 @@ use futures_lite::future;
 use once_cell::sync::OnceCell;
 use promise_out::PromiseOut;
 use std::future::Future;
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, Weak};
-use std::pin::Pin;
 use std::task::{Context, Poll};
 
 const ALIGN_ITEMS_COLOR: Color = Color::rgb(1., 0.066, 0.349);
@@ -27,26 +27,13 @@ static mut PROMISES_VERSION: u32 = 0;
 struct ShowPrompt(bool);
 struct RunCommandEvent(Box<dyn ScheduleLabel>);
 impl RunCommandEvent {
-  fn into_parts(self) -> Box<dyn ScheduleLabel> {
-    self.0
-  }
+    fn into_parts(self) -> Box<dyn ScheduleLabel> {
+        self.0
+    }
 }
 
-// impl RunCommandEvent {
-//   fn new<M>(system: impl IntoSystemAppConfig<M>) -> Self {
-//     Self(system.into_app_config())
-//   }
-// }
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CommandOneShot(String);
-
-
-#[derive(Resource)]
-// resource
-struct GlobalPromptState {
-    active: bool,
-    version: u32,
-}
 
 #[derive(Debug)]
 struct PromptState {
@@ -56,42 +43,36 @@ struct PromptState {
 }
 
 #[derive(Component)]
-struct Prompt {
-    // active: bool,
-    // promises: Vec<PromiseOut<String>>
-}
+struct PromptNode {}
 
 struct ReadPrompt {
-  prompt: ProxyPrompt,
-  active: bool,
-  promise: PromiseOut<String>,
+    prompt: ProxyPrompt,
+    active: bool,
+    promise: PromiseOut<String>,
 }
 
 impl ReadPrompt {
-  fn resolve(self, s: String) {
-    self.promise.resolve(s);
-  }
+    fn into_parts(self) -> (ProxyPrompt, bool, PromiseOut<String>) {
+        (self.prompt, self.active, self.promise)
+    }
 }
 
 #[derive(Resource)]
 struct PromptProvider {
-    // This is a sink.
-    prompts: Arc<Mutex<Vec<ReadPrompt>>>,
+    prompt_stack: Arc<Mutex<Vec<ReadPrompt>>>,
 }
 
 impl Default for PromptProvider {
     fn default() -> Self {
         Self {
-            prompts: Arc::new(Mutex::new(vec![])),
+            prompt_stack: Arc::new(Mutex::new(vec![])),
         }
     }
 }
 
 impl PromptProvider {
     fn new_prompt(&mut self) -> ProxyPrompt {
-        let prompt = ProxyPrompt::new(self.prompts.clone());
-        // let cell = Arc::new(prompt);
-        // self.prompts.push(Arc::downgrade(&cell));
+        let prompt = ProxyPrompt::new(self.prompt_stack.clone());
         prompt
     }
 }
@@ -101,7 +82,6 @@ struct ProxyPrompt {
     prompt: String,
     message: String,
     input: String,
-    // promise: Option<PromiseOut<String>>,
     prompts: Arc<Mutex<Vec<ReadPrompt>>>,
 }
 
@@ -111,22 +91,10 @@ impl ProxyPrompt {
             prompt: String::from(""),
             message: String::from(""),
             input: String::from(""),
-            // promise: None,
             prompts,
         }
     }
 }
-
-// impl Default for ProxyPrompt {
-//     fn default() -> Self {
-//         Self {
-//             prompt: String::from(""),
-//             message: String::from(""),
-//             input: String::from(""),
-//             promise: None,
-//         }
-//     }
-// }
 
 impl NanoPrompt for ProxyPrompt {
     type Output = PromiseOut<String>;
@@ -143,7 +111,6 @@ impl NanoPrompt for ProxyPrompt {
         &self.prompt
     }
     fn input_get(&self) -> &String {
-
         &self.input
     }
     fn message_get(&self) -> &String {
@@ -151,18 +118,13 @@ impl NanoPrompt for ProxyPrompt {
     }
     fn read(&mut self) -> Self::Output {
         let promise = PromiseOut::default();
-        self.prompts
-            .lock()
-            .unwrap()
-            .push(ReadPrompt { prompt: self.clone(), promise: promise.clone(), active: false });
-        // self.promise = Some(promise.clone());
-        // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
-        //                                                                        input: String::from(""),
-        //                                                                        promise: promise.clone() });
-        // unsafe { PROMISES_VERSION += 1 };
+        self.prompts.lock().unwrap().push(ReadPrompt {
+            prompt: self.clone(),
+            promise: promise.clone(),
+            active: false,
+        });
         return promise;
     }
-
 }
 
 #[derive(Component)]
@@ -179,44 +141,36 @@ impl CommandTask {
 struct Dummy;
 
 impl Future for Dummy {
-  type Output = ();
-  fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-     Poll::Ready(())
-  }
+    type Output = ();
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Poll::Ready(())
+    }
 }
 
 async fn silly() -> Dummy {
-  Dummy {}
+    Dummy {}
 }
 
-fn silly2(
-    mut prompt_provider: ResMut<PromptProvider>,
-) -> impl Future<Output = ()> {
-  async {
-  Dummy.await;
-  }
-
+fn silly2(mut prompt_provider: ResMut<PromptProvider>) -> impl Future<Output = ()> {
+    async {
+        Dummy.await;
+    }
 }
-
 
 fn main() {
     let sys = IntoSystem::into_system(ask_name4);
     // let sys = IntoSystem::into_system(task_sink::<Dummy>);
     // let sys2 = IntoSystem::into_system(silly2);
     let name = sys.name();
-  println!("sys name {}", name);
+    println!("sys name {}", name);
     App::new()
         .add_event::<ShowPrompt>()
         .add_event::<RunCommandEvent>()
         .init_resource::<PromptProvider>()
-        .insert_resource(GlobalPromptState {
-            version: 0,
-            active: false,
-        })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: [870., 1066.].into(),
-                title: "Bevy Prompt Example".to_string(),
+                title: "Bevy Nano Prompt Example".to_string(),
                 ..Default::default()
             }),
             ..Default::default()
@@ -256,21 +210,20 @@ fn run_commands(world: &mut World) {
 
     for schedule in schedules {
         match world.try_run_schedule(schedule) {
-          Err(e) => println!("Problem running command: {:?}", e),
-          _ => {}
+            Err(e) => println!("Problem running command: {:?}", e),
+            _ => {}
         }
     }
 }
 
 fn run_commands_hack(mut events: EventReader<RunCommandEvent>) {
-
-        if events.len() > 0 {
-            println!("hack: event count {}", events.len());
-            // look = true;
-        }
-  if ! events.is_empty() {
-      events.clear();
-  }
+    if events.len() > 0 {
+        println!("hack: event count {}", events.len());
+        // look = true;
+    }
+    if !events.is_empty() {
+        events.clear();
+    }
 }
 
 //                 world: &mut World) {//, resources: &mut Resources<true>) {
@@ -306,96 +259,55 @@ fn handle_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut C
 fn prompt_input(
     mut commands: Commands,
     mut prompt_provider: ResMut<PromptProvider>,
-    // mut prompt_state: ResMut<GlobalPromptState>,
     mut char_evr: EventReader<ReceivedCharacter>,
     mut show_prompt: EventWriter<ShowPrompt>,
     mut run_command: EventWriter<RunCommandEvent>,
     keys: Res<Input<KeyCode>>,
-    mut query: Query<&mut Text, With<Prompt>>,
+    mut query: Query<&mut Text, With<PromptNode>>,
 ) {
     if keys.just_pressed(KeyCode::Tab) {
-      println!("tab pressed");
-        // let thread_pool = AsyncComputeTaskPool::get();
-        // let task = thread_pool.spawn(async move {
-        //     ask_name().await;
-        // });
-        // commands.spawn(CommandTask(task));
-        //
-        // commands.spawn(CommandTask::new(async move {
-        //     ask_name().await;
-        // }));
-
+        println!("tab pressed");
         // commands.spawn(CommandTask::new(ask_name()));
         // commands.spawn(CommandTask::new(ask_name3(prompt_provider.new_prompt())));
-        run_command.send(RunCommandEvent(Box::new(CommandOneShot("nanoprompt::ask_name4".to_owned()))));
+        run_command.send(RunCommandEvent(Box::new(CommandOneShot(
+            "nanoprompt::ask_name4".to_owned(),
+        ))));
         return;
     }
-    // let version = unsafe { PROMISES_VERSION };
-    // if prompt_state.version != version {
-    //     let new_state = unsafe { PROMISES.get().expect("No promises").len() } > 0;
-    //     if prompt_state.active != new_state {
-    //         prompt_state.active = new_state;
-    //         println!("show prompt {}", new_state);
-    //         show_prompt.send(ShowPrompt(new_state));
 
-    //         if new_state {
-    //             if let Some(prompt_state) = unsafe { PROMISES.get() }.expect("No promises").last() {
-    //                 for (mut prompt, mut text) in query.iter_mut() {
-    //                     text.sections[0].value.clone_from(&prompt_state.prompt);
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     prompt_state.version = version;
-    // }
-
-    let mut prompts = prompt_provider.prompts.lock().unwrap();
+    let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
     for mut text in query.iter_mut() {
         if prompts.len() > 0 {
             let mut text_prompt = TextPrompt { text: &mut text };
             if keys.just_pressed(KeyCode::Return) {
                 let read_prompt = prompts.pop().unwrap();
-                // Let's return this somewhere.
-                // let result = text.sections[1].value.clone();
                 let result = text_prompt.input_get().clone();
-                // text.sections[1].value.clear();
                 println!("Got result {}", result);
-                // let prompt_state = unsafe { PROMISES.get_mut() }
-                //     .expect("no promises")
-                //     .pop()
-                //     .expect("no promise");
-                // unsafe { PROMISES_VERSION += 1 };
-                read_prompt.resolve(result);
+                let (_, _, promise) = read_prompt.into_parts();
+                promise.resolve(result);
                 if prompts.len() == 0 {
                     show_prompt.send(ShowPrompt(false));
                 }
                 continue;
             }
             let read_prompt = prompts.last_mut().unwrap();
-            if ! read_prompt.active {
-              // Must set it up.
-              text_prompt.clone_from(&read_prompt.prompt);
-              read_prompt.active = true;
-              for i in 0..prompts.len() - 1 {
-                prompts[i].active = false;
-              }
+            if !read_prompt.active {
+                // Must set it up.
+                text_prompt.clone_from(&read_prompt.prompt);
+                read_prompt.active = true;
+                for i in 0..prompts.len() - 1 {
+                    prompts[i].active = false;
+                }
 
-              show_prompt.send(ShowPrompt(true));
+                show_prompt.send(ShowPrompt(true));
             }
-        // if prompt_state.active {
             if keys.just_pressed(KeyCode::Back) {
-                // let _ = text.sections[1].value.pop();
                 let _ = text_prompt.input_get_mut().pop();
                 continue;
             }
-
             text_prompt
                 .input_get_mut()
                 .extend(char_evr.iter().map(|ev| ev.char));
-            // for ev in char_evr.iter() {
-            //     // text.sections[1].value.push(ev.char);
-            //     text_prompt.input_get_mut().push(ev.char);
-            // }
         }
     }
 }
@@ -439,78 +351,14 @@ trait NanoPrompt {
     }
 
     fn clone_from<T: NanoPrompt>(&mut self, other: &T) {
-      self.prompt_get_mut().clone_from(other.prompt_get());
-      self.message_get_mut().clone_from(other.message_get());
-      self.input_get_mut().clone_from(other.input_get());
+        self.prompt_get_mut().clone_from(other.prompt_get());
+        self.message_get_mut().clone_from(other.message_get());
+        self.input_get_mut().clone_from(other.input_get());
     }
 }
 
-// impl<T> NanoPrompt for Arc<T> where T: NanoPrompt {
-//     type Output = <T as NanoPrompt>::Output;
-//     fn prompt_get_mut(&mut self) -> &mut String {
-//         self.prompt_get_mut()
-//     }
-//     fn input_get_mut(&mut self) -> &mut String {
-//         self.input_get_mut()
-//     }
-//     fn message_get_mut(&mut self) -> &mut String {
-//         self.message_get_mut()
-//     }
-//     fn prompt_get(&self) -> &String {
-//         self.prompt_get()
-//     }
-//     fn input_get(&self) -> &String {
-//         self.input_get()
-//     }
-//     fn message_get(&self) -> &String {
-//         self.message_get()
-//     }
-//     fn read(&mut self) -> Self::Output {
-//         self.read()
-//     }
-// }
-
-// impl NanoPrompt for Arc<ProxyPrompt> {
-
-//     type Output = <ProxyPrompt as NanoPrompt>::Output;
-//     fn prompt_get_mut(&mut self) -> &mut String {
-//         (*self).prompt_get_mut()
-//     }
-//     fn input_get_mut(&mut self) -> &mut String {
-//         (*self).input_get_mut()
-//     }
-//     fn message_get_mut(&mut self) -> &mut String {
-//         (*self).message_get_mut()
-//     }
-//     fn prompt_get(&self) -> &String {
-//         (**self).prompt_get()
-//     }
-//     fn input_get(&self) -> &String {
-//         (**self).input_get()
-//     }
-//     fn message_get(&self) -> &String {
-//         (**self).message_get()
-//     }
-//     fn read(&mut self) -> Self::Output {
-//         // let promise = PromiseOut::default();
-
-//         let c = self.clone();
-//         let this = Arc::get_mut(self).expect("no arc proxy prompt");
-//         // this.promise = Some(promise.clone());
-
-//         let prompts = Arc::get_mut(&mut this.prompts).expect("no arc prompts");
-//         prompts.push(c);
-//         // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
-//         //                                                                        input: String::from(""),
-//         //                                                                        promise: promise.clone() });
-//         // unsafe { PROMISES_VERSION += 1 };
-//         return (*self).read();
-//     }
-// }
-
 struct TextPrompt<'a> {
     text: &'a mut Text,
-    // promise: Option<PromiseOut<String>>
 }
 
 impl<'a> NanoPrompt for TextPrompt<'a> {
@@ -534,43 +382,10 @@ impl<'a> NanoPrompt for TextPrompt<'a> {
         &self.text.sections[2].value
     }
     fn read(&mut self) -> Self::Output {
-        let promise = PromiseOut::default();
-        // self.promise = Some(promise.clone());
-        // unsafe { PROMISES.get_mut() }.expect("no promises").push(PromptState { prompt: prompt.to_owned(),
-        //                                                                        input: String::from(""),
-        //                                                                        promise: promise.clone() });
-        unsafe { PROMISES_VERSION += 1 };
-        return promise;
+        panic!("Not sure this should ever be called.");
     }
 }
 
-// impl Nanobuffer {
-//   is_reading() -> bool;
-//   read_string() -> impl Future<Result<String, String>>; //nanobuffer::Error
-//   read<T>() -> impl Future<Result<T, String>>;
-// }
-
-// public interface INanobuffer {
-//   /** Shows a message to the user when not reading. */
-//   public string Message { get; set; }
-//   /** Prompt shown when reading. */
-//   public string Prompt { get; set; }
-//   /** Input line from user. Set before Read() for default input. */
-//   public string Input { get; set; }
-//   /** Message shown when prompting. */
-//   public string ErrorMessage { get; set; }
-//   /** Returns true if currently reading from user. (This is a read only property.) */
-//   public bool IsReading { get; }
-
-//   /** Read input from the user with the given parser and token. Cancel based
-//       on token. */
-//   public
-//     Task<T>
-//     Read<T>(TryParseSource<T> tryParse,
-//                          CancellationToken token);
-// }
-
-// use Into<PromptState>
 fn user_read(prompt: &str) -> PromiseOut<String> {
     let promise: PromiseOut<String> = PromiseOut::default();
     println!("promise added");
@@ -587,7 +402,7 @@ fn user_read(prompt: &str) -> PromiseOut<String> {
 
 fn prompt_visibility(
     mut show_prompt: EventReader<ShowPrompt>,
-    query: Query<(&Parent, &Prompt)>,
+    query: Query<(&Parent, &PromptNode)>,
     mut q_parent: Query<&mut Visibility>,
 ) {
     if show_prompt.is_empty() {
@@ -622,24 +437,24 @@ async fn ask_name2(mut prompt: impl NanoPrompt) {
     } else {
         println!("Got err in ask now");
     }
-
 }
 
 // Take a look at pipe system. https://docs.rs/bevy/latest/bevy/ecs/system/trait.SystemParamFunction.html
 fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptProvider>) {
     let mut prompt = prompt_provider.new_prompt();
     commands.spawn(CommandTask::new(async move {
-      println!("ask name 3 called");
-      if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
-        if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
-          println!("Hello, {} {}", first_name, last_name);
+        println!("ask name 3 called");
+        if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
+            if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
+                println!("Hello, {} {}", first_name, last_name);
+            }
+        } else {
+            println!("Got err in ask now");
         }
-      } else {
-          println!("Got err in ask now");
-      }
     }));
 }
 
+// This one doesn't work.
 // async fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) {
 //     let mut prompt = prompt_provider.new_prompt();
 //     println!("ask name 3 called");
@@ -652,24 +467,22 @@ fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptP
 //     }
 // }
 
-fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) -> impl Future<Output = ()>{
+fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) -> impl Future<Output = ()> {
     let mut prompt = prompt_provider.new_prompt();
     println!("ask name 3 called");
     async move {
-    if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
-      if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
-        println!("Hello, {} {}", first_name, last_name);
-      }
-    } else {
-        println!("Got err in ask now");
-    }
+        if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
+            if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
+                println!("Hello, {} {}", first_name, last_name);
+            }
+        } else {
+            println!("Got err in ask now");
+        }
     }
 }
 
-fn task_sink<T : Future<Output = ()> + Send + 'static>(In(future): In<T>, mut commands: Commands) {
-    commands.spawn(CommandTask::new(async move {
-      future.await
-    }));
+fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>, mut commands: Commands) {
+    commands.spawn(CommandTask::new(async move { future.await }));
 }
 
 fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -713,7 +526,7 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                     builder
                         .spawn(TextBundle::from_sections([
                             TextSection::new(
-                                "Prompt: ",
+                                "PromptNode: ",
                                 TextStyle {
                                     font: font.clone(),
                                     font_size: 24.0,
@@ -737,7 +550,7 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 },
                             ),
                         ]))
-                        .insert(Prompt { // active: false,
+                        .insert(PromptNode { // active: false,
                                              // promises: vec![]
                             });
                 });

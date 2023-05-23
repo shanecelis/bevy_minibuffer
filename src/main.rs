@@ -3,8 +3,6 @@ use bevy::ecs::prelude::Commands;
 use bevy::ecs::schedule::ScheduleLabel;
 use bevy::ecs::system::{CommandQueue, SystemState};
 use bevy::prelude::*;
-// use bevy::ecs::storage::Resources;
-// use bevy::app::SystemAppConfig;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
 use once_cell::sync::OnceCell;
@@ -14,14 +12,11 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, Weak};
 use std::task::{Context, Poll};
+use std::borrow::{Cow};
 
 const ALIGN_ITEMS_COLOR: Color = Color::rgb(1., 0.066, 0.349);
 const JUSTIFY_CONTENT_COLOR: Color = Color::rgb(0.102, 0.522, 1.);
 const MARGIN: Val = Val::Px(5.);
-
-// Seems like there should be a mutex in here.
-static mut PROMISES: OnceCell<Vec<PromptState>> = OnceCell::new();
-static mut PROMISES_VERSION: u32 = 0;
 
 // event
 struct ShowPrompt(bool);
@@ -32,15 +27,33 @@ impl RunCommandEvent {
     }
 }
 
-#[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct CommandOneShot(String);
+// https://www.cs.brandeis.edu/~cs146a/rust/doc-02-21-2015/src/collections/borrow.rs.html#305-309
+// I don't understand why this isn't in the standard lib.
+// pub trait IntoCow<'a, B: ?Sized> where B: ToOwned {
+//     /// Moves `self` into `Cow`
+//     fn into_cow(self) -> Cow<'a, B>;
+// }
 
-#[derive(Debug)]
-struct PromptState {
-    prompt: String,
-    input: String,
-    promise: PromiseOut<String>,
-}
+// impl<'a> IntoCow<'a, str> for &'a str {
+//     fn into_cow(self) -> Cow<'a, str> {
+//         Cow::Borrowed(self)
+//     }
+// }
+
+// impl<'a> IntoCow<'a, str> for String {
+//     fn into_cow(self) -> Cow<'a, str> {
+//         Cow::Owned(self)
+//     }
+// }
+
+// impl<'a,  B: ?Sized> IntoCow<'a, B> for Cow<'a, B> where B: ToOwned {
+//     fn into_cow(self) -> Cow<'a, B> {
+//         self
+//     }
+// }
+
+#[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct CommandOneShot(Cow<'static, str>);
 
 #[derive(Component)]
 struct PromptNode {}
@@ -128,9 +141,9 @@ impl NanoPrompt for ProxyPrompt {
 }
 
 #[derive(Component)]
-struct CommandTask(Task<()>);
+struct TaskSink(Task<()>);
 
-impl CommandTask {
+impl TaskSink {
     fn new(future: impl Future<Output = ()> + Send + 'static) -> Self {
         let thread_pool = AsyncComputeTaskPool::get();
         let task = thread_pool.spawn(future);
@@ -138,24 +151,40 @@ impl CommandTask {
     }
 }
 
-struct Dummy;
-
-impl Future for Dummy {
-    type Output = ();
-    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-        Poll::Ready(())
-    }
+trait AddCommand {
+  // fn add_command<Params>(&mut self, system: impl IntoSystemConfigs<Params>) -> &mut Self;
+  fn add_command<Marker>(&mut self, name: impl Into<Cow<'static, str>>, system: impl IntoSystem<(),(),Marker> + 'static) -> &mut Self;
 }
 
-async fn silly() -> Dummy {
-    Dummy {}
+impl AddCommand for App {
+  fn add_command<Marker>(&mut self, name: impl Into<Cow<'static, str>>, system: impl IntoSystem<(),(),Marker> + 'static) -> &mut Self {
+  // fn add_command<S: IntoCow<'static, str>, Marker>(&mut self, name: S, system: impl IntoSystem<(),(),Marker> + 'static) -> &mut Self {
+  // fn add_command<Marker>(&mut self, name: IntoCow<'static, str>, system: impl IntoSystem<(),(),Marker> + 'static) -> &mut Self {
+    let system : Box<dyn System<In = (), Out = ()> + 'static> = Box::new(IntoSystem::into_system(system));
+    // let name = system.name();
+    self.add_systems(CommandOneShot(name.into()), system);
+    self
+  }
 }
 
-fn silly2(mut prompt_provider: ResMut<PromptProvider>) -> impl Future<Output = ()> {
-    async {
-        Dummy.await;
-    }
-}
+// struct Dummy;
+
+// impl Future for Dummy {
+//     type Output = ();
+//     fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+//         Poll::Ready(())
+//     }
+// }
+
+// async fn silly() -> Dummy {
+//     Dummy {}
+// }
+
+// fn silly2(mut prompt_provider: ResMut<PromptProvider>) -> impl Future<Output = ()> {
+//     async {
+//         Dummy.await;
+//     }
+// }
 
 fn main() {
     let sys = IntoSystem::into_system(ask_name4);
@@ -179,11 +208,11 @@ fn main() {
         .add_system(prompt_visibility)
         .add_system(prompt_input)
         .add_system(handle_tasks)
-        // .add_systems(Last, run_commands_hack)
         .add_systems(PreUpdate, run_commands)
         // .add_systems(CommandOneShot(name.into_owned()), ask_name3)
-        .add_systems(CommandOneShot(name.into_owned()), ask_name4.pipe(task_sink))
-        // .add_systems(PostUpdate, run_commands)
+        // .add_systems(CommandOneShot(name.into_owned()), ask_name4.pipe(task_sink))
+        .add_command("ask_name", ask_name4.pipe(task_sink))
+        // .add_command("ask_name", ask_name3)
         .run();
 }
 
@@ -216,17 +245,7 @@ fn run_commands(world: &mut World) {
     }
 }
 
-fn run_commands_hack(mut events: EventReader<RunCommandEvent>) {
-    if events.len() > 0 {
-        println!("hack: event count {}", events.len());
-        // look = true;
-    }
-    if !events.is_empty() {
-        events.clear();
-    }
-}
-
-//                 world: &mut World) {//, resources: &mut Resources<true>) {
+// fn run_commands(world: &mut World) {//, resources: &mut Resources<true>) {
 //   // https://bevy-cheatbook.github.io/programming/res.html
 //   let mut command = Commands::new(&mut CommandQueue::default(), &world);
 //   let mut event_system_state = SystemState::<(
@@ -242,14 +261,11 @@ fn run_commands_hack(mut events: EventReader<RunCommandEvent>) {
 
 // }
 
-fn handle_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut CommandTask)>) {
+fn handle_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut TaskSink)>) {
     for (entity, mut task) in &mut command_tasks {
         if let Some(_) = future::block_on(future::poll_once(&mut task.0)) {
-            // println!("Task handled.");
             commands.entity(entity).despawn();
-            // commands.entity(entity).remove::<CommandTask>();
-        } else {
-            // println!("Task not handled.");
+            // commands.entity(entity).remove::<TaskSink>();
         }
     }
 }
@@ -267,10 +283,10 @@ fn prompt_input(
 ) {
     if keys.just_pressed(KeyCode::Tab) {
         println!("tab pressed");
-        // commands.spawn(CommandTask::new(ask_name()));
-        // commands.spawn(CommandTask::new(ask_name3(prompt_provider.new_prompt())));
+        // commands.spawn(TaskSink::new(ask_name()));
+        // commands.spawn(TaskSink::new(ask_name3(prompt_provider.new_prompt())));
         run_command.send(RunCommandEvent(Box::new(CommandOneShot(
-            "nanoprompt::ask_name4".to_owned(),
+            "ask_name".into()
         ))));
         return;
     }
@@ -386,20 +402,6 @@ impl<'a> NanoPrompt for TextPrompt<'a> {
     }
 }
 
-fn user_read(prompt: &str) -> PromiseOut<String> {
-    let promise: PromiseOut<String> = PromiseOut::default();
-    println!("promise added");
-    unsafe { PROMISES.get_mut() }
-        .expect("no promises")
-        .push(PromptState {
-            prompt: prompt.to_owned(),
-            input: String::from(""),
-            promise: promise.clone(),
-        });
-    unsafe { PROMISES_VERSION += 1 };
-    return promise;
-}
-
 fn prompt_visibility(
     mut show_prompt: EventReader<ShowPrompt>,
     query: Query<(&Parent, &PromptNode)>,
@@ -408,11 +410,11 @@ fn prompt_visibility(
     if show_prompt.is_empty() {
         return;
     }
+    // OR together all the events.
     let show = show_prompt.iter().fold(false, |acc, x| acc || x.0);
     for (parent, prompt) in query.iter() {
-        if let Ok(mut v) = q_parent.get_mut(parent.get()) {
-            // println!("AAAA");
-            *v = if show {
+        if let Ok(mut visbility) = q_parent.get_mut(parent.get()) {
+            *visbility = if show {
                 Visibility::Visible
             } else {
                 Visibility::Hidden
@@ -421,14 +423,14 @@ fn prompt_visibility(
     }
 }
 
-async fn ask_name() {
-    println!("ask name called");
-    if let Ok(name) = &*user_read("What's your name? ").await {
-        println!("Hello, {}", name);
-    } else {
-        println!("Got err in ask now");
-    }
-}
+// async fn ask_name() {
+//     println!("ask name called");
+//     if let Ok(name) = &*user_read("What's your name? ").await {
+//         println!("Hello, {}", name);
+//     } else {
+//         println!("Got err in ask now");
+//     }
+// }
 
 async fn ask_name2(mut prompt: impl NanoPrompt) {
     println!("ask name 2 called");
@@ -442,7 +444,7 @@ async fn ask_name2(mut prompt: impl NanoPrompt) {
 // Take a look at pipe system. https://docs.rs/bevy/latest/bevy/ecs/system/trait.SystemParamFunction.html
 fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptProvider>) {
     let mut prompt = prompt_provider.new_prompt();
-    commands.spawn(CommandTask::new(async move {
+    commands.spawn(TaskSink::new(async move {
         println!("ask name 3 called");
         if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
             if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
@@ -481,14 +483,32 @@ fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) -> impl Future
     }
 }
 
+trait CommandMeta {
+  fn name() -> &'static str;
+}
+
+// https://stackoverflow.com/questions/68700171/how-can-i-assign-metadata-to-a-trait
+#[doc(hidden)]
+    #[allow(non_camel_case_types)]
+    /// Rocket code generated proxy structure.
+    pub struct ask_name4 {}
+    /// Rocket code generated proxy static conversion implementations.
+    impl CommandMeta for ask_name4 {
+        #[allow(non_snake_case, unreachable_patterns, unreachable_code)]
+        fn name() -> &'static str {
+          "ask_name4"
+        }
+        // fn into_info(self) -> ::rocket::route::StaticInfo {
+        //     // ...
+        // }
+        // ...
+    }
+
 fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>, mut commands: Commands) {
-    commands.spawn(CommandTask::new(async move { future.await }));
+    commands.spawn(TaskSink::new(async move { future.await }));
 }
 
 fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // This just has to be initialized somewhere.
-    unsafe { PROMISES.set(vec![]) }.unwrap();
-
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     commands.spawn(Camera2dBundle::default());
     commands

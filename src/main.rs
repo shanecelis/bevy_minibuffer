@@ -78,7 +78,13 @@ impl ProxyPrompt {
     }
 }
 
-impl NanoPrompt for ProxyPrompt {
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+enum PromptState {
+    #[default]
+    // Uninit,
+    Invisible,
+    Visible,
+}
     type Output = PromiseOut<String>;
     fn prompt_get_mut(&mut self) -> &mut String {
         &mut self.prompt
@@ -156,14 +162,15 @@ impl AddCommand for App {
 // }
 
 fn main() {
-    let sys = IntoSystem::into_system(ask_name4);
-    // let sys = IntoSystem::into_system(task_sink::<Dummy>);
-    // let sys2 = IntoSystem::into_system(silly2);
-    let name = sys.name();
-    println!("sys name {}", name);
+    // let sys = IntoSystem::into_system(ask_name4);
+    // // let sys = IntoSystem::into_system(task_sink::<Dummy>);
+    // // let sys2 = IntoSystem::into_system(silly2);
+    // let name = sys.name();
+    // println!("sys name {}", name);
     App::new()
         .add_event::<ShowPrompt>()
         .add_event::<RunCommandEvent>()
+        .add_state::<PromptState>()
         .init_resource::<PromptProvider>()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -174,7 +181,9 @@ fn main() {
             ..Default::default()
         }))
         .add_startup_system(spawn_layout)
-        .add_system(prompt_visibility)
+        // .add_system(prompt_visibility)
+        .add_systems(OnEnter(PromptState::Visible), show_prompt)
+        .add_systems(OnExit(PromptState::Visible), hide_prompt)
         .add_system(prompt_input)
         .add_system(handle_tasks)
         .add_systems(PreUpdate, run_commands)
@@ -371,6 +380,26 @@ impl<'a> NanoPrompt for TextPrompt<'a> {
     }
     fn read(&mut self) -> Self::Output {
         panic!("Not sure this should ever be called.");
+    }
+}
+
+fn show_prompt(
+    query: Query<(&Parent, &PromptNode)>,
+    mut q_parent: Query<&mut Visibility>,
+) {
+    let (parent, prompt) = query.single();
+    if let Ok(mut visbility) = q_parent.get_mut(parent.get()) {
+        *visbility = Visibility::Visible;
+    }
+}
+
+fn hide_prompt(
+    query: Query<(&Parent, &PromptNode)>,
+    mut q_parent: Query<&mut Visibility>,
+) {
+    let (parent, prompt) = query.single();
+    if let Ok(mut visbility) = q_parent.get_mut(parent.get()) {
+        *visbility = Visibility::Hidden;
     }
 }
 

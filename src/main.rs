@@ -27,31 +27,6 @@ impl RunCommandEvent {
     }
 }
 
-// https://www.cs.brandeis.edu/~cs146a/rust/doc-02-21-2015/src/collections/borrow.rs.html#305-309
-// I don't understand why this isn't in the standard lib.
-// pub trait IntoCow<'a, B: ?Sized> where B: ToOwned {
-//     /// Moves `self` into `Cow`
-//     fn into_cow(self) -> Cow<'a, B>;
-// }
-
-// impl<'a> IntoCow<'a, str> for &'a str {
-//     fn into_cow(self) -> Cow<'a, str> {
-//         Cow::Borrowed(self)
-//     }
-// }
-
-// impl<'a> IntoCow<'a, str> for String {
-//     fn into_cow(self) -> Cow<'a, str> {
-//         Cow::Owned(self)
-//     }
-// }
-
-// impl<'a,  B: ?Sized> IntoCow<'a, B> for Cow<'a, B> where B: ToOwned {
-//     fn into_cow(self) -> Cow<'a, B> {
-//         self
-//     }
-// }
-
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CommandOneShot(Cow<'static, str>);
 
@@ -62,12 +37,6 @@ struct ReadPrompt {
     prompt: ProxyPrompt,
     active: bool,
     promise: PromiseOut<String>,
-}
-
-impl ReadPrompt {
-    fn into_parts(self) -> (ProxyPrompt, bool, PromiseOut<String>) {
-        (self.prompt, self.active, self.promise)
-    }
 }
 
 #[derive(Resource)]
@@ -296,10 +265,13 @@ fn prompt_input(
         if prompts.len() > 0 {
             let mut text_prompt = TextPrompt { text: &mut text };
             if keys.just_pressed(KeyCode::Return) {
-                let read_prompt = prompts.pop().unwrap();
                 let result = text_prompt.input_get().clone();
                 println!("Got result {}", result);
-                let (_, _, promise) = read_prompt.into_parts();
+                let promise = {
+                  let read_prompt = prompts.pop().unwrap();
+                  read_prompt.promise
+                };
+                // let (_, _, promise) = read_prompt.into_parts();
                 promise.resolve(result);
                 if prompts.len() == 0 {
                     show_prompt.send(ShowPrompt(false));

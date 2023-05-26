@@ -17,15 +17,11 @@ use std::borrow::{Cow};
 const ALIGN_ITEMS_COLOR: Color = Color::rgb(1., 0.066, 0.349);
 const JUSTIFY_CONTENT_COLOR: Color = Color::rgb(0.102, 0.522, 1.);
 const MARGIN: Val = Val::Px(5.);
+const PADDING: Val = Val::Px(3.);
 
 // event
 struct ShowPrompt(bool);
 struct RunCommandEvent(Box<dyn ScheduleLabel>);
-impl RunCommandEvent {
-    fn into_parts(self) -> Box<dyn ScheduleLabel> {
-        self.0
-    }
-}
 
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CommandOneShot(Cow<'static, str>);
@@ -85,6 +81,8 @@ enum PromptState {
     Invisible,
     Visible,
 }
+
+impl NanoPrompt for ProxyPrompt {
     type Output = PromiseOut<String>;
     fn prompt_get_mut(&mut self) -> &mut String {
         &mut self.prompt
@@ -142,31 +140,7 @@ impl AddCommand for App {
   }
 }
 
-// struct Dummy;
-
-// impl Future for Dummy {
-//     type Output = ();
-//     fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-//         Poll::Ready(())
-//     }
-// }
-
-// async fn silly() -> Dummy {
-//     Dummy {}
-// }
-
-// fn silly2(mut prompt_provider: ResMut<PromptProvider>) -> impl Future<Output = ()> {
-//     async {
-//         Dummy.await;
-//     }
-// }
-
 fn main() {
-    // let sys = IntoSystem::into_system(ask_name4);
-    // // let sys = IntoSystem::into_system(task_sink::<Dummy>);
-    // // let sys2 = IntoSystem::into_system(silly2);
-    // let name = sys.name();
-    // println!("sys name {}", name);
     App::new()
         .add_event::<ShowPrompt>()
         .add_event::<RunCommandEvent>()
@@ -174,21 +148,18 @@ fn main() {
         .init_resource::<PromptProvider>()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                resolution: [870., 1066.].into(),
+                resolution: [400., 400.].into(),
                 title: "Bevy Nano Prompt Example".to_string(),
                 ..Default::default()
             }),
             ..Default::default()
         }))
         .add_startup_system(spawn_layout)
-        // .add_system(prompt_visibility)
         .add_systems(OnEnter(PromptState::Visible), show_prompt)
         .add_systems(OnExit(PromptState::Visible), hide_prompt)
         .add_system(prompt_input)
-        .add_system(handle_tasks)
+        .add_system(poll_tasks)
         .add_systems(PreUpdate, run_commands)
-        // .add_systems(CommandOneShot(name.into_owned()), ask_name3)
-        // .add_systems(CommandOneShot(name.into_owned()), ask_name4.pipe(task_sink))
         .add_command("ask_name", ask_name4.pipe(task_sink))
         // .add_command("ask_name", ask_name3)
         .run();
@@ -198,21 +169,7 @@ fn run_commands(world: &mut World) {
     let mut event_system_state = SystemState::<(EventReader<RunCommandEvent>)>::new(world);
     let schedules: Vec<Box<dyn ScheduleLabel>> = {
         let mut events = event_system_state.get_mut(world);
-        let mut look = false;
-        if events.len() > 0 {
-            println!("event count {}", events.len());
-            look = true;
-        }
-        let results = events.iter().map(|e| e.0.clone()).collect();
-
-        if look {
-            println!("events after iter count {}", events.len());
-        }
-        events.clear();
-        if look {
-            println!("events after clear count {}", events.len());
-        }
-        results
+        events.iter().map(|e| e.0.clone()).collect()
     };
 
     for schedule in schedules {
@@ -223,27 +180,10 @@ fn run_commands(world: &mut World) {
     }
 }
 
-// fn run_commands(world: &mut World) {//, resources: &mut Resources<true>) {
-//   // https://bevy-cheatbook.github.io/programming/res.html
-//   let mut command = Commands::new(&mut CommandQueue::default(), &world);
-//   let mut event_system_state = SystemState::<(
-//         EventReader<RunCommandEvent>
-//     )>::new(world);
-//     let (mut events) = event_system_state.get_mut(world);
-
-//     for RunCommandEvent(system) in events.iter() {
-//   // for RunCommandEvent(system) in run_commands.iter() {
-//     system.run((), &mut world);
-
-//   }
-
-// }
-
-fn handle_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut TaskSink)>) {
+fn poll_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut TaskSink)>) {
     for (entity, mut task) in &mut command_tasks {
         if let Some(_) = future::block_on(future::poll_once(&mut task.0)) {
             commands.entity(entity).despawn();
-            // commands.entity(entity).remove::<TaskSink>();
         }
     }
 }
@@ -254,7 +194,7 @@ fn prompt_input(
     mut commands: Commands,
     mut prompt_provider: ResMut<PromptProvider>,
     mut char_evr: EventReader<ReceivedCharacter>,
-    mut show_prompt: EventWriter<ShowPrompt>,
+    mut show_prompt: ResMut<NextState<PromptState>>,
     mut run_command: EventWriter<RunCommandEvent>,
     keys: Res<Input<KeyCode>>,
     mut query: Query<&mut Text, With<PromptNode>>,
@@ -280,10 +220,9 @@ fn prompt_input(
                   let read_prompt = prompts.pop().unwrap();
                   read_prompt.promise
                 };
-                // let (_, _, promise) = read_prompt.into_parts();
                 promise.resolve(result);
                 if prompts.len() == 0 {
-                    show_prompt.send(ShowPrompt(false));
+                    show_prompt.set(PromptState::Invisible);
                 }
                 continue;
             }
@@ -295,8 +234,7 @@ fn prompt_input(
                 for i in 0..prompts.len() - 1 {
                     prompts[i].active = false;
                 }
-
-                show_prompt.send(ShowPrompt(true));
+                show_prompt.set(PromptState::Visible);
             }
             if keys.just_pressed(KeyCode::Back) {
                 let _ = text_prompt.input_get_mut().pop();
@@ -512,31 +450,21 @@ fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>, mut com
 fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     commands.spawn(Camera2dBundle::default());
-    commands
-        .spawn(NodeBundle {
-            style: Style {
-                // Fill the entire window.
-                // Does it have to fill the whole window?
-                width: Val::Percent(100.),
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::FlexEnd,
-                ..Default::default()
-            },
-            background_color: BackgroundColor(Color::WHITE),
-            ..Default::default()
-        })
-        .with_children(|builder| {
-            builder
-                .spawn(NodeBundle {
+    commands.spawn(NodeBundle {
                     visibility: Visibility::Hidden,
                     style: Style {
+
+                        position_type: PositionType::Absolute,
+                        bottom: Val::Px(0.0),
+                        right: Val::Px(0.0),
+                        left: Val::Px(0.0),
                         flex_direction: FlexDirection::Row,
                         flex_grow: 1.,
                         padding: UiRect {
-                            top: Val::Px(1.),
-                            left: Val::Px(1.),
-                            right: Val::Px(1.),
-                            bottom: Val::Px(1.),
+                            top: PADDING,
+                            left: PADDING,
+                            right: PADDING,
+                            bottom: PADDING,
                         },
                         ..Default::default()
                     },
@@ -575,5 +503,4 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                              // promises: vec![]
                             });
                 });
-        });
 }

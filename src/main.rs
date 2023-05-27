@@ -1,9 +1,11 @@
 use bevy::ecs::prelude::Commands;
 use bevy::ecs::schedule::ScheduleLabel;
-use bevy::ecs::system::{CommandQueue, SystemState};
+use bevy::ecs::system::{CommandQueue, SystemState, SystemParam, SystemMeta};
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use bevy::utils::Duration;
+use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
+use bevy::ecs::component::Tick;
 use futures_lite::future;
 use once_cell::sync::OnceCell;
 use promise_out::{Promise, pair::{Producer, Consumer}};
@@ -39,8 +41,8 @@ struct ReadPrompt {
     promise: Producer<String, NanoError>,
 }
 
-#[derive(Resource)]
-struct PromptProvider {
+#[derive(Resource, Clone)]
+pub struct PromptProvider {
     prompt_stack: Arc<Mutex<Vec<ReadPrompt>>>,
     hide_delay: f32,
 }
@@ -69,12 +71,40 @@ pub struct PromptBuf {
     pub input: String,
 }
 
-// impl Default for PromptBuf {
-// }
-
+// #[derive(Default)]
 pub struct PromptCell {
   pub buf: PromptBuf,
   prompts: Arc<Mutex<Vec<ReadPrompt>>>,
+}
+
+#[derive(Default)]
+struct MyOption<T>(Option<T>);
+
+// #[derive(SystemParam)]
+// pub struct Prompt<'w> {
+//   pub prompt_provider: ResMut<'w, PromptProvider>,
+//   #[system_param(ignore)]
+//   cell: Option<PromptCell>,
+//   // pub what: bool
+// }
+
+unsafe impl SystemParam for PromptCell {
+    type State = PromptProvider;
+    type Item<'w, 's> = PromptCell;
+
+    fn init_state(world: &mut World, system_meta: &mut SystemMeta) -> Self::State {
+        world.get_resource_mut::<PromptProvider>().unwrap().clone()
+    }
+
+    #[inline]
+    unsafe fn get_param<'w, 's>(
+        state: &'s mut Self::State,
+        system_meta: &SystemMeta,
+        world: UnsafeWorldCell<'w>,
+        change_tick: Tick,
+    ) -> Self::Item<'w, 's> {
+        state.new_prompt()
+    }
 }
 
 impl PromptCell {
@@ -88,7 +118,6 @@ impl PromptCell {
     }
 }
 
-// XXX: Rename to NanoConsole?
 trait NanoPrompt {
     type Output: Future<Output = Result<String, NanoError>>;
 
@@ -191,8 +220,9 @@ fn main() {
         .add_system(prompt_input)
         .add_system(poll_tasks)
         .add_systems(PreUpdate, run_commands)
-        .add_command("ask_name", ask_name4.pipe(task_sink))
         // .add_command("ask_name", ask_name3)
+        // .add_command("ask_name", ask_name4.pipe(task_sink))
+        .add_command("ask_name", ask_name5.pipe(task_sink))
         .run();
 }
 
@@ -399,7 +429,7 @@ fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptP
 
 fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) -> impl Future<Output = ()> {
     let mut prompt = prompt_provider.new_prompt();
-    println!("ask name 3 called");
+    println!("ask name 4 called");
     async move {
         if let Ok(first_name) = prompt.read_string("What's your first name? ").await {
             if let Ok(last_name) = prompt.read_string("What's your last name? ").await {
@@ -410,6 +440,20 @@ fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) -> impl Future
         }
     }
 }
+
+fn ask_name5<'a>(mut prompt: PromptCell) -> impl Future<Output = ()> {
+    println!("ask name 5 called");
+    async move {
+        if let Ok(first_name) = prompt.read_string("What's your first name? ").await {
+            if let Ok(last_name) = prompt.read_string("What's your last name? ").await {
+                println!("Hello, {} {}", first_name, last_name);
+            }
+        } else {
+            println!("Got err in ask now");
+        }
+    }
+}
+
 
 trait CommandMeta {
     fn name() -> &'static str;
@@ -491,4 +535,15 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ]))
                 .insert(PromptNode {});
         });
+}
+
+
+#[cfg(test)]
+mod tests {
+
+#[allow(unused_must_use)]
+#[test]
+fn test_option_default() {
+  let a : Option<PromptCel> = default();
+}
 }

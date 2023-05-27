@@ -6,7 +6,7 @@ use bevy::tasks::{AsyncComputeTaskPool, Task};
 use bevy::utils::Duration;
 use futures_lite::future;
 use once_cell::sync::OnceCell;
-use promise_out::PromiseOut;
+use promise_out::{Promise, pair::{Producer, Consumer}};
 use std::borrow::Cow;
 use std::future::Future;
 use std::pin::Pin;
@@ -27,10 +27,16 @@ struct PromptContainer;
 #[derive(Component)]
 struct PromptNode;
 
+#[derive(Debug)]
+enum NanoError {
+    Cancelled,
+    Message(Cow<'static, str>),
+}
+
 struct ReadPrompt {
     prompt: PromptBuf,
     active: bool,
-    promise: PromiseOut<String>,
+    promise: Producer<String, NanoError>,
 }
 
 #[derive(Resource)]
@@ -55,24 +61,21 @@ impl PromptProvider {
     }
 }
 
+
 #[derive(Clone, Default)]
 pub struct PromptBuf {
     pub prompt: String,
     pub message: String,
     pub input: String,
-    // prompts: Arc<Mutex<Vec<ReadPrompt>>>,
 }
 
 // impl Default for PromptBuf {
 // }
 
-#[derive(Clone)]
 pub struct PromptCell {
   pub buf: PromptBuf,
   prompts: Arc<Mutex<Vec<ReadPrompt>>>,
 }
-
-
 
 impl PromptCell {
     fn new(prompts: Arc<Mutex<Vec<ReadPrompt>>>) -> Self {
@@ -87,29 +90,17 @@ impl PromptCell {
 
 // XXX: Rename to NanoConsole?
 trait NanoPrompt {
-    // type Output : Future<Output = Result<String, NanoError>>;
-    type Output: Future<Output = Arc<Result<String, String>>>;
+    type Output: Future<Output = Result<String, NanoError>>;
 
     fn buf_read(&self, buf: &mut PromptBuf);
     fn buf_write(&mut self, buf: &PromptBuf);// -> Result<(),
-    // fn prompt_get_mut(&mut self) -> &mut String;
-    // fn input_get_mut(&mut self) -> &mut String;
-    // fn message_get_mut(&mut self) -> &mut String;
-    // fn prompt_get(&self) -> &String;
-    // fn input_get(&self) -> &String;
-    // fn message_get(&self) -> &String;
     fn read(&mut self) -> Self::Output;
 
     fn read_string(&mut self, prompt: &str) -> Self::Output {
-
         let mut buf = PromptBuf::default();
         self.buf_read(&mut buf);
         buf.input.clear();
         buf.prompt = prompt.to_owned();
-        // self.input_get_mut().clear();
-        // let p = self.prompt_get_mut();
-        // p.clear();
-        // p.extend(prompt.chars());
         self.buf_write(&mut buf);
         self.read()
     }
@@ -124,7 +115,7 @@ enum PromptState {
 }
 
 impl NanoPrompt for PromptCell {
-    type Output = PromiseOut<String>;
+    type Output = Consumer<String, NanoError>;
 
     fn buf_read(&self, buf: &mut PromptBuf) {
       buf.clone_from(&self.buf);
@@ -133,32 +124,14 @@ impl NanoPrompt for PromptCell {
     fn buf_write(&mut self, buf: &PromptBuf) {
       self.buf.clone_from(&buf);
     }
-    // fn prompt_get_mut(&mut self) -> &mut String {
-    //     &mut self.buf.prompt
-    // }
-    // fn input_get_mut(&mut self) -> &mut String {
-    //     &mut self.buf.input
-    // }
-    // fn message_get_mut(&mut self) -> &mut String {
-    //     &mut self.buf.message
-    // }
-    // fn prompt_get(&self) -> &String {
-    //     &self.buf.prompt
-    // }
-    // fn input_get(&self) -> &String {
-    //     &self.buf.input
-    // }
-    // fn message_get(&self) -> &String {
-    //     &self.buf.message
-    // }
     fn read(&mut self) -> Self::Output {
-        let promise = PromiseOut::default();
+        let (promise, waiter) = Producer::new();
         self.prompts.lock().unwrap().push(ReadPrompt {
             prompt: self.buf.clone(),
-            promise: promise.clone(),
+            promise: promise,
             active: false,
         });
-        return promise;
+        return waiter;
     }
 }
 
@@ -269,6 +242,23 @@ fn prompt_input(
     for mut text in query.iter_mut() {
         if prompts.len() > 0 {
             let mut text_prompt = TextPrompt { text: &mut text };
+
+            if keys.just_pressed(KeyCode::Escape) {
+                // let mut buf = PromptBuf::default();
+                // let result = buf.input.clone();
+                println!("Cancel prompt");
+                let message = text_prompt.message_get_mut();
+                *message = " Cancelled.".into();
+                let promise = {
+                    let read_prompt = prompts.pop().unwrap();
+                    read_prompt.promise
+                };
+                promise.reject(NanoError::Cancelled);
+                if prompts.len() == 0 {
+                    show_prompt.set(PromptState::Invisible);
+                }
+                continue;
+            }
             if keys.just_pressed(KeyCode::Return) {
                 // let mut buf = PromptBuf::default();
                 let result = text_prompt.input_get().to_owned();
@@ -308,24 +298,6 @@ fn prompt_input(
     }
 }
 
-struct Nanobuffer {
-    prompt: String,
-    message: String,
-    input: String,
-    inline_message: String,
-    is_reading: bool,
-}
-
-// trait PromptString {
-//     fn set(s: &str);
-//     fn clear();
-// }
-
-enum NanoError {
-    Cancelled,
-    Message(&'static str),
-}
-
 
 struct TextPrompt<'a> {
     text: &'a mut Text,
@@ -335,14 +307,20 @@ impl<'a> TextPrompt<'a> {
     fn input_get_mut(&mut self) -> &mut String {
         &mut self.text.sections[1].value
     }
-
     fn input_get(&self) -> &str {
         &self.text.sections[1].value
+    }
+
+    fn message_get_mut(&mut self) -> &mut String {
+        &mut self.text.sections[2].value
+    }
+    fn message_get(&self) -> &str {
+        &self.text.sections[2].value
     }
 }
 
 impl<'a> NanoPrompt for TextPrompt<'a> {
-    type Output = PromiseOut<String>;
+    type Output = Consumer<String, NanoError>;
 
     fn buf_read(&self, buf: &mut PromptBuf) {
       buf.prompt.clone_from(&self.text.sections[0].value);
@@ -397,7 +375,7 @@ fn hide_prompt(mut query: Query<(&mut Visibility, &PromptContainer)>) {
 
 async fn ask_name2(mut prompt: impl NanoPrompt) {
     println!("ask name 2 called");
-    if let Ok(name) = &*prompt.read_string("What's your first name? ").await {
+    if let Ok(name) = prompt.read_string("What's your first name? ").await {
         println!("Hello, {}", name);
     } else {
         println!("Got err in ask now");
@@ -409,8 +387,8 @@ fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptP
     let mut prompt = prompt_provider.new_prompt();
     commands.spawn(TaskSink::new(async move {
         println!("ask name 3 called");
-        if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
-            if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
+        if let Ok(first_name) = prompt.read_string("What's your first name? ").await {
+            if let Ok(last_name) = prompt.read_string("What's your last name? ").await {
                 println!("Hello, {} {}", first_name, last_name);
             }
         } else {
@@ -419,25 +397,12 @@ fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptP
     }));
 }
 
-// This one doesn't work.
-// async fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) {
-//     let mut prompt = prompt_provider.new_prompt();
-//     println!("ask name 3 called");
-//     if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
-//       if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
-//         println!("Hello, {} {}", first_name, last_name);
-//       }
-//     } else {
-//         println!("Got err in ask now");
-//     }
-// }
-
 fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) -> impl Future<Output = ()> {
     let mut prompt = prompt_provider.new_prompt();
     println!("ask name 3 called");
     async move {
-        if let Ok(first_name) = &*prompt.read_string("What's your first name? ").await {
-            if let Ok(last_name) = &*prompt.read_string("What's your last name? ").await {
+        if let Ok(first_name) = prompt.read_string("What's your first name? ").await {
+            if let Ok(last_name) = prompt.read_string("What's your last name? ").await {
                 println!("Hello, {} {}", first_name, last_name);
             }
         } else {

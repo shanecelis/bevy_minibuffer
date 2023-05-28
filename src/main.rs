@@ -57,12 +57,11 @@ impl Default for PromptProvider {
 }
 
 impl PromptProvider {
-    fn new_prompt(&mut self) -> PromptCell {
-        let prompt = PromptCell::new(self.prompt_stack.clone());
+    fn new_prompt(&mut self) -> Prompt {
+        let prompt = Prompt::new(self.prompt_stack.clone());
         prompt
     }
 }
-
 
 #[derive(Clone, Default)]
 pub struct PromptBuf {
@@ -72,7 +71,7 @@ pub struct PromptBuf {
 }
 
 // #[derive(Default)]
-pub struct PromptCell {
+pub struct Prompt {
   pub buf: PromptBuf,
   prompts: Arc<Mutex<Vec<ReadPrompt>>>,
 }
@@ -84,13 +83,13 @@ struct MyOption<T>(Option<T>);
 // pub struct Prompt<'w> {
 //   pub prompt_provider: ResMut<'w, PromptProvider>,
 //   #[system_param(ignore)]
-//   cell: Option<PromptCell>,
+//   cell: Option<Prompt>,
 //   // pub what: bool
 // }
 
-unsafe impl SystemParam for PromptCell {
+unsafe impl SystemParam for Prompt {
     type State = PromptProvider;
-    type Item<'w, 's> = PromptCell;
+    type Item<'w, 's> = Prompt;
 
     fn init_state(world: &mut World, system_meta: &mut SystemMeta) -> Self::State {
         world.get_resource_mut::<PromptProvider>().unwrap().clone()
@@ -107,7 +106,7 @@ unsafe impl SystemParam for PromptCell {
     }
 }
 
-impl PromptCell {
+impl Prompt {
     fn new(prompts: Arc<Mutex<Vec<ReadPrompt>>>) -> Self {
         Self {
             buf: PromptBuf {prompt: String::from(""),
@@ -135,6 +134,27 @@ trait NanoPrompt {
     }
 }
 
+async fn read_int(prompt: &mut impl NanoPrompt, label: &str) -> Result<i32, NanoError> {
+  loop {
+    let mut buf = PromptBuf::default();
+    buf.prompt = label.to_owned();
+    prompt.buf_write(&buf);
+    match prompt.read().await {
+      Ok(str) => {
+        match str.parse::<i32>() {
+          Ok(int) => return Ok(int),
+          Err(e) => {
+              prompt.buf_read(&mut buf);
+              buf.message = format!(" expected int: {}", e);
+              prompt.buf_write(&buf);
+          }
+        }
+      }
+      Err(e) => return Err(e)
+    }
+  }
+}
+
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 enum PromptState {
     #[default]
@@ -143,7 +163,7 @@ enum PromptState {
     Visible,
 }
 
-impl NanoPrompt for PromptCell {
+impl NanoPrompt for Prompt {
     type Output = Consumer<String, NanoError>;
 
     fn buf_read(&self, buf: &mut PromptBuf) {
@@ -190,8 +210,6 @@ impl AddCommand for App {
         name: impl Into<Cow<'static, str>>,
         system: impl IntoSystem<(), (), Marker> + 'static,
     ) -> &mut Self {
-        // fn add_command<S: IntoCow<'static, str>, Marker>(&mut self, name: S, system: impl IntoSystem<(),(),Marker> + 'static) -> &mut Self {
-        // fn add_command<Marker>(&mut self, name: IntoCow<'static, str>, system: impl IntoSystem<(),(),Marker> + 'static) -> &mut Self {
         let system: Box<dyn System<In = (), Out = ()> + 'static> =
             Box::new(IntoSystem::into_system(system));
         // let name = system.name();
@@ -223,6 +241,8 @@ fn main() {
         // .add_command("ask_name", ask_name3)
         // .add_command("ask_name", ask_name4.pipe(task_sink))
         .add_command("ask_name", ask_name5.pipe(task_sink))
+        // .add_command("ask_name", ask_name6.pipe(task_sink))
+        // .add_command("ask_age", ask_age.pipe(task_sink))
         .run();
 }
 
@@ -235,7 +255,7 @@ fn run_commands(world: &mut World) {
 
     for schedule in schedules {
         match world.try_run_schedule(schedule) {
-            Err(e) => println!("Problem running command: {:?}", e),
+            Err(e) => eprintln!("Problem running command: {:?}", e),
             _ => {}
         }
     }
@@ -259,12 +279,14 @@ fn prompt_input(
     mut run_command: EventWriter<RunCommandEvent>,
     keys: Res<Input<KeyCode>>,
     mut query: Query<&mut Text, With<PromptNode>>,
+    // mut text_prompt: TextPrompt,
 ) {
     if keys.just_pressed(KeyCode::Tab) {
         println!("tab pressed");
         // commands.spawn(TaskSink::new(ask_name()));
         // commands.spawn(TaskSink::new(ask_name3(prompt_provider.new_prompt())));
         run_command.send(RunCommandEvent(Box::new(CommandOneShot("ask_name".into()))));
+        // run_command.send(RunCommandEvent(Box::new(CommandOneShot("ask_age".into()))));
         return;
     }
 
@@ -276,9 +298,9 @@ fn prompt_input(
             if keys.just_pressed(KeyCode::Escape) {
                 // let mut buf = PromptBuf::default();
                 // let result = buf.input.clone();
-                println!("Cancel prompt");
+                // println!("Cancel prompt");
                 let message = text_prompt.message_get_mut();
-                *message = " Cancelled.".into();
+                *message = " Quit".into();
                 let promise = {
                     let read_prompt = prompts.pop().unwrap();
                     read_prompt.promise
@@ -288,12 +310,13 @@ fn prompt_input(
                     show_prompt.set(PromptState::Invisible);
                 }
                 continue;
+                // return;
             }
             if keys.just_pressed(KeyCode::Return) {
                 // let mut buf = PromptBuf::default();
                 let result = text_prompt.input_get().to_owned();
                 // let result = buf.input.clone();
-                println!("Got result {}", result);
+                // println!("Got result {}", result);
                 let promise = {
                     let read_prompt = prompts.pop().unwrap();
                     read_prompt.promise
@@ -303,6 +326,7 @@ fn prompt_input(
                     show_prompt.set(PromptState::Invisible);
                 }
                 continue;
+                // return;
             }
             let read_prompt = prompts.last_mut().unwrap();
             if !read_prompt.active {
@@ -320,6 +344,7 @@ fn prompt_input(
                 let _ = buf.input.pop();
                 text_prompt.buf_write(&buf);
                 continue;
+              // return;
             }
             text_prompt
                 .input_get_mut()
@@ -328,12 +353,19 @@ fn prompt_input(
     }
 }
 
-
 struct TextPrompt<'a> {
     text: &'a mut Text,
+    // #[system_param(ignore)]
+    // marker: PhantomData<Marker>,
 }
 
 impl<'a> TextPrompt<'a> {
+    fn prompt_get_mut(&mut self) -> &mut String {
+        &mut self.text.sections[0].value
+    }
+    fn prompt_get(&self) -> &str {
+        &self.text.sections[0].value
+    }
     fn input_get_mut(&mut self) -> &mut String {
         &mut self.text.sections[1].value
     }
@@ -348,6 +380,139 @@ impl<'a> TextPrompt<'a> {
         &self.text.sections[2].value
     }
 }
+
+#[derive(SystemParam)]
+pub struct TextPromptParam<'w, 's> {
+    query: Query<'w, 's, &'static mut Text, With<PromptNode>>,
+}
+
+impl<'w, 's> NanoPrompt for TextPromptParam<'w, 's> {
+    type Output = Consumer<String, NanoError>;
+
+    fn buf_read(&self, buf: &mut PromptBuf) {
+      let text = self.query.single();
+      buf.prompt.clone_from(&text.sections[0].value);
+      buf.input.clone_from(&text.sections[1].value);
+      buf.message.clone_from(&text.sections[2].value);
+    }
+    fn buf_write(&mut self, buf: &PromptBuf) {
+      let mut text = self.query.single_mut();
+      text.sections[0].value.clone_from(&buf.prompt);
+      text.sections[1].value.clone_from(&buf.input);
+      text.sections[2].value.clone_from(&buf.message);
+    }
+    fn read(&mut self) -> Self::Output {
+        panic!("Not sure this should ever be called.");
+    }
+}
+// struct TextPromptParam<'w, 's> {
+//     query: Query<'w, 's, &'static mut Text, With<PromptNode>>,
+// }
+// const _: () = {
+//     type __StructFieldsAlias<'w, 's> = (
+//         Query<'w, 's, &'static mut Text, With<PromptNode>>,
+//     );
+//     #[doc(hidden)]
+//     struct FetchState {
+//         state: <__StructFieldsAlias<
+//             'static,
+//             'static,
+//         > as bevy::ecs::system::SystemParam>::State,
+//     }
+//     unsafe impl bevy::ecs::system::SystemParam for TextPromptParam<'_, '_> {
+//         type State = FetchState;
+//         type Item<'w, 's> = TextPromptParam<'w, 's>;
+//         fn init_state(
+//             world: &mut bevy::ecs::world::World,
+//             system_meta: &mut bevy::ecs::system::SystemMeta,
+//         ) -> Self::State {
+//             FetchState {
+//                 state: <__StructFieldsAlias<
+//                     '_,
+//                     '_,
+//                 > as bevy::ecs::system::SystemParam>::init_state(world, system_meta),
+//             }
+//         }
+//         fn new_archetype(
+//             state: &mut Self::State,
+//             archetype: &bevy::ecs::archetype::Archetype,
+//             system_meta: &mut bevy::ecs::system::SystemMeta,
+//         ) {
+//             <__StructFieldsAlias<
+//                 '_,
+//                 '_,
+//             > as bevy::ecs::system::SystemParam>::new_archetype(
+//                 &mut state.state,
+//                 archetype,
+//                 system_meta,
+//             )
+//         }
+//         fn apply(
+//             state: &mut Self::State,
+//             system_meta: &bevy::ecs::system::SystemMeta,
+//             world: &mut bevy::ecs::world::World,
+//         ) {
+//             <__StructFieldsAlias<
+//                 '_,
+//                 '_,
+//             > as bevy::ecs::system::SystemParam>::apply(
+//                 &mut state.state,
+//                 system_meta,
+//                 world,
+//             );
+//         }
+//         unsafe fn get_param<'w, 's>(
+//             state: &'s mut Self::State,
+//             system_meta: &bevy::ecs::system::SystemMeta,
+//             world: bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell<'w>,
+//             change_tick: bevy::ecs::component::Tick,
+//         ) -> Self::Item<'w, 's> {
+//             let (f0,) = <(
+//                 Query<'w, 's, &'static mut Text, With<PromptNode>>,
+//             ) as bevy::ecs::system::SystemParam>::get_param(
+//                 &mut state.state,
+//                 system_meta,
+//                 world,
+//                 change_tick,
+//             );
+//             TextPromptParam { query: f0 }
+//         }
+//     }
+//     unsafe impl<'w, 's> bevy::ecs::system::ReadOnlySystemParam
+//     for TextPromptParam<'w, 's>
+//     where
+//         Query<
+//             'w,
+//             's,
+//             &'static mut Text,
+//             With<PromptNode>,
+//         >: bevy::ecs::system::ReadOnlySystemParam,
+//     {}
+// };
+
+// unsafe impl SystemParam for TextPrompt<'_> {
+//     // type State = TextPromptParam<'w, 's>;
+//     type State = ();
+//     type Item<'world, 'state> = TextPrompt<'world>;
+
+//     fn init_state(world: &mut World, system_meta: &mut SystemMeta) -> Self::State {
+//       // TextPromptParam { query: world.query::<'w, 's, &'static mut Text, With<PromptNode>>() }
+//     }
+
+//     #[inline]
+//     unsafe fn get_param<'world, 'state>(
+//         state: &'state mut Self::State,
+//         system_meta: &SystemMeta,
+//         world: UnsafeWorldCell<'world>,
+//         change_tick: Tick,
+//     ) -> Self::Item<'world, 'state> {
+//         let world = world.world_mut();
+//         let mut query = world.query::<'world, 'state, (&'static mut Text, With<PromptNode>)>();
+//         let (mut text, _) = query.single_mut(world);
+//         // let text = state.get_mut(&mut world);
+//       TextPrompt { text }
+//     }
+// }
 
 impl<'a> NanoPrompt for TextPrompt<'a> {
     type Output = Consumer<String, NanoError>;
@@ -441,7 +606,7 @@ fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) -> impl Future
     }
 }
 
-fn ask_name5<'a>(mut prompt: PromptCell) -> impl Future<Output = ()> {
+fn ask_name5<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
     println!("ask name 5 called");
     async move {
         if let Ok(first_name) = prompt.read_string("What's your first name? ").await {
@@ -454,27 +619,29 @@ fn ask_name5<'a>(mut prompt: PromptCell) -> impl Future<Output = ()> {
     }
 }
 
+// fn ask_name6<'a>(mut prompt: TextPromptParam) -> impl Future<Output = ()> {
+//     println!("ask name 5 called");
+//     async move {
+//         if let Ok(first_name) = prompt.read_string("What's your first name? ").await {
+//             if let Ok(last_name) = prompt.read_string("What's your last name? ").await {
+//                 println!("Hello, {} {}", first_name, last_name);
+//             }
+//         } else {
+//             println!("Got err in ask now");
+//         }
+//     }
+// }
 
-trait CommandMeta {
-    fn name() -> &'static str;
-}
-
-// https://stackoverflow.com/questions/68700171/how-can-i-assign-metadata-to-a-trait
-#[doc(hidden)]
-#[allow(non_camel_case_types)]
-/// Rocket code generated proxy structure.
-pub struct ask_name4 {}
-/// Rocket code generated proxy static conversion implementations.
-impl CommandMeta for ask_name4 {
-    #[allow(non_snake_case, unreachable_patterns, unreachable_code)]
-    fn name() -> &'static str {
-        "ask_name4"
-    }
-    // fn into_info(self) -> ::rocket::route::StaticInfo {
-    //     // ...
-    // }
-    // ...
-}
+// fn ask_age(mut prompt: TextPromptParam) -> impl Future<Output = ()> {
+//     println!("ask age called");
+//     async move {
+//         if let Ok(age) = read_int(&mut prompt, "What's your age? ").await {
+//             println!("You are {} years old.", age);
+//         } else {
+//             println!("Got err in ask age");
+//         }
+//     }
+// }
 
 fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>, mut commands: Commands) {
     commands.spawn(TaskSink::new(async move { future.await }));

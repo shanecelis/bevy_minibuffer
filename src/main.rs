@@ -9,17 +9,24 @@ use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use bevy::utils::Duration;
-use futures_lite::future;
-use promise_out::{
-    pair::Producer,
-    Promise,
+use bevy::{
+    a11y::{
+        accesskit::{NodeBuilder, Role},
+        AccessibilityNode,
+    },
+    input::mouse::{MouseScrollUnit, MouseWheel},
+    prelude::*,
+    winit::WinitSettings,
 };
+use futures_lite::future;
+use promise_out::{pair::Producer, Promise};
 use std::borrow::Cow;
 use std::future::Future;
 use std::sync::{Arc, Mutex};
 
 // const MARGIN: Val = Val::Px(5.);
 const PADDING: Val = Val::Px(3.);
+const LEFT_PADDING: Val = Val::Px(6.);
 
 struct RunCommandEvent(Box<dyn ScheduleLabel>);
 
@@ -41,7 +48,15 @@ enum NanoError {
 struct ReadPrompt {
     prompt: PromptBuf,
     active: bool,
+    prior: Option<PromptBuf>,
     promise: Producer<PromptBuf, NanoError>,
+}
+
+#[derive(Component, Default)]
+struct ScrollingList {
+    position: f32,
+    selection: Option<usize>,
+    last_selection: Option<usize>,
 }
 
 #[derive(Resource, Clone)]
@@ -73,12 +88,15 @@ pub struct PromptBuf {
     pub message: String,
 }
 
-impl<T> From<T> for PromptBuf where T: Into<String> {
+impl<T> From<T> for PromptBuf
+where
+    T: Into<String>,
+{
     fn from(value: T) -> Self {
         PromptBuf {
             prompt: value.into(),
             input: "".into(),
-            message: "".into()
+            message: "".into(),
         }
     }
 }
@@ -126,15 +144,6 @@ trait NanoPrompt {
     fn buf_read(&self, buf: &mut PromptBuf);
     fn buf_write(&mut self, buf: &PromptBuf); // -> Result<(),
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError>;
-
-    async fn read_string<T: Into<PromptBuf>>(&mut self, prompt: T) -> Result<String, NanoError> {
-        let buf = prompt.into();
-        // self.buf_read(&mut buf);
-        // buf.input.clear();
-        // buf.prompt = prompt.to_owned();
-        self.buf_write(&buf);
-        self.read_raw().await.map(|prompt_buf| prompt_buf.input)
-    }
 
     async fn read<T: LookUp>(&mut self, prompt: impl Into<PromptBuf>) -> Result<T, NanoError> {
         let buf = prompt.into();
@@ -186,7 +195,6 @@ impl NanoPrompt for Prompt {
 
     fn buf_read(&self, buf: &mut PromptBuf) {
         buf.clone_from(&self.buf);
-
     }
     fn buf_write(&mut self, buf: &PromptBuf) {
         self.buf.clone_from(&buf);
@@ -197,6 +205,7 @@ impl NanoPrompt for Prompt {
             prompt: self.buf.clone(),
             promise: promise,
             active: false,
+            prior: None,
         });
         return waiter.await;
     }
@@ -206,6 +215,7 @@ impl NanoPrompt for Prompt {
 enum LookUpError {
     Message(String),
     NanoError(NanoError),
+    Incomplete(Vec[String]),
 }
 
 trait LookUp: Sized {
@@ -287,6 +297,7 @@ fn main() {
         .add_systems(Update, prompt_input)
         .add_systems(Update, poll_tasks)
         .add_systems(PreUpdate, run_commands)
+        .add_systems(Update, mouse_scroll)
         // .add_command("ask_name", ask_name3)
         // .add_command("ask_name", ask_name4.pipe(task_sink))
         .add_command("ask_name", ask_name5.pipe(task_sink))
@@ -358,6 +369,9 @@ fn prompt_input(
                 };
                 promise.reject(NanoError::Cancelled);
                 if prompts.len() == 0 {
+                    // text_prompt.prompt_get_mut().clear();
+                    // text_prompt.input_get_mut().clear();
+                    // text_prompt.message_get_mut().clear();
                     show_prompt.set(PromptState::Invisible);
                 }
                 continue;
@@ -370,29 +384,36 @@ fn prompt_input(
                     read_prompt.promise
                 };
                 promise.resolve(buf);
-                text_prompt.prompt_get_mut().clear();
-                text_prompt.input_get_mut().clear();
-                text_prompt.message_get_mut().clear();
                 if prompts.len() == 0 {
+                    text_prompt.prompt_get_mut().clear();
+                    text_prompt.input_get_mut().clear();
+                    text_prompt.message_get_mut().clear();
                     show_prompt.set(PromptState::Invisible);
                 }
                 continue;
             }
             let active = prompts.last().unwrap().active;
-            if ! active {
+            if !active {
                 // Must set it up.
                 if len > 1 {
                     if let Some(last) = prompts.get_mut(len - 2) {
                         // Record last prompt.
-                        text_prompt.buf_read(&mut last.prompt);
-                        eprintln!("last prompt {:?}", last.prompt);
+                        if last.prior.is_none() {
+                            let mut buf: PromptBuf = default();
+                            text_prompt.buf_read(&mut buf);
+                            eprintln!("record last prompt {:?}", buf);
+                            last.prior = Some(buf);
+                        }
                     }
                 }
                 for i in 0..len - 1 {
                     prompts[i].active = false;
                 }
                 let read_prompt = prompts.last_mut().unwrap();
-                text_prompt.buf_write(&read_prompt.prompt);
+                let buf = read_prompt.prior.as_ref().unwrap_or(&read_prompt.prompt);
+
+                eprintln!("setup new prompt {:?}", buf);
+                text_prompt.buf_write(&buf);
                 read_prompt.active = true;
                 show_prompt.set(PromptState::Visible);
             }
@@ -496,7 +517,7 @@ fn hide_prompt(mut query: Query<&mut Visibility, With<PromptContainer>>) {
 #[allow(dead_code)]
 async fn ask_name2(mut prompt: impl NanoPrompt) {
     println!("ask name 2 called");
-    if let Ok(name) = prompt.read_string("What's your first name? ").await {
+    if let Ok(name) = prompt.read::<String>("What's your first name? ").await {
         println!("Hello, {}", name);
     } else {
         println!("Got err in ask now");
@@ -509,8 +530,8 @@ fn ask_name3<'a>(mut commands: Commands, mut prompt_provider: ResMut<'a, PromptP
     let mut prompt = prompt_provider.new_prompt();
     commands.spawn(TaskSink::new(async move {
         println!("ask name 3 called");
-        if let Ok(first_name) = prompt.read_string("What's your first name? ").await {
-            if let Ok(last_name) = prompt.read_string("What's your last name? ").await {
+        if let Ok(first_name) = prompt.read::<String>("What's your first name? ").await {
+            if let Ok(last_name) = prompt.read::<String>("What's your last name? ").await {
                 println!("Hello, {} {}", first_name, last_name);
             }
         } else {
@@ -524,8 +545,8 @@ fn ask_name4<'a>(mut prompt_provider: ResMut<'a, PromptProvider>) -> impl Future
     let mut prompt = prompt_provider.new_prompt();
     println!("ask name 4 called");
     async move {
-        if let Ok(first_name) = prompt.read_string("What's your first name? ").await {
-            if let Ok(last_name) = prompt.read_string("What's your last name? ").await {
+        if let Ok(first_name) = prompt.read::<String>("What's your first name? ").await {
+            if let Ok(last_name) = prompt.read::<String>("What's your last name? ").await {
                 println!("Hello, {} {}", first_name, last_name);
             }
         } else {
@@ -550,8 +571,8 @@ fn ask_name5<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
 // fn ask_name6<'a>(mut prompt: TextPromptParam) -> impl Future<Output = ()> {
 //     println!("ask name 5 called");
 //     async move {
-//         if let Ok(first_name) = prompt.read_string("What's your first name? ").await {
-//             if let Ok(last_name) = prompt.read_string("What's your last name? ").await {
+//         if let Ok(first_name) = prompt.read::<string>("What's your first name? ").await {
+//             if let Ok(last_name) = prompt.read::<string>("What's your last name? ").await {
 //                 println!("Hello, {} {}", first_name, last_name);
 //             }
 //         } else {
@@ -590,67 +611,177 @@ fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>, mut com
 fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     commands.spawn(Camera2dBundle::default());
+
     commands
         .spawn(NodeBundle {
-            visibility: Visibility::Hidden,
+            // visibility: Visibility::Hidden,
             style: Style {
                 position_type: PositionType::Absolute,
+                // top: Val::Px(0.0),
                 bottom: Val::Px(0.0),
                 right: Val::Px(0.0),
                 left: Val::Px(0.0),
-                flex_direction: FlexDirection::Row,
-                flex_grow: 1.,
-                padding: UiRect {
-                    top: PADDING,
-                    left: PADDING,
-                    right: PADDING,
-                    bottom: PADDING,
-                },
+                flex_direction: FlexDirection::Column,
+
+                // align_items: AlignItems::FlexEnd,
+                // justify_content:
                 ..Default::default()
             },
-            background_color: BackgroundColor(Color::BLACK),
             ..Default::default()
         })
         .insert(PromptContainer {})
         .with_children(|builder| {
             builder
-                .spawn(TextBundle::from_sections([
-                    TextSection::new(
-                        "PromptNode: ",
-                        TextStyle {
-                            font: font.clone(),
-                            font_size: 24.0,
-                            color: Color::WHITE,
+                .spawn(NodeBundle {
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        ..default()
+                    },
+                    ..default()
+                })
+                .with_children(|builder| {
+                    // List with hidden overflow
+                    builder
+                        .spawn(NodeBundle {
+                            style: Style {
+                                flex_direction: FlexDirection::Column,
+                                align_self: AlignSelf::FlexEnd,
+                                height: Val::Percent(50.),
+                                min_width: Val::Percent(25.),
+                                overflow: Overflow::clip_y(),
+                                ..default()
+                            },
+                            background_color: Color::rgb(0.10, 0.10, 0.10).into(),
+                            ..default()
+                        }).with_children(|builder| {
+                    builder
+                        .spawn((
+                            NodeBundle {
+                                style: Style {
+                                    flex_direction: FlexDirection::Column,
+                                    align_items: AlignItems::FlexStart,
+                                    flex_grow: 0.,
+                                    padding: UiRect {
+                                        top: PADDING,
+                                        left: LEFT_PADDING,
+                                        right: PADDING * 2.,
+                                        bottom: PADDING,
+                                    },
+                                    margin: UiRect {
+                                        bottom: PADDING,
+                                        ..default()
+                                    },
+                                    ..default()
+                                },
+                                background_color: BackgroundColor(Color::BLACK),
+                                ..default()
+                            },
+                            ScrollingList::default(),
+                            AccessibilityNode(NodeBuilder::new(Role::List)),
+                        ))
+                        .with_children(|parent| {
+                            // List items
+                            for i in 0..30 {
+                                parent.spawn((
+                                    TextBundle::from_section(
+                                        format!("Item {i}"),
+                                        TextStyle {
+                                            font: font.clone(),
+                                            font_size: 20.,
+                                            color: Color::WHITE,
+                                        },
+                                    ),
+                                    Label,
+                                    AccessibilityNode(NodeBuilder::new(Role::ListItem)),
+                                ));
+                            }
+                        });
+
+                    builder.spawn(NodeBundle { ..default() });
+                });
+                });
+            builder
+                .spawn(NodeBundle {
+                    // visibility: Visibility::Hidden,
+                    style: Style {
+                        flex_direction: FlexDirection::Row,
+                        flex_grow: 1.,
+                        padding: UiRect {
+                            top: PADDING,
+                            left: LEFT_PADDING,
+                            right: PADDING,
+                            bottom: PADDING,
                         },
-                    ),
-                    TextSection::new(
-                        "input",
-                        TextStyle {
-                            font: font.clone(),
-                            font_size: 24.0,
-                            color: Color::GRAY,
-                        },
-                    ),
-                    TextSection::new(
-                        " message",
-                        TextStyle {
-                            font: font.clone(),
-                            font_size: 24.0,
-                            color: Color::YELLOW,
-                        },
-                    ),
-                    // This is a dummy section to keep the line height stable.
-                    TextSection::new(
-                        " ",
-                        TextStyle {
-                            font,
-                            font_size: 24.0,
-                            color: Color::WHITE,
-                        },
-                    ),
-                ]))
-                .insert(PromptNode {});
+                        ..Default::default()
+                    },
+                    background_color: BackgroundColor(Color::BLACK),
+                    ..Default::default()
+                })
+                // .insert(PromptContainer {})
+                .with_children(|builder| {
+                    builder
+                        .spawn(TextBundle::from_sections([
+                            TextSection::new(
+                                "PromptNode: ",
+                                TextStyle {
+                                    font: font.clone(),
+                                    font_size: 24.0,
+                                    color: Color::WHITE,
+                                },
+                            ),
+                            TextSection::new(
+                                "input",
+                                TextStyle {
+                                    font: font.clone(),
+                                    font_size: 24.0,
+                                    color: Color::GRAY,
+                                },
+                            ),
+                            TextSection::new(
+                                " message",
+                                TextStyle {
+                                    font: font.clone(),
+                                    font_size: 24.0,
+                                    color: Color::YELLOW,
+                                },
+                            ),
+                            // This is a dummy section to keep the line height stable.
+                            TextSection::new(
+                                " ",
+                                TextStyle {
+                                    font,
+                                    font_size: 24.0,
+                                    color: Color::WHITE,
+                                },
+                            ),
+                        ]))
+                        .insert(PromptNode {});
+                });
         });
+}
+
+fn mouse_scroll(
+    mut mouse_wheel_events: EventReader<MouseWheel>,
+    mut query_list: Query<(&mut ScrollingList, &mut Style, &Parent, &Node)>,
+    query_node: Query<&Node>,
+) {
+    for mouse_wheel_event in mouse_wheel_events.iter() {
+        for (mut scrolling_list, mut style, parent, list_node) in &mut query_list {
+            let items_height = list_node.size().y;
+            let container_height = query_node.get(parent.get()).unwrap().size().y;
+
+            let max_scroll = (items_height - container_height).max(0.);
+
+            let dy = match mouse_wheel_event.unit {
+                MouseScrollUnit::Line => mouse_wheel_event.y * 20.,
+                MouseScrollUnit::Pixel => mouse_wheel_event.y,
+            };
+
+            scrolling_list.position += dy;
+            scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
+            style.top = Val::Px(scrolling_list.position);
+        }
+    }
 }
 
 #[cfg(test)]

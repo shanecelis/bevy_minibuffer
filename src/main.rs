@@ -430,139 +430,6 @@ impl<'a> TextPrompt<'a> {
     }
 }
 
-#[derive(SystemParam)]
-pub struct TextPromptParam<'w, 's> {
-    query: Query<'w, 's, &'static mut Text, With<PromptNode>>,
-}
-
-// impl<'w, 's> NanoPrompt for TextPromptParam<'w, 's> {
-//     // type Output<T> = Consumer<T, NanoError>;
-
-//     fn buf_read(&self, buf: &mut PromptBuf) {
-//       let text = self.query.single();
-//       buf.prompt.clone_from(&text.sections[0].value);
-//       buf.input.clone_from(&text.sections[1].value);
-//       buf.message.clone_from(&text.sections[2].value);
-//     }
-//     fn buf_write(&mut self, buf: &PromptBuf) {
-//       let mut text = self.query.single_mut();
-//       text.sections[0].value.clone_from(&buf.prompt);
-//       text.sections[1].value.clone_from(&buf.input);
-//       text.sections[2].value.clone_from(&buf.message);
-//     }
-//     fn read(&mut self) -> Self::Output<PromptBuf> {
-//         panic!("Not sure this should ever be called.");
-//     }
-// }
-// struct TextPromptParam<'w, 's> {
-//     query: Query<'w, 's, &'static mut Text, With<PromptNode>>,
-// }
-// const _: () = {
-//     type __StructFieldsAlias<'w, 's> = (
-//         Query<'w, 's, &'static mut Text, With<PromptNode>>,
-//     );
-//     #[doc(hidden)]
-//     struct FetchState {
-//         state: <__StructFieldsAlias<
-//             'static,
-//             'static,
-//         > as bevy::ecs::system::SystemParam>::State,
-//     }
-//     unsafe impl bevy::ecs::system::SystemParam for TextPromptParam<'_, '_> {
-//         type State = FetchState;
-//         type Item<'w, 's> = TextPromptParam<'w, 's>;
-//         fn init_state(
-//             world: &mut bevy::ecs::world::World,
-//             system_meta: &mut bevy::ecs::system::SystemMeta,
-//         ) -> Self::State {
-//             FetchState {
-//                 state: <__StructFieldsAlias<
-//                     '_,
-//                     '_,
-//                 > as bevy::ecs::system::SystemParam>::init_state(world, system_meta),
-//             }
-//         }
-//         fn new_archetype(
-//             state: &mut Self::State,
-//             archetype: &bevy::ecs::archetype::Archetype,
-//             system_meta: &mut bevy::ecs::system::SystemMeta,
-//         ) {
-//             <__StructFieldsAlias<
-//                 '_,
-//                 '_,
-//             > as bevy::ecs::system::SystemParam>::new_archetype(
-//                 &mut state.state,
-//                 archetype,
-//                 system_meta,
-//             )
-//         }
-//         fn apply(
-//             state: &mut Self::State,
-//             system_meta: &bevy::ecs::system::SystemMeta,
-//             world: &mut bevy::ecs::world::World,
-//         ) {
-//             <__StructFieldsAlias<
-//                 '_,
-//                 '_,
-//             > as bevy::ecs::system::SystemParam>::apply(
-//                 &mut state.state,
-//                 system_meta,
-//                 world,
-//             );
-//         }
-//         unsafe fn get_param<'w, 's>(
-//             state: &'s mut Self::State,
-//             system_meta: &bevy::ecs::system::SystemMeta,
-//             world: bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell<'w>,
-//             change_tick: bevy::ecs::component::Tick,
-//         ) -> Self::Item<'w, 's> {
-//             let (f0,) = <(
-//                 Query<'w, 's, &'static mut Text, With<PromptNode>>,
-//             ) as bevy::ecs::system::SystemParam>::get_param(
-//                 &mut state.state,
-//                 system_meta,
-//                 world,
-//                 change_tick,
-//             );
-//             TextPromptParam { query: f0 }
-//         }
-//     }
-//     unsafe impl<'w, 's> bevy::ecs::system::ReadOnlySystemParam
-//     for TextPromptParam<'w, 's>
-//     where
-//         Query<
-//             'w,
-//             's,
-//             &'static mut Text,
-//             With<PromptNode>,
-//         >: bevy::ecs::system::ReadOnlySystemParam,
-//     {}
-// };
-
-// unsafe impl SystemParam for TextPrompt<'_> {
-//     // type State = TextPromptParam<'w, 's>;
-//     type State = ();
-//     type Item<'world, 'state> = TextPrompt<'world>;
-
-//     fn init_state(world: &mut World, system_meta: &mut SystemMeta) -> Self::State {
-//       // TextPromptParam { query: world.query::<'w, 's, &'static mut Text, With<PromptNode>>() }
-//     }
-
-//     #[inline]
-//     unsafe fn get_param<'world, 'state>(
-//         state: &'state mut Self::State,
-//         system_meta: &SystemMeta,
-//         world: UnsafeWorldCell<'world>,
-//         change_tick: Tick,
-//     ) -> Self::Item<'world, 'state> {
-//         let world = world.world_mut();
-//         let mut query = world.query::<'world, 'state, (&'static mut Text, With<PromptNode>)>();
-//         let (mut text, _) = query.single_mut(world);
-//         // let text = state.get_mut(&mut world);
-//       TextPrompt { text }
-//     }
-// }
-
 impl<'a> NanoPrompt for TextPrompt<'a> {
     // type Output<T> = Consumer<T, NanoError>;
 
@@ -777,9 +644,9 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
 #[cfg(test)]
 mod tests {
 
-#[allow(unused_must_use)]
-#[test]
-fn test_option_default() {
-  let a : Option<PromptCel> = default();
-}
+  #[allow(unused_must_use)]
+  #[test]
+  fn test_option_default() {
+    let a : Option<PromptCel> = default();
+  }
 }

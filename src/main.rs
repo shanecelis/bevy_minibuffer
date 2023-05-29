@@ -86,6 +86,7 @@ pub struct PromptBuf {
     pub prompt: String,
     pub input: String,
     pub message: String,
+    pub completion: Option<Vec<String>>,
 }
 
 impl<T> From<T> for PromptBuf
@@ -97,6 +98,7 @@ where
             prompt: value.into(),
             input: "".into(),
             message: "".into(),
+            completion: None,
         }
     }
 }
@@ -132,6 +134,7 @@ impl Prompt {
                 prompt: String::from(""),
                 message: String::from(""),
                 input: String::from(""),
+                completion: None,
             },
             prompts,
         }
@@ -156,28 +159,14 @@ trait NanoPrompt {
                         new_buf.message = m;
                         self.buf_write(&new_buf);
                     }
+                    Err(LookUpError::Incomplete(v)) => {
+                        new_buf.completion = Some(v);
+                        self.buf_write(&new_buf);
+                    }
                     Err(LookUpError::NanoError(e)) => return Err(e),
                 },
                 Err(e) => return Err(e),
             }
-        }
-    }
-}
-
-async fn read_int(prompt: &mut impl NanoPrompt, label: &str) -> Result<i32, NanoError> {
-    let mut buf = PromptBuf::default();
-    buf.prompt = label.to_owned();
-    prompt.buf_write(&buf);
-    loop {
-        match prompt.read_raw().await {
-            Ok(mut new_buf) => match new_buf.input.parse::<i32>() {
-                Ok(int) => return Ok(int),
-                Err(e) => {
-                    new_buf.message = format!(" expected int: {}", e);
-                    prompt.buf_write(&new_buf);
-                }
-            },
-            Err(e) => return Err(e),
         }
     }
 }
@@ -215,8 +204,9 @@ impl NanoPrompt for Prompt {
 enum LookUpError {
     Message(String),
     NanoError(NanoError),
-    Incomplete(Vec[String]),
+    Incomplete(Vec<String>),
 }
+
 
 trait LookUp: Sized {
     fn look_up(input: &str) -> Result<Self, LookUpError>;
@@ -242,6 +232,20 @@ impl LookUp for i32 {
         }
     }
 }
+
+struct TomDickHarry(String);
+
+impl LookUp for TomDickHarry {
+    fn look_up(input: &str) -> Result<Self, LookUpError> {
+        match input {
+            "Tom" => Ok(TomDickHarry(input.into())),
+            "Dick" => Ok(TomDickHarry(input.into())),
+            "Harry" => Ok(TomDickHarry(input.into())),
+            _ => Err(LookUpError::Incomplete(vec!["Tom".into(), "Dick".into(), "Harry".into()]))
+        }
+    }
+}
+
 
 #[derive(Component)]
 struct TaskSink(Task<()>);
@@ -300,9 +304,10 @@ fn main() {
         .add_systems(Update, mouse_scroll)
         // .add_command("ask_name", ask_name3)
         // .add_command("ask_name", ask_name4.pipe(task_sink))
-        .add_command("ask_name", ask_name5.pipe(task_sink))
+        // .add_command("ask_name", ask_name5.pipe(task_sink))
+        .add_command("ask_name", ask_name6.pipe(task_sink))
         // .add_command("ask_name", ask_name6.pipe(task_sink))
-        .add_command("ask_age", ask_age.pipe(task_sink))
+        // .add_command("ask_age", ask_age.pipe(task_sink))
         .add_command("ask_age2", ask_age2.pipe(task_sink))
         .run();
 }
@@ -335,12 +340,15 @@ fn poll_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut Tas
 
 /// prints every char coming in; press enter to echo the full string
 fn prompt_input(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     prompt_provider: ResMut<PromptProvider>,
     mut char_evr: EventReader<ReceivedCharacter>,
     mut show_prompt: ResMut<NextState<PromptState>>,
     mut run_command: EventWriter<RunCommandEvent>,
     keys: Res<Input<KeyCode>>,
     mut query: Query<&mut Text, With<PromptNode>>,
+    completion: Query<(Entity, &Children), With<ScrollingList>>,
     // mut text_prompt: TextPrompt,
 ) {
     if keys.just_pressed(KeyCode::Tab) {
@@ -355,10 +363,16 @@ fn prompt_input(
     }
 
     let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
+    let (completion_node, children) = completion.single();
+    let children: Vec<Entity> = children.to_vec();
     for mut text in query.iter_mut() {
         let len = prompts.len();
         if prompts.len() > 0 {
-            let mut text_prompt = TextPrompt { text: &mut text };
+
+            let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+            let mut text_prompt = TextPrompt { text: &mut text, completion: completion_node,
+                                               children: children.clone(), font: font.clone(),
+                                               commands: &mut commands };
 
             if keys.just_pressed(KeyCode::Escape) {
                 let message = text_prompt.message_get_mut();
@@ -432,12 +446,17 @@ fn prompt_input(
     }
 }
 
-struct TextPrompt<'a> {
+struct TextPrompt<'a, 'w, 's> {
     text: &'a mut Text,
+    completion: Entity,
+    children: Vec<Entity>,
+    commands: &'a mut Commands<'w, 's>,
+    font: Handle<Font>
+
 }
 
 #[allow(dead_code)]
-impl<'a> TextPrompt<'a> {
+impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
     fn prompt_get_mut(&mut self) -> &mut String {
         &mut self.text.sections[0].value
     }
@@ -458,7 +477,7 @@ impl<'a> TextPrompt<'a> {
     }
 }
 
-impl<'a> NanoPrompt for TextPrompt<'a> {
+impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
     fn buf_read(&self, buf: &mut PromptBuf) {
         buf.prompt.clone_from(&self.text.sections[0].value);
         buf.input.clone_from(&self.text.sections[1].value);
@@ -468,6 +487,19 @@ impl<'a> NanoPrompt for TextPrompt<'a> {
         self.text.sections[0].value.clone_from(&buf.prompt);
         self.text.sections[1].value.clone_from(&buf.input);
         self.text.sections[2].value.clone_from(&buf.message);
+        if let Some(values) = &buf.completion {
+            let new_children: Vec<Entity> = values.clone().into_iter().map(|label|
+                                                              self.commands.spawn(completion_item(label,
+                                                                                       Color::WHITE,
+                                                                                       self.font.clone()))
+            .id()).collect();
+
+            self.commands.entity(self.completion).replace_children(&new_children);
+            for child in self.children.iter() {
+                self.commands.entity(*child).despawn();
+            }
+            // self.node.remove_children(self.children);
+        }
     }
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {
         panic!("Not sure this should ever be called.");
@@ -568,6 +600,17 @@ fn ask_name5<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
     }
 }
 
+fn ask_name6<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
+    println!("ask name 5 called");
+    async move {
+        if let Ok(TomDickHarry(first_name)) = prompt.read("What's your first name? ").await {
+            println!("Hello, {}", first_name);
+        } else {
+            println!("Got err in ask now");
+        }
+    }
+}
+
 // fn ask_name6<'a>(mut prompt: TextPromptParam) -> impl Future<Output = ()> {
 //     println!("ask name 5 called");
 //     async move {
@@ -580,18 +623,6 @@ fn ask_name5<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
 //         }
 //     }
 // }
-
-#[allow(dead_code)]
-fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
-    println!("ask age called");
-    async move {
-        if let Ok(age) = read_int(&mut prompt, "What's your age? ").await {
-            println!("You are {} years old.", age);
-        } else {
-            println!("Got err in ask age");
-        }
-    }
-}
 
 fn ask_age2(mut prompt: Prompt) -> impl Future<Output = ()> {
     println!("ask age2 called");
@@ -606,6 +637,19 @@ fn ask_age2(mut prompt: Prompt) -> impl Future<Output = ()> {
 
 fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>, mut commands: Commands) {
     commands.spawn(TaskSink::new(async move { future.await }));
+}
+
+fn completion_item(label: String, color: Color, font: Handle<Font>) -> (TextBundle, Label, AccessibilityNode) {
+    (TextBundle::from_section(
+        label,
+        TextStyle {
+            font: font,
+            font_size: 20.,
+            color,
+        },
+    ),
+    Label,
+    AccessibilityNode(NodeBuilder::new(Role::ListItem)))
 }
 
 fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -646,7 +690,7 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                             style: Style {
                                 flex_direction: FlexDirection::Column,
                                 align_self: AlignSelf::FlexEnd,
-                                height: Val::Percent(50.),
+                                // height: Val::Percent(50.),
                                 min_width: Val::Percent(25.),
                                 overflow: Overflow::clip_y(),
                                 ..default()
@@ -682,18 +726,9 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                         .with_children(|parent| {
                             // List items
                             for i in 0..30 {
-                                parent.spawn((
-                                    TextBundle::from_section(
-                                        format!("Item {i}"),
-                                        TextStyle {
-                                            font: font.clone(),
-                                            font_size: 20.,
-                                            color: Color::WHITE,
-                                        },
-                                    ),
-                                    Label,
-                                    AccessibilityNode(NodeBuilder::new(Role::ListItem)),
-                                ));
+                                parent.spawn(completion_item(format!("Item {i}"),
+                                                             Color::WHITE,
+                                                             font.clone()));
                             }
                         });
 

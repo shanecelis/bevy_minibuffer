@@ -9,5 +9,4 @@ edition = "2021"
 # bevy = "0.10.1"
 bevy = { git = "https://github.com/bevyengine/bevy.git" }
 futures-lite = "1.13.0"
-once_cell = "1.17.1"
 promise_out = { git = "https://github.com/shanecelis/promise_out.git" }

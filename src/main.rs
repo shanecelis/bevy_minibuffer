@@ -1,20 +1,18 @@
+// #![feature(return_position_impl_trait_in_trait)]
+#![feature(async_fn_in_trait)]
 use bevy::ecs::prelude::Commands;
 use bevy::ecs::schedule::ScheduleLabel;
-use bevy::ecs::system::{CommandQueue, SystemState, SystemParam, SystemMeta};
+use bevy::ecs::system::{SystemState, SystemParam, SystemMeta};
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use bevy::utils::Duration;
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::ecs::component::Tick;
 use futures_lite::future;
-use once_cell::sync::OnceCell;
 use promise_out::{Promise, pair::{Producer, Consumer}};
 use std::borrow::Cow;
 use std::future::Future;
-use std::pin::Pin;
-use std::rc::Rc;
-use std::sync::{Arc, Mutex, Weak};
-use std::task::{Context, Poll};
+use std::sync::{Arc, Mutex};
 
 const MARGIN: Val = Val::Px(5.);
 const PADDING: Val = Val::Px(3.);
@@ -38,7 +36,7 @@ enum NanoError {
 struct ReadPrompt {
     prompt: PromptBuf,
     active: bool,
-    promise: Producer<String, NanoError>,
+    promise: Producer<PromptBuf, NanoError>,
 }
 
 #[derive(Resource, Clone)]
@@ -66,41 +64,29 @@ impl PromptProvider {
 #[derive(Clone, Default)]
 pub struct PromptBuf {
     pub prompt: String,
-    pub message: String,
     pub input: String,
+    pub message: String,
 }
 
-// #[derive(Default)]
 pub struct Prompt {
   pub buf: PromptBuf,
   prompts: Arc<Mutex<Vec<ReadPrompt>>>,
 }
 
-#[derive(Default)]
-struct MyOption<T>(Option<T>);
-
-// #[derive(SystemParam)]
-// pub struct Prompt<'w> {
-//   pub prompt_provider: ResMut<'w, PromptProvider>,
-//   #[system_param(ignore)]
-//   cell: Option<Prompt>,
-//   // pub what: bool
-// }
-
 unsafe impl SystemParam for Prompt {
     type State = PromptProvider;
     type Item<'w, 's> = Prompt;
 
-    fn init_state(world: &mut World, system_meta: &mut SystemMeta) -> Self::State {
+    fn init_state(world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
         world.get_resource_mut::<PromptProvider>().unwrap().clone()
     }
 
     #[inline]
     unsafe fn get_param<'w, 's>(
         state: &'s mut Self::State,
-        system_meta: &SystemMeta,
-        world: UnsafeWorldCell<'w>,
-        change_tick: Tick,
+        _system_meta: &SystemMeta,
+        _world: UnsafeWorldCell<'w>,
+        _change_tick: Tick,
     ) -> Self::Item<'w, 's> {
         state.new_prompt()
     }
@@ -118,35 +104,52 @@ impl Prompt {
 }
 
 trait NanoPrompt {
-    type Output: Future<Output = Result<String, NanoError>>;
+    // type Output<T> = Result<T, NanoError>;
 
     fn buf_read(&self, buf: &mut PromptBuf);
     fn buf_write(&mut self, buf: &PromptBuf);// -> Result<(),
-    fn read(&mut self) -> Self::Output;
+    async fn read(&mut self) -> Result<PromptBuf, NanoError>;
 
-    fn read_string(&mut self, prompt: &str) -> Self::Output {
+    async fn read_string(&mut self, prompt: &str) -> Result<String, NanoError> {
         let mut buf = PromptBuf::default();
         self.buf_read(&mut buf);
         buf.input.clear();
         buf.prompt = prompt.to_owned();
         self.buf_write(&mut buf);
-        self.read()
+        self.read().await.map(|prompt_buf| prompt_buf.input)
+    }
+
+    async fn read_type<T: LookUp>(&mut self) -> Result<T, NanoError> {
+      loop {
+        match self.read().await {
+          Ok(mut new_buf) => {
+            match T::look_up(&new_buf.input) {
+              Ok(v) => return Ok(v),
+              Err(LookUpError::Message(m)) => {
+                  new_buf.message = m;
+                  self.buf_write(&new_buf);
+              },
+              Err(LookUpError::NanoError(e)) => return Err(e)
+            }
+          }
+          Err(e) => return Err(e)
+        }
+      }
     }
 }
 
 async fn read_int(prompt: &mut impl NanoPrompt, label: &str) -> Result<i32, NanoError> {
+  let mut buf = PromptBuf::default();
+  buf.prompt = label.to_owned();
+  prompt.buf_write(&buf);
   loop {
-    let mut buf = PromptBuf::default();
-    buf.prompt = label.to_owned();
-    prompt.buf_write(&buf);
     match prompt.read().await {
-      Ok(str) => {
-        match str.parse::<i32>() {
+      Ok(mut new_buf) => {
+        match new_buf.input.parse::<i32>() {
           Ok(int) => return Ok(int),
           Err(e) => {
-              prompt.buf_read(&mut buf);
-              buf.message = format!(" expected int: {}", e);
-              prompt.buf_write(&buf);
+              new_buf.message = format!(" expected int: {}", e);
+              prompt.buf_write(&new_buf);
           }
         }
       }
@@ -164,7 +167,7 @@ enum PromptState {
 }
 
 impl NanoPrompt for Prompt {
-    type Output = Consumer<String, NanoError>;
+    // type Output<T> = Consumer<T, NanoError>;
 
     fn buf_read(&self, buf: &mut PromptBuf) {
       buf.clone_from(&self.buf);
@@ -173,15 +176,46 @@ impl NanoPrompt for Prompt {
     fn buf_write(&mut self, buf: &PromptBuf) {
       self.buf.clone_from(&buf);
     }
-    fn read(&mut self) -> Self::Output {
-        let (promise, waiter) = Producer::new();
+    async fn read(&mut self) -> Result<PromptBuf, NanoError> {
+        let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
         self.prompts.lock().unwrap().push(ReadPrompt {
             prompt: self.buf.clone(),
             promise: promise,
             active: false,
         });
-        return waiter;
+        return waiter.await;
     }
+
+}
+
+enum LookUpError {
+  Message(String),
+  NanoError(NanoError)
+}
+
+trait LookUp : Sized {
+  fn look_up(input: &str) -> Result<Self, LookUpError>;
+}
+
+impl LookUp for () {
+  fn look_up(_: &str) -> Result<Self, LookUpError> {
+    Ok(())
+  }
+}
+
+impl LookUp for String {
+  fn look_up(input: &str) -> Result<Self, LookUpError> {
+    Ok(input.to_owned())
+  }
+}
+
+impl LookUp for i32 {
+  fn look_up(input: &str) -> Result<Self, LookUpError> {
+    match input.parse::<i32>() {
+      Ok(int) => Ok(int),
+      Err(e) => Err(LookUpError::Message(format!(" expected int: {}", e)))
+    }
+  }
 }
 
 #[derive(Component)]
@@ -231,23 +265,24 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_startup_system(spawn_layout)
+        .add_systems(Startup, spawn_layout)
         .add_systems(OnEnter(PromptState::Visible), show_prompt)
         .add_systems(OnExit(PromptState::Visible), hide_prompt_delayed)
-        .add_system(hide_prompt_maybe)
-        .add_system(prompt_input)
-        .add_system(poll_tasks)
+        .add_systems(Update, hide_prompt_maybe)
+        .add_systems(Update, prompt_input)
+        .add_systems(Update, poll_tasks)
         .add_systems(PreUpdate, run_commands)
         // .add_command("ask_name", ask_name3)
         // .add_command("ask_name", ask_name4.pipe(task_sink))
         .add_command("ask_name", ask_name5.pipe(task_sink))
         // .add_command("ask_name", ask_name6.pipe(task_sink))
-        // .add_command("ask_age", ask_age.pipe(task_sink))
+        .add_command("ask_age", ask_age.pipe(task_sink))
+        .add_command("ask_age2", ask_age2.pipe(task_sink))
         .run();
 }
 
 fn run_commands(world: &mut World) {
-    let mut event_system_state = SystemState::<(EventReader<RunCommandEvent>)>::new(world);
+    let mut event_system_state = SystemState::<EventReader<RunCommandEvent>>::new(world);
     let schedules: Vec<Box<dyn ScheduleLabel>> = {
         let mut events = event_system_state.get_mut(world);
         events.iter().map(|e| e.0.clone()).collect()
@@ -290,6 +325,16 @@ fn prompt_input(
         return;
     }
 
+    if keys.just_pressed(KeyCode::Key1) {
+        // println!("tab pressed");
+        // commands.spawn(TaskSink::new(ask_name()));
+        // commands.spawn(TaskSink::new(ask_name3(prompt_provider.new_prompt())));
+        // run_command.send(RunCommandEvent(Box::new(CommandOneShot("ask_name".into()))));
+        // run_command.send(RunCommandEvent(Box::new(CommandOneShot("ask_age".into()))));
+        run_command.send(RunCommandEvent(Box::new(CommandOneShot("ask_age2".into()))));
+        return;
+    }
+
     let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
     for mut text in query.iter_mut() {
         if prompts.len() > 0 {
@@ -310,26 +355,28 @@ fn prompt_input(
                     show_prompt.set(PromptState::Invisible);
                 }
                 continue;
-                // return;
             }
             if keys.just_pressed(KeyCode::Return) {
-                // let mut buf = PromptBuf::default();
-                let result = text_prompt.input_get().to_owned();
+                let mut buf = PromptBuf::default();
+                // let result = text_prompt.input_get().to_owned();
+                text_prompt.buf_read(&mut buf);
                 // let result = buf.input.clone();
                 // println!("Got result {}", result);
                 let promise = {
                     let read_prompt = prompts.pop().unwrap();
                     read_prompt.promise
                 };
-                promise.resolve(result);
+                promise.resolve(buf);
+                text_prompt.prompt_get_mut().clear();
+                text_prompt.input_get_mut().clear();
+                text_prompt.message_get_mut().clear();
                 if prompts.len() == 0 {
                     show_prompt.set(PromptState::Invisible);
                 }
                 continue;
-                // return;
             }
             let read_prompt = prompts.last_mut().unwrap();
-            if !read_prompt.active {
+            if ! read_prompt.active {
                 // Must set it up.
                 text_prompt.buf_write(&read_prompt.prompt);
                 read_prompt.active = true;
@@ -339,24 +386,27 @@ fn prompt_input(
                 show_prompt.set(PromptState::Visible);
             }
             if keys.just_pressed(KeyCode::Back) {
-                let mut buf = PromptBuf::default();
-                text_prompt.buf_read(&mut buf);
-                let _ = buf.input.pop();
-                text_prompt.buf_write(&buf);
+              // println!("backspace");
+                let _ = text_prompt.input_get_mut().pop();
+                // let mut buf = PromptBuf::default();
+                // text_prompt.buf_read(&mut buf);
+                // let _ = buf.input.pop();
+                // text_prompt.buf_write(&buf);
+                text_prompt.message_get_mut().clear();
                 continue;
-              // return;
             }
-            text_prompt
-                .input_get_mut()
-                .extend(char_evr.iter().map(|ev| ev.char));
+            if char_evr.len() > 0 {
+              text_prompt
+                  .input_get_mut()
+                  .extend(char_evr.iter().map(|ev| ev.char));
+              text_prompt.message_get_mut().clear();
+            }
         }
     }
 }
 
 struct TextPrompt<'a> {
     text: &'a mut Text,
-    // #[system_param(ignore)]
-    // marker: PhantomData<Marker>,
 }
 
 impl<'a> TextPrompt<'a> {
@@ -372,7 +422,6 @@ impl<'a> TextPrompt<'a> {
     fn input_get(&self) -> &str {
         &self.text.sections[1].value
     }
-
     fn message_get_mut(&mut self) -> &mut String {
         &mut self.text.sections[2].value
     }
@@ -386,25 +435,25 @@ pub struct TextPromptParam<'w, 's> {
     query: Query<'w, 's, &'static mut Text, With<PromptNode>>,
 }
 
-impl<'w, 's> NanoPrompt for TextPromptParam<'w, 's> {
-    type Output = Consumer<String, NanoError>;
+// impl<'w, 's> NanoPrompt for TextPromptParam<'w, 's> {
+//     // type Output<T> = Consumer<T, NanoError>;
 
-    fn buf_read(&self, buf: &mut PromptBuf) {
-      let text = self.query.single();
-      buf.prompt.clone_from(&text.sections[0].value);
-      buf.input.clone_from(&text.sections[1].value);
-      buf.message.clone_from(&text.sections[2].value);
-    }
-    fn buf_write(&mut self, buf: &PromptBuf) {
-      let mut text = self.query.single_mut();
-      text.sections[0].value.clone_from(&buf.prompt);
-      text.sections[1].value.clone_from(&buf.input);
-      text.sections[2].value.clone_from(&buf.message);
-    }
-    fn read(&mut self) -> Self::Output {
-        panic!("Not sure this should ever be called.");
-    }
-}
+//     fn buf_read(&self, buf: &mut PromptBuf) {
+//       let text = self.query.single();
+//       buf.prompt.clone_from(&text.sections[0].value);
+//       buf.input.clone_from(&text.sections[1].value);
+//       buf.message.clone_from(&text.sections[2].value);
+//     }
+//     fn buf_write(&mut self, buf: &PromptBuf) {
+//       let mut text = self.query.single_mut();
+//       text.sections[0].value.clone_from(&buf.prompt);
+//       text.sections[1].value.clone_from(&buf.input);
+//       text.sections[2].value.clone_from(&buf.message);
+//     }
+//     fn read(&mut self) -> Self::Output<PromptBuf> {
+//         panic!("Not sure this should ever be called.");
+//     }
+// }
 // struct TextPromptParam<'w, 's> {
 //     query: Query<'w, 's, &'static mut Text, With<PromptNode>>,
 // }
@@ -515,7 +564,7 @@ impl<'w, 's> NanoPrompt for TextPromptParam<'w, 's> {
 // }
 
 impl<'a> NanoPrompt for TextPrompt<'a> {
-    type Output = Consumer<String, NanoError>;
+    // type Output<T> = Consumer<T, NanoError>;
 
     fn buf_read(&self, buf: &mut PromptBuf) {
       buf.prompt.clone_from(&self.text.sections[0].value);
@@ -527,7 +576,7 @@ impl<'a> NanoPrompt for TextPrompt<'a> {
       self.text.sections[1].value.clone_from(&buf.input);
       self.text.sections[2].value.clone_from(&buf.message);
     }
-    fn read(&mut self) -> Self::Output {
+    async fn read(&mut self) -> Result<PromptBuf, NanoError> {
         panic!("Not sure this should ever be called.");
     }
 }
@@ -632,16 +681,27 @@ fn ask_name5<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
 //     }
 // }
 
-// fn ask_age(mut prompt: TextPromptParam) -> impl Future<Output = ()> {
-//     println!("ask age called");
-//     async move {
-//         if let Ok(age) = read_int(&mut prompt, "What's your age? ").await {
-//             println!("You are {} years old.", age);
-//         } else {
-//             println!("Got err in ask age");
-//         }
-//     }
-// }
+fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
+    println!("ask age called");
+    async move {
+        if let Ok(age) = read_int(&mut prompt, "What's your age? ").await {
+            println!("You are {} years old.", age);
+        } else {
+            println!("Got err in ask age");
+        }
+    }
+}
+
+fn ask_age2(mut prompt: Prompt) -> impl Future<Output = ()> {
+    println!("ask age called");
+    async move {
+        if let Ok(age) = prompt.read_type::<i32>().await {
+            println!("You are {} years old.", age);
+        } else {
+            println!("Got err in ask age");
+        }
+    }
+}
 
 fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>, mut commands: Commands) {
     commands.spawn(TaskSink::new(async move { future.await }));
@@ -688,11 +748,20 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                         TextStyle {
                             font: font.clone(),
                             font_size: 24.0,
-                            color: Color::WHITE,
+                            color: Color::GRAY,
                         },
                     ),
                     TextSection::new(
                         " message",
+                        TextStyle {
+                            font: font.clone(),
+                            font_size: 24.0,
+                            color: Color::YELLOW,
+                        },
+                    ),
+                    // This is a dummy section to keep the line height stable.
+                    TextSection::new(
+                        " ",
                         TextStyle {
                             font,
                             font_size: 24.0,

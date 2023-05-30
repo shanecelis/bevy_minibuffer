@@ -1,0 +1,8 @@
+#+title: Todo
+* TODO
+** print message
+** access to live prompt?
+** Add some kind of validation
+** Add a tab complete scroll list
+** Handle backspace key repeat
+** What about single character reponses?

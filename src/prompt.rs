@@ -1,12 +1,14 @@
+use std::borrow::Cow;
+use std::sync::{Arc, Mutex};
+
+use bevy::prelude::*;
 use bevy::ecs::component::Tick;
 use bevy::ecs::prelude::Commands;
 use bevy::ecs::system::{SystemMeta, SystemParam};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
-use bevy::prelude::*;
 use bevy::utils::Duration;
+
 use promise_out::{pair::Producer, Promise};
-use std::borrow::Cow;
-use std::sync::{Arc, Mutex};
 
 use crate::ui::*;
 
@@ -46,6 +48,7 @@ impl PromptProvider {
     }
 }
 
+// TODO: Switch to cows or options.
 #[derive(Clone, Default, Debug)]
 pub struct PromptBuf {
     pub prompt: String,

@@ -98,9 +98,8 @@ pub fn exec_command(
 ) -> impl Future<Output = Option<RunCommandEvent>> {
     let commands: Vec<_> = config
         .commands
-        .clone()
-        .into_iter()
-        .map(|c| c.name)
+        .iter()
+        .map(|c| c.name.clone())
         .collect();
     async move {
         if let Ok(command) = prompt.read_crit(": ", &&commands[..]).await {

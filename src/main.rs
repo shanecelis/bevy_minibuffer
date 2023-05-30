@@ -18,12 +18,12 @@ use bevy::{
     prelude::*,
     winit::WinitSettings,
 };
+use bitflags::bitflags;
 use futures_lite::future;
 use promise_out::{pair::Producer, Promise};
 use std::borrow::Cow;
 use std::future::Future;
 use std::sync::{Arc, Mutex};
-use bitflags::bitflags;
 
 // const MARGIN: Val = Val::Px(5.);
 const PADDING: Val = Val::Px(3.);
@@ -62,7 +62,7 @@ struct ScrollingList {
 
 #[derive(Resource, Debug, Default)]
 struct CommandConfig {
-    commands: Vec<Command>
+    commands: Vec<Command>,
 }
 
 #[derive(Resource, Clone)]
@@ -176,7 +176,11 @@ trait NanoPrompt {
         }
     }
 
-    async fn read_crit<T>(&mut self, prompt: impl Into<PromptBuf>, look_up: &impl LookUpObject<Item=T>) -> Result<T, NanoError> {
+    async fn read_crit<T>(
+        &mut self,
+        prompt: impl Into<PromptBuf>,
+        look_up: &impl LookUpObject<Item = T>,
+    ) -> Result<T, NanoError> {
         let buf = prompt.into();
         self.buf_write(&buf);
         loop {
@@ -270,20 +274,22 @@ enum LookUpError {
 impl<T: AsRef<str>> LookUpObject for &[T] {
     type Item = String;
     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
-        let matches: Vec<&str> = self.iter()
-                                       .map(|word| word.as_ref())
-                                       .filter(|word| word.starts_with(input))
-                                       .collect();
+        let matches: Vec<&str> = self
+            .iter()
+            .map(|word| word.as_ref())
+            .filter(|word| word.starts_with(input))
+            .collect();
         if matches.len() == 1 {
             Ok(matches[0].to_string())
         } else if matches.len() > 1 {
-            Err(LookUpError::Incomplete(matches.into_iter().map(|s| s.to_string()).collect()))
+            Err(LookUpError::Incomplete(
+                matches.into_iter().map(|s| s.to_string()).collect(),
+            ))
         } else {
             Err(LookUpError::Message(" no matches".into()))
         }
     }
 }
-
 
 // impl<'a> LookUpObject for &[Cow<'a, str>] {
 //     type Item = String;
@@ -301,13 +307,15 @@ impl<T: AsRef<str>> LookUpObject for &[T] {
 //     }
 // }
 
-
 trait LookUpObject: Sized {
     type Item;
     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError>;
 }
 
-impl<T> LookUpObject for T where T : LookUp {
+impl<T> LookUpObject for T
+where
+    T: LookUp,
+{
     type Item = T;
     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
         T::look_up(input)
@@ -347,11 +355,14 @@ impl LookUp for TomDickHarry {
             "Tom" => Ok(TomDickHarry(input.into())),
             "Dick" => Ok(TomDickHarry(input.into())),
             "Harry" => Ok(TomDickHarry(input.into())),
-            _ => Err(LookUpError::Incomplete(vec!["Tom".into(), "Dick".into(), "Harry".into()]))
+            _ => Err(LookUpError::Incomplete(vec![
+                "Tom".into(),
+                "Dick".into(),
+                "Harry".into(),
+            ])),
         }
     }
 }
-
 
 #[derive(Component)]
 struct TaskSink(Task<()>);
@@ -384,7 +395,7 @@ impl From<KeyCode> for Key {
     fn from(v: KeyCode) -> Self {
         Key {
             key: v,
-            mods: Modifiers::empty()
+            mods: Modifiers::empty(),
         }
     }
 }
@@ -411,21 +422,26 @@ impl Modifiers {
 #[derive(Debug, Clone)]
 struct Command {
     name: Cow<'static, str>,
-    hotkey: Option<Key>
+    hotkey: Option<Key>,
 }
 
 impl Command {
     fn new(name: impl Into<Cow<'static, str>>, hotkey: Option<impl Into<Key>>) -> Self {
-        Command { name: name.into(),
-                  hotkey: hotkey.map(|v| v.into()) }
+        Command {
+            name: name.into(),
+            hotkey: hotkey.map(|v| v.into()),
+        }
     }
 }
 
-impl<T> From<T> for Command where T: Into<Cow<'static, str>> {
+impl<T> From<T> for Command
+where
+    T: Into<Cow<'static, str>>,
+{
     fn from(v: T) -> Self {
         Command {
             name: v.into(),
-            hotkey: None
+            hotkey: None,
         }
     }
 }
@@ -490,7 +506,10 @@ fn main() {
         // .add_command("ask_name", ask_name6.pipe(task_sink))
         // .add_command("ask_age", ask_age.pipe(task_sink))
         .add_command("ask_age2", ask_age2.pipe(task_sink))
-        .add_command(Command::new("exec_command", Some(KeyCode::Semicolon)), exec_command.pipe(task_sink))
+        .add_command(
+            Command::new("exec_command", Some(KeyCode::Semicolon)),
+            exec_command.pipe(task_sink),
+        )
         .run();
 }
 
@@ -523,13 +542,15 @@ fn poll_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut Tas
 fn hotkey_input(
     mut run_command: EventWriter<RunCommandEvent>,
     keys: Res<Input<KeyCode>>,
-    config: Res<CommandConfig>)
-{
+    config: Res<CommandConfig>,
+) {
     let mods = Modifiers::from_input(&keys);
     for command in &config.commands {
-        if let Some(ref key) = command.hotkey {
-            if key.mods == mods && keys.just_pressed(key.key) {
+        if let Some(ref hotkey) = command.hotkey {
+            if hotkey.mods == mods && keys.just_pressed(hotkey.key) {
                 eprintln!("We were called for {}", command.name);
+
+                run_command.send(RunCommandEvent(Box::new(CommandOneShot(command.name.clone()))))
             }
         }
     }
@@ -570,11 +591,14 @@ fn prompt_input(
     for mut text in query.iter_mut() {
         let len = prompts.len();
         if prompts.len() > 0 {
-
             let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-            let mut text_prompt = TextPrompt { text: &mut text, completion: completion_node,
-                                               children: &children, font: font.clone(),
-                                               commands: &mut commands };
+            let mut text_prompt = TextPrompt {
+                text: &mut text,
+                completion: completion_node,
+                children: &children,
+                font: font.clone(),
+                commands: &mut commands,
+            };
 
             if keys.just_pressed(KeyCode::Escape) {
                 let message = text_prompt.message_get_mut();
@@ -627,14 +651,18 @@ fn prompt_input(
                     prompts[i].active = false;
                 }
                 let read_prompt = prompts.last_mut().unwrap();
-                let buf = read_prompt.prior.take().unwrap_or_else(|| read_prompt.prompt.clone());
+                let buf = read_prompt
+                    .prior
+                    .take()
+                    .unwrap_or_else(|| read_prompt.prompt.clone());
 
                 eprintln!("setup new prompt {:?}", buf);
                 text_prompt.buf_write(&buf);
                 read_prompt.active = true;
                 show_prompt.set(PromptState::Visible);
             }
-            if keys.just_pressed(KeyCode::Back) {
+            // if keys.just_pressed(KeyCode::Back) {
+            if keys.pressed(KeyCode::Back) {
                 let _ = text_prompt.input_get_mut().pop();
                 text_prompt.message_get_mut().clear();
                 continue;
@@ -654,8 +682,7 @@ struct TextPrompt<'a, 'w, 's> {
     completion: Entity,
     children: &'a [Entity],
     commands: &'a mut Commands<'w, 's>,
-    font: Handle<Font>
-
+    font: Handle<Font>,
 }
 
 #[allow(dead_code)]
@@ -691,13 +718,19 @@ impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
         self.text.sections[1].value.clone_from(&buf.input);
         self.text.sections[2].value.clone_from(&buf.message);
         if let Some(values) = &buf.completion {
-            let new_children: Vec<Entity> = values.clone().into_iter().map(|label|
-                                                              self.commands.spawn(completion_item(label,
-                                                                                       Color::WHITE,
-                                                                                       self.font.clone()))
-            .id()).collect();
+            let new_children: Vec<Entity> = values
+                .clone()
+                .into_iter()
+                .map(|label| {
+                    self.commands
+                        .spawn(completion_item(label, Color::WHITE, self.font.clone()))
+                        .id()
+                })
+                .collect();
 
-            self.commands.entity(self.completion).replace_children(&new_children);
+            self.commands
+                .entity(self.completion)
+                .replace_children(&new_children);
             for child in self.children.iter() {
                 self.commands.entity(*child).despawn();
             }
@@ -815,12 +848,18 @@ fn ask_name6<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
 }
 
 fn exec_command(mut prompt: Prompt,
-                    config: Res<CommandConfig>
-) -> impl Future<Output = ()> {
-    let commands: Vec<_> = config.commands.clone().into_iter().map(|c| c.name).collect();
+                mut run_command: EventWriter<RunCommandEvent>,
+                config: Res<CommandConfig>) -> impl Future<Output = ()> {
+    let commands: Vec<_> = config
+        .commands
+        .clone()
+        .into_iter()
+        .map(|c| c.name)
+        .collect();
     async move {
         if let Ok(command) = prompt.read_crit(": ", &&commands[..]).await {
             println!("COMMAND: {command}");
+            run_command.send(RunCommandEvent(Box::new(CommandOneShot(command.into()))))
         } else {
             println!("Got err in ask now");
         }
@@ -851,21 +890,28 @@ fn ask_age2(mut prompt: Prompt) -> impl Future<Output = ()> {
     }
 }
 
-fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>, mut commands: Commands) {
+fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>,
+                                                      mut commands: Commands) {
     commands.spawn(TaskSink::new(async move { future.await }));
 }
 
-fn completion_item(label: String, color: Color, font: Handle<Font>) -> (TextBundle, Label, AccessibilityNode) {
-    (TextBundle::from_section(
-        label,
-        TextStyle {
-            font: font,
-            font_size: 20.,
-            color,
-        },
-    ),
-    Label,
-    AccessibilityNode(NodeBuilder::new(Role::ListItem)))
+fn completion_item(
+    label: String,
+    color: Color,
+    font: Handle<Font>,
+) -> (TextBundle, Label, AccessibilityNode) {
+    (
+        TextBundle::from_section(
+            label,
+            TextStyle {
+                font: font,
+                font_size: 20.,
+                color,
+            },
+        ),
+        Label,
+        AccessibilityNode(NodeBuilder::new(Role::ListItem)),
+    )
 }
 
 fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -913,43 +959,46 @@ fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                             },
                             background_color: Color::rgb(0.10, 0.10, 0.10).into(),
                             ..default()
-                        }).with_children(|builder| {
-                    builder
-                        .spawn((
-                            NodeBundle {
-                                style: Style {
-                                    flex_direction: FlexDirection::Column,
-                                    align_items: AlignItems::FlexStart,
-                                    flex_grow: 0.,
-                                    padding: UiRect {
-                                        top: PADDING,
-                                        left: LEFT_PADDING,
-                                        right: PADDING * 2.,
-                                        bottom: PADDING,
-                                    },
-                                    margin: UiRect {
-                                        bottom: PADDING,
+                        })
+                        .with_children(|builder| {
+                            builder
+                                .spawn((
+                                    NodeBundle {
+                                        style: Style {
+                                            flex_direction: FlexDirection::Column,
+                                            align_items: AlignItems::FlexStart,
+                                            flex_grow: 0.,
+                                            padding: UiRect {
+                                                top: PADDING,
+                                                left: LEFT_PADDING,
+                                                right: PADDING * 2.,
+                                                bottom: PADDING,
+                                            },
+                                            margin: UiRect {
+                                                bottom: PADDING,
+                                                ..default()
+                                            },
+                                            ..default()
+                                        },
+                                        background_color: BackgroundColor(Color::BLACK),
                                         ..default()
                                     },
-                                    ..default()
-                                },
-                                background_color: BackgroundColor(Color::BLACK),
-                                ..default()
-                            },
-                            ScrollingList::default(),
-                            AccessibilityNode(NodeBuilder::new(Role::List)),
-                        ))
-                        .with_children(|parent| {
-                            // List items
-                            for i in 0..30 {
-                                parent.spawn(completion_item(format!("Item {i}"),
-                                                             Color::WHITE,
-                                                             font.clone()));
-                            }
-                        });
+                                    ScrollingList::default(),
+                                    AccessibilityNode(NodeBuilder::new(Role::List)),
+                                ))
+                                .with_children(|parent| {
+                                    // List items
+                                    for i in 0..30 {
+                                        parent.spawn(completion_item(
+                                            format!("Item {i}"),
+                                            Color::WHITE,
+                                            font.clone(),
+                                        ));
+                                    }
+                                });
 
-                    builder.spawn(NodeBundle { ..default() });
-                });
+                            builder.spawn(NodeBundle { ..default() });
+                        });
                 });
             builder
                 .spawn(NodeBundle {

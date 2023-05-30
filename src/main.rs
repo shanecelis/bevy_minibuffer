@@ -365,15 +365,16 @@ impl LookUp for TomDickHarry {
 }
 
 #[derive(Component)]
-struct TaskSink(Task<()>);
+struct TaskSink<T>(Task<T>);
 
-impl TaskSink {
-    fn new(future: impl Future<Output = ()> + Send + 'static) -> Self {
+impl<T: Send + 'static> TaskSink<T> {
+    fn new(future: impl Future<Output = T> + Send + 'static) -> Self {
         let thread_pool = AsyncComputeTaskPool::get();
         let task = thread_pool.spawn(future);
         Self(task)
     }
 }
+
 bitflags! {
     #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
     pub struct Modifiers: u8 {
@@ -496,13 +497,14 @@ fn main() {
         .add_systems(Update, hide_prompt_maybe)
         .add_systems(Update, prompt_input)
         .add_systems(Update, poll_tasks)
+        .add_systems(Update, poll_event_tasks)
         .add_systems(PreUpdate, run_commands)
         .add_systems(Update, mouse_scroll)
         .add_systems(Update, hotkey_input)
         // .add_command("ask_name", ask_name3)
         // .add_command("ask_name", ask_name4.pipe(task_sink))
-        // .add_command("ask_name", ask_name5.pipe(task_sink))
-        .add_command("ask_name", ask_name6.pipe(task_sink))
+        .add_command("ask_name", ask_name5.pipe(task_sink))
+        // .add_command("ask_name", ask_name6.pipe(task_sink))
         // .add_command("ask_name", ask_name6.pipe(task_sink))
         // .add_command("ask_age", ask_age.pipe(task_sink))
         .add_command("ask_age2", ask_age2.pipe(task_sink))
@@ -528,11 +530,29 @@ fn run_commands(world: &mut World) {
     }
 }
 
-fn poll_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut TaskSink)>) {
+fn poll_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut TaskSink<()>)>) {
     for (entity, mut task) in &mut command_tasks {
         if let Some(_) = future::block_on(future::poll_once(&mut task.0)) {
+
+            eprintln!("Got () poll task");
             // Once
             //
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+fn poll_event_tasks(
+    mut commands: Commands,
+    mut run_command: EventWriter<RunCommandEvent>,
+    mut command_tasks: Query<(Entity, &mut TaskSink<Option<RunCommandEvent>>)>,
+) {
+    for (entity, mut task) in &mut command_tasks {
+        if let Some(maybe) = future::block_on(future::poll_once(&mut task.0)) {
+            eprintln!("Got event poll task");
+            if let Some(event) = maybe {
+                run_command.send(event);
+            }
             commands.entity(entity).despawn();
         }
     }
@@ -836,20 +856,20 @@ fn ask_name5<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
     }
 }
 
-fn ask_name6<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
-    println!("ask name 6 called");
-    async move {
-        if let Ok(TomDickHarry(first_name)) = prompt.read("What's your first name? ").await {
-            println!("Hello, {}", first_name);
-        } else {
-            println!("Got err in ask now");
-        }
-    }
-}
+// fn ask_name6<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
+//     println!("ask name 6 called");
+//     async move {
+//         if let Ok(TomDickHarry(first_name)) = prompt.read("What's your first name? ").await {
+//             println!("Hello, {}", first_name);
+//         } else {
+//             println!("Got err in ask now");
+//         }
+//     }
+// }
 
 fn exec_command(mut prompt: Prompt,
-                mut run_command: EventWriter<RunCommandEvent>,
-                config: Res<CommandConfig>) -> impl Future<Output = ()> {
+                // mut run_command: EventWriter<RunCommandEvent>,
+                config: Res<CommandConfig>) -> impl Future<Output = Option<RunCommandEvent>> {
     let commands: Vec<_> = config
         .commands
         .clone()
@@ -859,9 +879,10 @@ fn exec_command(mut prompt: Prompt,
     async move {
         if let Ok(command) = prompt.read_crit(": ", &&commands[..]).await {
             println!("COMMAND: {command}");
-            run_command.send(RunCommandEvent(Box::new(CommandOneShot(command.into()))))
+            Some(RunCommandEvent(Box::new(CommandOneShot(command.into()))))
         } else {
             println!("Got err in ask now");
+            None
         }
     }
 }
@@ -890,8 +911,9 @@ fn ask_age2(mut prompt: Prompt) -> impl Future<Output = ()> {
     }
 }
 
-fn task_sink<T: Future<Output = ()> + Send + 'static>(In(future): In<T>,
-                                                      mut commands: Commands) {
+fn task_sink<T: Send + 'static>(In(future): In<impl Future<Output = T> + Send + 'static>,
+                mut commands: Commands) {
+    eprintln!("spawn task sink for type {:?}", std::any::type_name::<T>());
     commands.spawn(TaskSink::new(async move { future.await }));
 }
 

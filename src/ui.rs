@@ -1,3 +1,4 @@
+use crate::prompt::*;
 use bevy::{
     a11y::{
         accesskit::{NodeBuilder, Role},
@@ -6,7 +7,6 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
-use crate::prompt::*;
 
 // const MARGIN: Val = Val::Px(5.);
 const PADDING: Val = Val::Px(3.);
@@ -23,7 +23,6 @@ pub struct ScrollingList {
     selection: Option<usize>,
     last_selection: Option<usize>,
 }
-
 
 pub fn completion_item(
     label: String,
@@ -278,4 +277,3 @@ impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
         panic!("Not sure this should ever be called.");
     }
 }
-

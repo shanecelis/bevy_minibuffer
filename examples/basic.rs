@@ -1,8 +1,9 @@
 use bevy::prelude::*;
-use nanoprompt::tasks::*;
-use nanoprompt::prompt::*;
-use nanoprompt::ui::*;
 use nanoprompt::commands::*;
+use nanoprompt::prompt::*;
+use nanoprompt::tasks::*;
+use nanoprompt::ui::*;
+use nanoprompt::*;
 use std::future::Future;
 
 #[allow(dead_code)]
@@ -96,10 +97,7 @@ fn ask_age2(mut prompt: Prompt) -> impl Future<Output = ()> {
 
 fn main() {
     App::new()
-        .add_event::<RunCommandEvent>()
-        .add_state::<PromptState>()
-        .init_resource::<PromptProvider>()
-        .init_resource::<CommandConfig>()
+        .add_plugin(NanoPromptPlugin)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: [400., 400.].into(),
@@ -108,16 +106,6 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_systems(Startup, spawn_layout)
-        .add_systems(OnEnter(PromptState::Visible), show_prompt)
-        .add_systems(OnExit(PromptState::Visible), hide_prompt_delayed)
-        .add_systems(Update, hide_prompt_maybe)
-        .add_systems(Update, prompt_input)
-        .add_systems(Update, poll_tasks)
-        .add_systems(Update, poll_event_tasks)
-        .add_systems(PreUpdate, run_commands)
-        .add_systems(Update, mouse_scroll)
-        .add_systems(Update, hotkey_input)
         // .add_command("ask_name", ask_name3)
         // .add_command("ask_name", ask_name4.pipe(task_sink))
         .add_command("ask_name", ask_name5.pipe(task_sink))
@@ -131,4 +119,3 @@ fn main() {
         )
         .run();
 }
-

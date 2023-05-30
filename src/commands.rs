@@ -1,9 +1,9 @@
 use bevy::ecs::schedule::ScheduleLabel;
 use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
-use std::borrow::Cow;
 use bitflags::bitflags;
 use futures_lite::future;
+use std::borrow::Cow;
 use std::future::Future;
 
 use crate::prompt::*;
@@ -89,9 +89,11 @@ pub fn run_commands(world: &mut World) {
     }
 }
 
-pub fn exec_command(mut prompt: Prompt,
-                // mut run_command: EventWriter<RunCommandEvent>,
-                config: Res<CommandConfig>) -> impl Future<Output = Option<RunCommandEvent>> {
+pub fn exec_command(
+    mut prompt: Prompt,
+    // mut run_command: EventWriter<RunCommandEvent>,
+    config: Res<CommandConfig>,
+) -> impl Future<Output = Option<RunCommandEvent>> {
     let commands: Vec<_> = config
         .commands
         .clone()
@@ -126,7 +128,6 @@ pub fn poll_event_tasks(
 }
 
 pub fn hotkey_input(
-
     mut run_command: EventWriter<RunCommandEvent>,
     keys: Res<Input<KeyCode>>,
     config: Res<CommandConfig>,
@@ -137,7 +138,9 @@ pub fn hotkey_input(
             if hotkey.mods == mods && keys.just_pressed(hotkey.key) {
                 eprintln!("We were called for {}", command.name);
 
-                run_command.send(RunCommandEvent(Box::new(CommandOneShot(command.name.clone()))))
+                run_command.send(RunCommandEvent(Box::new(CommandOneShot(
+                    command.name.clone(),
+                ))))
             }
         }
     }
@@ -187,4 +190,3 @@ impl Modifiers {
         mods
     }
 }
-

@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 # bevy = "0.10.1"
 bevy = { git = "https://github.com/bevyengine/bevy.git" }
+bitflags = "2.3.1"
 futures-lite = "1.13.0"
 promise_out = { git = "https://github.com/shanecelis/promise_out.git" }

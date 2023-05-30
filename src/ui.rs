@@ -5,7 +5,6 @@ use bevy::{
     },
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
-    winit::WinitSettings,
 };
 use crate::prompt::*;
 

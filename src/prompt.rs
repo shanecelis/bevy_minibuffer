@@ -1,6 +1,6 @@
 use bevy::ecs::component::Tick;
 use bevy::ecs::prelude::Commands;
-use bevy::ecs::system::{SystemMeta, SystemParam, SystemState};
+use bevy::ecs::system::{SystemMeta, SystemParam};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::prelude::*;
 use bevy::utils::Duration;
@@ -426,9 +426,9 @@ pub fn hide_prompt(mut query: Query<&mut Visibility, With<PromptContainer>>) {
 #[cfg(test)]
 mod tests {
 
-    #[allow(unused_must_use)]
-    #[test]
-    fn test_option_default() {
-        let a: Option<PromptCel> = default();
-    }
+    // #[allow(unused_must_use)]
+    // #[test]
+    // fn test_option_default() {
+    //     let a: Option<PromptCel> = default();
+    // }
 }

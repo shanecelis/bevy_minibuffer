@@ -19,15 +19,16 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .add_state::<PromptState>()
             .init_resource::<PromptProvider>()
             .init_resource::<CommandConfig>()
-            .add_systems(Startup, spawn_layout)
+            .add_systems(Startup,   spawn_layout)
             .add_systems(PreUpdate, run_commands)
+            .add_systems(Update,    hide_prompt_maybe)
+            .add_systems(Update,    prompt_input)
+            .add_systems(Update,    poll_tasks)
+            .add_systems(Update,    poll_event_tasks)
+            .add_systems(Update,    mouse_scroll)
+            .add_systems(Update,    hotkey_input)
             .add_systems(OnEnter(PromptState::Visible), show_prompt)
             .add_systems( OnExit(PromptState::Visible), hide_prompt_delayed)
-            .add_systems(Update, hide_prompt_maybe)
-            .add_systems(Update, prompt_input)
-            .add_systems(Update, poll_tasks)
-            .add_systems(Update, poll_event_tasks)
-            .add_systems(Update, mouse_scroll)
-            .add_systems(Update, hotkey_input);
+            ;
     }
 }

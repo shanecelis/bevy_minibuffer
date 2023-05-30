@@ -101,7 +101,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: [400., 400.].into(),
-                title: "Bevy Nano Prompt Example".to_string(),
+                title: "Bevy NanoPrompt Basic Example".to_owned(),
                 ..Default::default()
             }),
             ..Default::default()

@@ -10,6 +10,7 @@ use crate::prompt::*;
 use crate::tasks::*;
 
 pub struct RunCommandEvent(Box<dyn ScheduleLabel>);
+// Could this be make generic? That way people could choose their own command run handles?
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CommandOneShot(Cow<'static, str>);
 #[derive(Resource, Debug, Default)]
@@ -61,6 +62,7 @@ impl AddCommand for App {
         let cmd = cmd.into();
         let name = cmd.name.clone();
         self.add_systems(CommandOneShot(name.clone()), system);
+        // Create an ad hoc start up system to register this name.
         let sys = move |mut config: ResMut<CommandConfig>| {
             if config.commands.iter().any(|i| i.name == name) {
                 warn!("nano command '{name}' already registered.");

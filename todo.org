@@ -6,3 +6,10 @@
 ** Add a tab complete scroll list
 ** Handle backspace key repeat
 ** What about single character reponses?
+Generalize the handling of input and TextPrompt.
+** Rename modules as singular (tasks -> task)
+** What should project actually be called? NanoConsole? NanoPrompt? NanoCommands?
+** nano::{prompt::*, command::*, console::*, task::*, keybind::*}
+** What depends on what?
+** What could be offered without the other?
+command could be offered.

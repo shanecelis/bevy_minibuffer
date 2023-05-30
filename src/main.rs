@@ -23,6 +23,7 @@ use promise_out::{pair::Producer, Promise};
 use std::borrow::Cow;
 use std::future::Future;
 use std::sync::{Arc, Mutex};
+use bitflags::bitflags;
 
 // const MARGIN: Val = Val::Px(5.);
 const PADDING: Val = Val::Px(3.);
@@ -61,7 +62,7 @@ struct ScrollingList {
 
 #[derive(Resource, Debug, Default)]
 struct CommandConfig {
-    commands: Vec<Cow<'static, str>>,
+    commands: Vec<Command>
 }
 
 #[derive(Resource, Clone)]
@@ -362,38 +363,99 @@ impl TaskSink {
         Self(task)
     }
 }
+bitflags! {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    pub struct Modifiers: u8 {
+        const Alt     = 0b00000001;
+        const Control = 0b00000010;
+        const Shift   = 0b00000100;
+        const System  = 0b00001000; // Windows or Command
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Key {
+    pub mods: Modifiers,
+    pub key: KeyCode,
+}
+type KeySeq = Vec<Key>;
+
+impl From<KeyCode> for Key {
+    fn from(v: KeyCode) -> Self {
+        Key {
+            key: v,
+            mods: Modifiers::empty()
+        }
+    }
+}
+
+impl Modifiers {
+    fn from_input(input: &Res<Input<KeyCode>>) -> Modifiers {
+        let mut mods = Modifiers::empty();
+        if input.any_pressed([KeyCode::LShift, KeyCode::RShift]) {
+            mods |= Modifiers::Shift;
+        }
+        if input.any_pressed([KeyCode::LControl, KeyCode::RControl]) {
+            mods |= Modifiers::Control;
+        }
+        if input.any_pressed([KeyCode::LAlt, KeyCode::RAlt]) {
+            mods |= Modifiers::Alt;
+        }
+        if input.any_pressed([KeyCode::LWin, KeyCode::RWin]) {
+            mods |= Modifiers::System;
+        }
+        mods
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Command {
+    name: Cow<'static, str>,
+    hotkey: Option<Key>
+}
+
+impl Command {
+    fn new(name: impl Into<Cow<'static, str>>, hotkey: Option<impl Into<Key>>) -> Self {
+        Command { name: name.into(),
+                  hotkey: hotkey.map(|v| v.into()) }
+    }
+}
+
+impl<T> From<T> for Command where T: Into<Cow<'static, str>> {
+    fn from(v: T) -> Self {
+        Command {
+            name: v.into(),
+            hotkey: None
+        }
+    }
+}
 
 trait AddCommand {
-    // fn add_command<Params>(&mut self, system: impl IntoSystemConfigs<Params>) -> &mut Self;
-    fn add_command<Marker>(
+    fn add_command<Params>(
         &mut self,
-        name: impl Into<Cow<'static, str>>,
-        system: impl IntoSystem<(), (), Marker> + 'static,
+        cmd: impl Into<Command>,
+        system: impl IntoSystemConfigs<Params>,
     ) -> &mut Self;
 }
 
 impl AddCommand for App {
-    fn add_command<Marker>(
+    fn add_command<Params>(
         &mut self,
-        name: impl Into<Cow<'static, str>>,
-        system: impl IntoSystem<(), (), Marker> + 'static,
+        cmd: impl Into<Command>,
+        system: impl IntoSystemConfigs<Params>,
     ) -> &mut Self {
-        let name = name.into();
-        let system: Box<dyn System<In = (), Out = ()> + 'static> =
-            Box::new(IntoSystem::into_system(system));
+        let cmd = cmd.into();
+        let name = cmd.name.clone();
         self.add_systems(CommandOneShot(name.clone()), system);
         let sys = move |mut config: ResMut<CommandConfig>| {
-            if config.commands.contains(&name) {
-                warn!(
-                    "console command '{}' already registered and was overwritten.",
-                    name
-                );
+            if config.commands.iter().any(|i| i.name == name) {
+                warn!("nano command '{name}' already registered.");
             } else {
-                config.commands.push(name.clone());
+                config.commands.push(cmd.clone());
             }
         };
+        // XXX: Do these Startup systems stick around?
         self.add_systems(Startup, sys);
-        // let name = system.name();
         self
     }
 }
@@ -420,6 +482,7 @@ fn main() {
         .add_systems(Update, poll_tasks)
         .add_systems(PreUpdate, run_commands)
         .add_systems(Update, mouse_scroll)
+        .add_systems(Update, hotkey_input)
         // .add_command("ask_name", ask_name3)
         // .add_command("ask_name", ask_name4.pipe(task_sink))
         // .add_command("ask_name", ask_name5.pipe(task_sink))
@@ -427,7 +490,7 @@ fn main() {
         // .add_command("ask_name", ask_name6.pipe(task_sink))
         // .add_command("ask_age", ask_age.pipe(task_sink))
         .add_command("ask_age2", ask_age2.pipe(task_sink))
-        .add_command("exec_command", exec_command.pipe(task_sink))
+        .add_command(Command::new("exec_command", Some(KeyCode::Semicolon)), exec_command.pipe(task_sink))
         .run();
 }
 
@@ -457,6 +520,21 @@ fn poll_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut Tas
 }
 // [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]i
 
+fn hotkey_input(
+    mut run_command: EventWriter<RunCommandEvent>,
+    keys: Res<Input<KeyCode>>,
+    config: Res<CommandConfig>)
+{
+    let mods = Modifiers::from_input(&keys);
+    for command in &config.commands {
+        if let Some(ref key) = command.hotkey {
+            if key.mods == mods && keys.just_pressed(key.key) {
+                eprintln!("We were called for {}", command.name);
+            }
+        }
+    }
+}
+
 /// prints every char coming in; press enter to echo the full string
 fn prompt_input(
     mut commands: Commands,
@@ -476,10 +554,10 @@ fn prompt_input(
         return;
     }
 
-    if keys.just_pressed(KeyCode::Semicolon) {
-        run_command.send(RunCommandEvent(Box::new(CommandOneShot("exec_command".into()))));
-        return;
-    }
+    // if keys.just_pressed(KeyCode::Semicolon) {
+    //     run_command.send(RunCommandEvent(Box::new(CommandOneShot("exec_command".into()))));
+    //     return;
+    // }
     if keys.just_pressed(KeyCode::Key1) {
         run_command.send(RunCommandEvent(Box::new(CommandOneShot("ask_age2".into()))));
         return;
@@ -739,7 +817,7 @@ fn ask_name6<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
 fn exec_command(mut prompt: Prompt,
                     config: Res<CommandConfig>
 ) -> impl Future<Output = ()> {
-    let commands = config.commands.clone();
+    let commands: Vec<_> = config.commands.clone().into_iter().map(|c| c.name).collect();
     async move {
         if let Ok(command) = prompt.read_crit(": ", &&commands[..]).await {
             println!("COMMAND: {command}");

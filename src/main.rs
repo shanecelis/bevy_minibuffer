@@ -59,6 +59,11 @@ struct ScrollingList {
     last_selection: Option<usize>,
 }
 
+#[derive(Resource, Debug, Default)]
+struct CommandConfig {
+    commands: Vec<Cow<'static, str>>,
+}
+
 #[derive(Resource, Clone)]
 pub struct PromptProvider {
     prompt_stack: Arc<Mutex<Vec<ReadPrompt>>>,
@@ -156,7 +161,29 @@ trait NanoPrompt {
                 Ok(mut new_buf) => match T::look_up(&new_buf.input) {
                     Ok(v) => return Ok(v),
                     Err(LookUpError::Message(m)) => {
-                        new_buf.message = m;
+                        new_buf.message = m.to_string();
+                        self.buf_write(&new_buf);
+                    }
+                    Err(LookUpError::Incomplete(v)) => {
+                        new_buf.completion = Some(v);
+                        self.buf_write(&new_buf);
+                    }
+                    Err(LookUpError::NanoError(e)) => return Err(e),
+                },
+                Err(e) => return Err(e),
+            }
+        }
+    }
+
+    async fn read_crit<T>(&mut self, prompt: impl Into<PromptBuf>, look_up: &impl LookUpObject<Item=T>) -> Result<T, NanoError> {
+        let buf = prompt.into();
+        self.buf_write(&buf);
+        loop {
+            match self.read_raw().await {
+                Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
+                    Ok(v) => return Ok(v),
+                    Err(LookUpError::Message(m)) => {
+                        new_buf.message = m.to_string();
                         self.buf_write(&new_buf);
                     }
                     Err(LookUpError::Incomplete(v)) => {
@@ -202,11 +229,89 @@ impl NanoPrompt for Prompt {
 
 #[allow(dead_code)]
 enum LookUpError {
-    Message(String),
+    Message(Cow<'static, str>),
     NanoError(NanoError),
     Incomplete(Vec<String>),
 }
 
+// impl LookUpObject for &[String] {
+//     type Item = String;
+//     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
+//         let matches: Vec<&String> = self.iter()
+//                                        .filter(|word| word.starts_with(input))
+//                                        .collect();
+//         if matches.len() == 1 {
+//             Ok(matches[0].clone())
+//         } else if matches.len() > 1 {
+//             Err(LookUpError::Incomplete(matches.into_iter().map(|s| s.clone()).collect()))
+//         } else {
+//             Err(LookUpError::Message(" no matches".into()))
+//         }
+//     }
+// }
+
+// impl LookUpObject for &[&str] {
+//     type Item = String;
+//     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
+//         let matches: Vec<&&str> = self.iter()
+//                                        .filter(|word| word.starts_with(input))
+//                                        .collect();
+//         if matches.len() == 1 {
+//             Ok(matches[0].to_string())
+//         } else if matches.len() > 1 {
+//             Err(LookUpError::Incomplete(matches.into_iter().map(|s| s.to_string()).collect()))
+//         } else {
+//             Err(LookUpError::Message(" no matches".into()))
+//         }
+//     }
+// }
+
+impl<T: AsRef<str>> LookUpObject for &[T] {
+    type Item = String;
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
+        let matches: Vec<&str> = self.iter()
+                                       .map(|word| word.as_ref())
+                                       .filter(|word| word.starts_with(input))
+                                       .collect();
+        if matches.len() == 1 {
+            Ok(matches[0].to_string())
+        } else if matches.len() > 1 {
+            Err(LookUpError::Incomplete(matches.into_iter().map(|s| s.to_string()).collect()))
+        } else {
+            Err(LookUpError::Message(" no matches".into()))
+        }
+    }
+}
+
+
+// impl<'a> LookUpObject for &[Cow<'a, str>] {
+//     type Item = String;
+//     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
+//         let matches: Vec<&&str> = self.iter()
+//                                        .filter(|word| word.starts_with(input))
+//                                        .collect();
+//         if matches.len() == 1 {
+//             Ok(matches[0].to_string())
+//         } else if matches.len() > 1 {
+//             Err(LookUpError::Incomplete(matches.into_iter().map(|s| s.to_string()).collect()))
+//         } else {
+//             Err(LookUpError::Message(" no matches".into()))
+//         }
+//     }
+// }
+
+
+trait LookUpObject: Sized {
+    type Item;
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError>;
+}
+
+impl<T> LookUpObject for T where T : LookUp {
+    type Item = T;
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
+        T::look_up(input)
+    }
+}
 
 trait LookUp: Sized {
     fn look_up(input: &str) -> Result<Self, LookUpError>;
@@ -228,7 +333,7 @@ impl LookUp for i32 {
     fn look_up(input: &str) -> Result<Self, LookUpError> {
         match input.parse::<i32>() {
             Ok(int) => Ok(int),
-            Err(e) => Err(LookUpError::Message(format!(" expected int: {}", e))),
+            Err(e) => Err(LookUpError::Message(format!(" expected int: {}", e).into())),
         }
     }
 }
@@ -273,10 +378,22 @@ impl AddCommand for App {
         name: impl Into<Cow<'static, str>>,
         system: impl IntoSystem<(), (), Marker> + 'static,
     ) -> &mut Self {
+        let name = name.into();
         let system: Box<dyn System<In = (), Out = ()> + 'static> =
             Box::new(IntoSystem::into_system(system));
+        self.add_systems(CommandOneShot(name.clone()), system);
+        let sys = move |mut config: ResMut<CommandConfig>| {
+            if config.commands.contains(&name) {
+                warn!(
+                    "console command '{}' already registered and was overwritten.",
+                    name
+                );
+            } else {
+                config.commands.push(name.clone());
+            }
+        };
+        self.add_systems(Startup, sys);
         // let name = system.name();
-        self.add_systems(CommandOneShot(name.into()), system);
         self
     }
 }
@@ -286,6 +403,7 @@ fn main() {
         .add_event::<RunCommandEvent>()
         .add_state::<PromptState>()
         .init_resource::<PromptProvider>()
+        .init_resource::<CommandConfig>()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: [400., 400.].into(),
@@ -309,6 +427,7 @@ fn main() {
         // .add_command("ask_name", ask_name6.pipe(task_sink))
         // .add_command("ask_age", ask_age.pipe(task_sink))
         .add_command("ask_age2", ask_age2.pipe(task_sink))
+        .add_command("exec_command", exec_command.pipe(task_sink))
         .run();
 }
 
@@ -357,11 +476,16 @@ fn prompt_input(
         return;
     }
 
+    if keys.just_pressed(KeyCode::Semicolon) {
+        run_command.send(RunCommandEvent(Box::new(CommandOneShot("exec_command".into()))));
+        return;
+    }
     if keys.just_pressed(KeyCode::Key1) {
         run_command.send(RunCommandEvent(Box::new(CommandOneShot("ask_age2".into()))));
         return;
     }
 
+    // eprintln!("chars {:?}", char_evr.iter().map(|ev| ev.char).collect::<Vec<_>>());
     let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
     let (completion_node, children) = completion.single();
     let children: Vec<Entity> = children.to_vec();
@@ -371,7 +495,7 @@ fn prompt_input(
 
             let font = asset_server.load("fonts/FiraSans-Bold.ttf");
             let mut text_prompt = TextPrompt { text: &mut text, completion: completion_node,
-                                               children: children.clone(), font: font.clone(),
+                                               children: &children, font: font.clone(),
                                                commands: &mut commands };
 
             if keys.just_pressed(KeyCode::Escape) {
@@ -399,9 +523,10 @@ fn prompt_input(
                 };
                 promise.resolve(buf);
                 if prompts.len() == 0 {
-                    text_prompt.prompt_get_mut().clear();
-                    text_prompt.input_get_mut().clear();
-                    text_prompt.message_get_mut().clear();
+                    // This causes a one frame flicker.
+                    // text_prompt.prompt_get_mut().clear();
+                    // text_prompt.input_get_mut().clear();
+                    // text_prompt.message_get_mut().clear();
                     show_prompt.set(PromptState::Invisible);
                 }
                 continue;
@@ -424,7 +549,7 @@ fn prompt_input(
                     prompts[i].active = false;
                 }
                 let read_prompt = prompts.last_mut().unwrap();
-                let buf = read_prompt.prior.as_ref().unwrap_or(&read_prompt.prompt);
+                let buf = read_prompt.prior.take().unwrap_or_else(|| read_prompt.prompt.clone());
 
                 eprintln!("setup new prompt {:?}", buf);
                 text_prompt.buf_write(&buf);
@@ -449,7 +574,7 @@ fn prompt_input(
 struct TextPrompt<'a, 'w, 's> {
     text: &'a mut Text,
     completion: Entity,
-    children: Vec<Entity>,
+    children: &'a [Entity],
     commands: &'a mut Commands<'w, 's>,
     font: Handle<Font>
 
@@ -601,10 +726,23 @@ fn ask_name5<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
 }
 
 fn ask_name6<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
-    println!("ask name 5 called");
+    println!("ask name 6 called");
     async move {
         if let Ok(TomDickHarry(first_name)) = prompt.read("What's your first name? ").await {
             println!("Hello, {}", first_name);
+        } else {
+            println!("Got err in ask now");
+        }
+    }
+}
+
+fn exec_command(mut prompt: Prompt,
+                    config: Res<CommandConfig>
+) -> impl Future<Output = ()> {
+    let commands = config.commands.clone();
+    async move {
+        if let Ok(command) = prompt.read_crit(": ", &&commands[..]).await {
+            println!("COMMAND: {command}");
         } else {
             println!("Got err in ask now");
         }

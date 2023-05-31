@@ -96,6 +96,7 @@ pub fn exec_command(
     // mut run_command: EventWriter<RunCommandEvent>,
     config: Res<CommandConfig>,
 ) -> impl Future<Output = Option<RunCommandEvent>> {
+    #[rustfmt::skip]
     let commands: Vec<_> = config
         .commands
         .iter()
@@ -103,10 +104,11 @@ pub fn exec_command(
         .collect();
     async move {
         if let Ok(command) = prompt.read_crit(": ", &&commands[..]).await {
-            println!("COMMAND: {command}");
+            // We can't keep an EventWriter in our closure so we return it from
+            // our task.
             Some(RunCommandEvent(Box::new(CommandOneShot(command.into()))))
         } else {
-            println!("Got err in ask now");
+            eprintln!("Got err in ask now");
             None
         }
     }

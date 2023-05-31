@@ -112,10 +112,10 @@ pub fn exec_command(
     }
 }
 
-pub fn poll_event_tasks(
+pub fn poll_event_tasks<T: Send + Event>(
     mut commands: Commands,
-    mut run_command: EventWriter<RunCommandEvent>,
-    mut command_tasks: Query<(Entity, &mut TaskSink<Option<RunCommandEvent>>)>,
+    mut run_command: EventWriter<T>,
+    mut command_tasks: Query<(Entity, &mut TaskSink<Option<T>>)>,
 ) {
     for (entity, mut task) in &mut command_tasks {
         if let Some(maybe) = future::block_on(future::poll_once(&mut task.0)) {

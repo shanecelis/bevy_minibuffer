@@ -173,6 +173,14 @@ pub enum PromptState {
     Visible,
 }
 
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum CompletionState {
+    #[default]
+    // Uninit,
+    Invisible,
+    Visible,
+}
+
 impl NanoPrompt for Prompt {
     // type Output<T> = Consumer<T, NanoError>;
 
@@ -288,15 +296,23 @@ pub fn prompt_input(
     prompt_provider: ResMut<PromptProvider>,
     mut char_evr: EventReader<ReceivedCharacter>,
     mut show_prompt: ResMut<NextState<PromptState>>,
+    mut show_completion: ResMut<NextState<CompletionState>>,
     keys: Res<Input<KeyCode>>,
     mut query: Query<&mut Text, With<PromptNode>>,
-    completion: Query<(Entity, &Children), With<ScrollingList>>,
+    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
     // mut text_prompt: TextPrompt,
 ) {
     // eprintln!("chars {:?}", char_evr.iter().map(|ev| ev.char).collect::<Vec<_>>());
     let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
     let (completion_node, children) = completion.single();
-    let children: Vec<Entity> = children.to_vec();
+    let target_state = match children {
+            Some(_) => CompletionState::Visible,
+            None => CompletionState::Invisible,
+    };
+    // if show_completion.current() != target_state {
+    show_completion.set(target_state);
+    // }
+    let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
     for mut text in query.iter_mut() {
         let len = prompts.len();
         if prompts.len() > 0 {
@@ -386,9 +402,10 @@ pub fn prompt_input(
     }
 }
 
-pub fn show_prompt(mut query: Query<&mut Visibility, With<PromptContainer>>) {
-    let mut visibility = query.single_mut();
-    *visibility = Visibility::Visible;
+pub fn show<T: Component>(mut query: Query<&mut Visibility, With<T>>) {
+    if let Ok(mut visibility) = query.get_single_mut() {
+        *visibility = Visibility::Visible;
+    }
 }
 
 #[derive(Component)]
@@ -396,11 +413,12 @@ pub struct HideTime {
     pub timer: Timer,
 }
 
-pub fn hide_prompt_delayed(mut commands: Commands, query: Query<Entity, With<PromptContainer>>) {
-    let id = query.single();
-    commands.entity(id).insert(HideTime {
-        timer: Timer::new(Duration::from_secs(1), TimerMode::Once),
-    });
+pub fn hide_delayed<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
+    if let Ok(id) = query.get_single() {
+        commands.entity(id).insert(HideTime {
+            timer: Timer::new(Duration::from_secs(1), TimerMode::Once),
+        });
+    }
 }
 
 pub fn hide_prompt_maybe(
@@ -421,9 +439,10 @@ pub fn hide_prompt_maybe(
 }
 
 #[allow(dead_code)]
-pub fn hide_prompt(mut query: Query<&mut Visibility, With<PromptContainer>>) {
-    let mut visibility = query.single_mut();
-    *visibility = Visibility::Hidden;
+pub fn hide<T: Component>(mut query: Query<&mut Visibility, With<T>>) {
+    if let Ok(mut visibility) = query.get_single_mut() {
+        *visibility = Visibility::Hidden;
+    }
 }
 
 #[cfg(test)]

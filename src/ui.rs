@@ -14,8 +14,13 @@ const LEFT_PADDING: Val = Val::Px(6.);
 
 #[derive(Component)]
 pub struct PromptContainer;
+
 #[derive(Component)]
 pub struct PromptNode;
+#[derive(Component)]
+pub struct StatusNode;
+#[derive(Component)]
+pub struct CompletionContainer;
 
 #[derive(Component, Default)]
 pub struct ScrollingList {
@@ -89,6 +94,7 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                             background_color: Color::rgb(0.10, 0.10, 0.10).into(),
                             ..default()
                         })
+                        .insert(CompletionContainer {})
                         .with_children(|builder| {
                             builder
                                 .spawn((
@@ -270,7 +276,13 @@ impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
             for child in self.children.iter() {
                 self.commands.entity(*child).despawn();
             }
-            // self.node.remove_children(self.children);
+        } else {
+            self.commands
+                .entity(self.completion)
+                .remove_children(self.children);
+            for child in self.children.iter() {
+                self.commands.entity(*child).despawn();
+            }
         }
     }
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {

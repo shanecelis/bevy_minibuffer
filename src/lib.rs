@@ -7,14 +7,15 @@ pub mod tasks;
 pub mod ui;
 
 pub struct NanoPromptPlugin;
+#[rustfmt::skip]
 impl bevy::app::Plugin for NanoPromptPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-        use tasks::*;
-        use prompt::*;
-        use commands::*;
-        use ui::*;
         use bevy::app::*;
         use bevy::ecs::schedule::{OnEnter, OnExit};
+        use commands::*;
+        use prompt::*;
+        use tasks::*;
+        use ui::*;
         app.add_event::<RunCommandEvent>()
             .add_state::<PromptState>()
             .add_state::<CompletionState>()

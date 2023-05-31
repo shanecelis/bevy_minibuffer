@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 
-use bevy::prelude::*;
 use bevy::ecs::component::Tick;
 use bevy::ecs::prelude::Commands;
 use bevy::ecs::system::{SystemMeta, SystemParam};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
+use bevy::prelude::*;
 use bevy::utils::Duration;
 
 use promise_out::{pair::Producer, Promise};
@@ -306,8 +306,8 @@ pub fn prompt_input(
     let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
     let (completion_node, children) = completion.single();
     let target_state = match children {
-            Some(_) => CompletionState::Visible,
-            None => CompletionState::Invisible,
+        Some(_) => CompletionState::Visible,
+        None => CompletionState::Invisible,
     };
     // if show_completion.current() != target_state {
     show_completion.set(target_state);

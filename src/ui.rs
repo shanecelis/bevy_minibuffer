@@ -14,7 +14,6 @@ const LEFT_PADDING: Val = Val::Px(6.);
 
 #[derive(Component)]
 pub struct PromptContainer;
-
 #[derive(Component)]
 pub struct PromptNode;
 #[derive(Component)]

@@ -9,5 +9,7 @@ edition = "2021"
 # bevy = "0.10.1"
 bevy = { git = "https://github.com/bevyengine/bevy.git" }
 bitflags = "2.3.1"
+# changed = "0.1.2"
+changed = { path = "../changed" }
 futures-lite = "1.13.0"
 promise_out = { git = "https://github.com/shanecelis/promise_out.git" }

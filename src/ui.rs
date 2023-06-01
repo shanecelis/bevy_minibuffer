@@ -1,4 +1,5 @@
 use crate::prompt::*;
+use std::borrow::Cow;
 use bevy::{
     a11y::{
         accesskit::{NodeBuilder, Role},
@@ -24,9 +25,11 @@ pub struct CompletionContainer;
 #[derive(Component, Default)]
 pub struct ScrollingList {
     position: f32,
-    selection: Option<usize>,
-    last_selection: Option<usize>,
+    // selection: Option<usize>,
+    // last_selection: Option<usize>,
 }
+
+pub struct CompletionList(pub Vec<Cow<'static, str>>);
 
 pub fn completion_item(
     label: String,
@@ -118,6 +121,7 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                         ..default()
                                     },
                                     ScrollingList::default(),
+                                    // CompletionList(vec![]),
                                     AccessibilityNode(NodeBuilder::new(Role::List)),
                                 ))
                                 .with_children(|parent| {
@@ -258,13 +262,13 @@ impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
         self.text.sections[0].value.clone_from(&buf.prompt);
         self.text.sections[1].value.clone_from(&buf.input);
         self.text.sections[2].value.clone_from(&buf.message);
-        if let Some(values) = &buf.completion {
+        if let Some(values) = buf.completion.as_deref() {
             let new_children: Vec<Entity> = values
                 .clone()
                 .into_iter()
                 .map(|label| {
                     self.commands
-                        .spawn(completion_item(label, Color::WHITE, self.font.clone()))
+                        .spawn(completion_item(label.into(), Color::WHITE, self.font.clone()))
                         .id()
                 })
                 .collect();

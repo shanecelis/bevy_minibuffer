@@ -7,6 +7,7 @@ use bevy::ecs::system::{SystemMeta, SystemParam};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::prelude::*;
 use bevy::utils::Duration;
+use changed::Cd;
 
 use promise_out::{pair::Producer, Promise};
 
@@ -54,7 +55,11 @@ pub struct PromptBuf {
     pub prompt: String,
     pub input: String,
     pub message: String,
-    pub completion: Option<Vec<String>>,
+    pub completion: Option<Cd<Vec<String>>>,
+}
+
+pub struct Message {
+    pub content: Cow<'static, str>,
 }
 
 impl<T> From<T> for PromptBuf
@@ -128,7 +133,9 @@ pub trait NanoPrompt {
                         self.buf_write(&new_buf);
                     }
                     Err(LookUpError::Incomplete(v)) => {
-                        new_buf.completion = Some(v);
+
+                        let completions = new_buf.completion.get_or_insert_with(|| Cd::new(vec![]));
+                        (*completions).clone_from_slice(&v[..]);
                         self.buf_write(&new_buf);
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
@@ -154,7 +161,8 @@ pub trait NanoPrompt {
                         self.buf_write(&new_buf);
                     }
                     Err(LookUpError::Incomplete(v)) => {
-                        new_buf.completion = Some(v);
+                        let completions = new_buf.completion.get_or_insert_with(|| Cd::new(vec![]));
+                        (*completions).clone_from_slice(&v[..]);
                         self.buf_write(&new_buf);
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
@@ -289,21 +297,109 @@ impl LookUp for TomDickHarry {
 
 // [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]i
 
+trait ConsoleUpdate {
+    /// Return Ok(true) if finished.
+    fn update(&mut self,
+              char_events: &mut EventReader<ReceivedCharacter>,
+              keys: &Res<Input<KeyCode>>) -> Result<bool, NanoError>;
+}
+
+impl ConsoleUpdate for PromptBuf {
+    fn update(&mut self,
+              char_events: &mut EventReader<ReceivedCharacter>,
+              keys: &Res<Input<KeyCode>>) -> Result<bool, NanoError> {
+
+        if keys.just_pressed(KeyCode::Escape) {
+            self.message = " Quit".into();
+            return Err(NanoError::Cancelled);
+        }
+        if keys.just_pressed(KeyCode::Return) {
+            return Ok(true);
+        }
+        // if keys.just_pressed(KeyCode::Back) {
+        if keys.pressed(KeyCode::Back) {
+            let _ = self.input.pop();
+            self.message.clear();
+            return Ok(false);
+        }
+        if ! char_events.is_empty() {
+            self.input
+                .extend(char_events.iter().map(|ev| ev.char));
+            self.message.clear();
+        }
+        Ok(false)
+    }
+}
+
+pub fn prompt_input3(
+    prompt_provider: ResMut<PromptProvider>,
+    mut char_events: EventReader<ReceivedCharacter>,
+    keys: Res<Input<KeyCode>>,
+) {
+    let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
+    if let Some(mut read_prompt) = prompts.pop() {
+        match read_prompt.prompt.update(&mut char_events, &keys) {
+            Ok(finished) =>
+                if finished {
+                    read_prompt.promise.resolve(read_prompt.prompt);
+                } else {
+                    prompts.push(read_prompt);
+                },
+            Err(e) => {
+                read_prompt.promise.reject(e);
+            }
+        }
+    }
+}
+
+pub fn prompt_input2(
+    prompt_provider: ResMut<PromptProvider>,
+    mut char_events: EventReader<ReceivedCharacter>,
+    keys: Res<Input<KeyCode>>,
+) {
+    // eprintln!("chars {:?}", char_events.iter().map(|ev| ev.char).collect::<Vec<_>>());
+    let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
+    if let Some(mut read_prompt) = prompts.pop() {
+        if keys.just_pressed(KeyCode::Escape) {
+            read_prompt.prompt.message = " Quit".into();
+            read_prompt.promise.reject(NanoError::Cancelled);
+            return;
+        }
+        if keys.just_pressed(KeyCode::Return) {
+            read_prompt.promise.resolve(read_prompt.prompt);
+            return;
+        }
+        // if keys.just_pressed(KeyCode::Back) {
+        if keys.pressed(KeyCode::Back) {
+            let _ = read_prompt.prompt.input.pop();
+            read_prompt.prompt.message.clear();
+            return;
+        }
+        if char_events.len() > 0 {
+            read_prompt
+                .prompt
+                .input
+                .extend(char_events.iter().map(|ev| ev.char));
+
+            read_prompt.prompt.message.clear();
+        }
+        prompts.push(read_prompt);
+    }
+}
+
 /// prints every char coming in; press enter to echo the full string
-pub fn prompt_input(
+pub fn prompt_output(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     prompt_provider: ResMut<PromptProvider>,
-    mut char_evr: EventReader<ReceivedCharacter>,
     mut show_prompt: ResMut<NextState<PromptState>>,
     mut show_completion: ResMut<NextState<CompletionState>>,
-    keys: Res<Input<KeyCode>>,
     mut query: Query<&mut Text, With<PromptNode>>,
     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
-    // mut text_prompt: TextPrompt,
+    // mut completion: Query<&mut CompletionList, With<ScrollingList>>,
 ) {
-    // eprintln!("chars {:?}", char_evr.iter().map(|ev| ev.char).collect::<Vec<_>>());
     let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
+
     let (completion_node, children) = completion.single();
     let target_state = match children {
         Some(_) => CompletionState::Visible,
@@ -311,6 +407,47 @@ pub fn prompt_input(
     };
     // if show_completion.current() != target_state {
     show_completion.set(target_state);
+    // }
+    let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
+    let mut text = query.single_mut();
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    let mut text_prompt = TextPrompt {
+        text: &mut text,
+        completion: completion_node,
+        children: &children,
+        font: font,
+        commands: &mut commands,
+    };
+    if let Some(read_prompt) = prompts.last() {
+        text_prompt.buf_write(&read_prompt.prompt);
+        show_prompt.set(PromptState::Visible);
+    } else {
+        show_prompt.set(PromptState::Invisible);
+    }
+}
+
+/// prints every char coming in; press enter to echo the full string
+pub fn prompt_input(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    prompt_provider: ResMut<PromptProvider>,
+    mut char_events: EventReader<ReceivedCharacter>,
+    mut show_prompt: ResMut<NextState<PromptState>>,
+    mut show_completion: ResMut<NextState<CompletionState>>,
+    keys: Res<Input<KeyCode>>,
+    mut query: Query<&mut Text, With<PromptNode>>,
+    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
+    // mut text_prompt: TextPrompt,
+) {
+    // eprintln!("chars {:?}", char_events.iter().map(|ev| ev.char).collect::<Vec<_>>());
+    let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
+    let (completion_node, children) = completion.single();
+    let target_state = match children {
+        Some(_) => CompletionState::Visible,
+        None => CompletionState::Invisible,
+    };
+    // if show_completion.current() != target_state {
+    // show_completion.set(target_state);
     // }
     let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
     for mut text in query.iter_mut() {
@@ -392,10 +529,10 @@ pub fn prompt_input(
                 text_prompt.message_get_mut().clear();
                 continue;
             }
-            if char_evr.len() > 0 {
+            if char_events.len() > 0 {
                 text_prompt
                     .input_get_mut()
-                    .extend(char_evr.iter().map(|ev| ev.char));
+                    .extend(char_events.iter().map(|ev| ev.char));
                 text_prompt.message_get_mut().clear();
             }
         }

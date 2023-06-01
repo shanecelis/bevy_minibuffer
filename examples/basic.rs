@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::winit::WinitSettings;
 use nanoprompt::commands::*;
 use nanoprompt::prompt::*;
 use nanoprompt::tasks::*;
@@ -97,6 +98,7 @@ fn ask_age2(mut prompt: Prompt) -> impl Future<Output = ()> {
 
 fn main() {
     App::new()
+        .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
         .add_plugin(NanoPromptPlugin)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {

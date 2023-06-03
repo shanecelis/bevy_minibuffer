@@ -55,7 +55,7 @@ pub struct PromptBuf {
     pub prompt: String,
     pub input: String,
     pub message: String,
-    pub completion: Option<Cd<Vec<String>>>,
+    pub completion: Cd<Vec<String>>,
 }
 
 pub struct Message {
@@ -71,7 +71,7 @@ where
             prompt: value.into(),
             input: "".into(),
             message: "".into(),
-            completion: None,
+            completion: Cd::new(vec![]),
         }
     }
 }
@@ -103,12 +103,7 @@ unsafe impl SystemParam for Prompt {
 impl Prompt {
     fn new(prompts: Arc<Mutex<Vec<ReadPrompt>>>) -> Self {
         Self {
-            buf: PromptBuf {
-                prompt: String::from(""),
-                message: String::from(""),
-                input: String::from(""),
-                completion: None,
-            },
+            buf: default(),
             prompts,
         }
     }
@@ -118,25 +113,24 @@ pub trait NanoPrompt {
     // type Output<T> = Result<T, NanoError>;
 
     fn buf_read(&self, buf: &mut PromptBuf);
-    fn buf_write(&mut self, buf: &PromptBuf); // -> Result<(),
+    fn buf_write(&mut self, buf: &mut PromptBuf); // -> Result<(),
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError>;
 
     async fn read<T: LookUp>(&mut self, prompt: impl Into<PromptBuf>) -> Result<T, NanoError> {
-        let buf = prompt.into();
-        self.buf_write(&buf);
+        let mut buf = prompt.into();
+        self.buf_write(&mut buf);
         loop {
             match self.read_raw().await {
                 Ok(mut new_buf) => match T::look_up(&new_buf.input) {
                     Ok(v) => return Ok(v),
                     Err(LookUpError::Message(m)) => {
                         new_buf.message = m.to_string();
-                        self.buf_write(&new_buf);
+                        self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::Incomplete(v)) => {
 
-                        let completions = new_buf.completion.get_or_insert_with(|| Cd::new(vec![]));
-                        (*completions).clone_from_slice(&v[..]);
-                        self.buf_write(&new_buf);
+                        new_buf.completion.clone_from_slice(&v[..]);
+                        self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
                 },
@@ -150,20 +144,19 @@ pub trait NanoPrompt {
         prompt: impl Into<PromptBuf>,
         look_up: &impl LookUpObject<Item = T>,
     ) -> Result<T, NanoError> {
-        let buf = prompt.into();
-        self.buf_write(&buf);
+        let mut buf = prompt.into();
+        self.buf_write(&mut buf);
         loop {
             match self.read_raw().await {
                 Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
                     Ok(v) => return Ok(v),
                     Err(LookUpError::Message(m)) => {
                         new_buf.message = m.to_string();
-                        self.buf_write(&new_buf);
+                        self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::Incomplete(v)) => {
-                        let completions = new_buf.completion.get_or_insert_with(|| Cd::new(vec![]));
-                        (*completions).clone_from_slice(&v[..]);
-                        self.buf_write(&new_buf);
+                        new_buf.completion.clone_from_slice(&v[..]);
+                        self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
                 },
@@ -195,7 +188,7 @@ impl NanoPrompt for Prompt {
     fn buf_read(&self, buf: &mut PromptBuf) {
         buf.clone_from(&self.buf);
     }
-    fn buf_write(&mut self, buf: &PromptBuf) {
+    fn buf_write(&mut self, buf: &mut PromptBuf) {
         self.buf.clone_from(&buf);
     }
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {
@@ -418,124 +411,11 @@ pub fn prompt_output(
         font: font,
         commands: &mut commands,
     };
-    if let Some(read_prompt) = prompts.last() {
-        text_prompt.buf_write(&read_prompt.prompt);
+    if let Some(read_prompt) = prompts.last_mut() {
+        text_prompt.buf_write(&mut read_prompt.prompt);
         show_prompt.set(PromptState::Visible);
     } else {
         show_prompt.set(PromptState::Invisible);
-    }
-}
-
-/// prints every char coming in; press enter to echo the full string
-pub fn prompt_input(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    prompt_provider: ResMut<PromptProvider>,
-    mut char_events: EventReader<ReceivedCharacter>,
-    mut show_prompt: ResMut<NextState<PromptState>>,
-    mut show_completion: ResMut<NextState<CompletionState>>,
-    keys: Res<Input<KeyCode>>,
-    mut query: Query<&mut Text, With<PromptNode>>,
-    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
-    // mut text_prompt: TextPrompt,
-) {
-    // eprintln!("chars {:?}", char_events.iter().map(|ev| ev.char).collect::<Vec<_>>());
-    let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
-    let (completion_node, children) = completion.single();
-    let target_state = match children {
-        Some(_) => CompletionState::Visible,
-        None => CompletionState::Invisible,
-    };
-    // if show_completion.current() != target_state {
-    // show_completion.set(target_state);
-    // }
-    let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
-    for mut text in query.iter_mut() {
-        let len = prompts.len();
-        if prompts.len() > 0 {
-            let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-            let mut text_prompt = TextPrompt {
-                text: &mut text,
-                completion: completion_node,
-                children: &children,
-                font: font.clone(),
-                commands: &mut commands,
-            };
-
-            if keys.just_pressed(KeyCode::Escape) {
-                let message = text_prompt.message_get_mut();
-                *message = " Quit".into();
-                let promise = {
-                    let read_prompt = prompts.pop().unwrap();
-                    read_prompt.promise
-                };
-                promise.reject(NanoError::Cancelled);
-                if prompts.len() == 0 {
-                    // text_prompt.prompt_get_mut().clear();
-                    // text_prompt.input_get_mut().clear();
-                    // text_prompt.message_get_mut().clear();
-                    show_prompt.set(PromptState::Invisible);
-                }
-                continue;
-            }
-            if keys.just_pressed(KeyCode::Return) {
-                let mut buf = PromptBuf::default();
-                text_prompt.buf_read(&mut buf);
-                let promise = {
-                    let read_prompt = prompts.pop().unwrap();
-                    read_prompt.promise
-                };
-                promise.resolve(buf);
-                if prompts.len() == 0 {
-                    // This causes a one frame flicker.
-                    // text_prompt.prompt_get_mut().clear();
-                    // text_prompt.input_get_mut().clear();
-                    // text_prompt.message_get_mut().clear();
-                    show_prompt.set(PromptState::Invisible);
-                }
-                continue;
-            }
-            let active = prompts.last().unwrap().active;
-            if !active {
-                // Must set it up.
-                if len > 1 {
-                    if let Some(last) = prompts.get_mut(len - 2) {
-                        // Record last prompt.
-                        if last.prior.is_none() {
-                            let mut buf: PromptBuf = default();
-                            text_prompt.buf_read(&mut buf);
-                            eprintln!("record last prompt {:?}", buf);
-                            last.prior = Some(buf);
-                        }
-                    }
-                }
-                for i in 0..len - 1 {
-                    prompts[i].active = false;
-                }
-                let read_prompt = prompts.last_mut().unwrap();
-                let buf = read_prompt
-                    .prior
-                    .take()
-                    .unwrap_or_else(|| read_prompt.prompt.clone());
-
-                eprintln!("setup new prompt {:?}", buf);
-                text_prompt.buf_write(&buf);
-                read_prompt.active = true;
-                show_prompt.set(PromptState::Visible);
-            }
-            // if keys.just_pressed(KeyCode::Back) {
-            if keys.pressed(KeyCode::Back) {
-                let _ = text_prompt.input_get_mut().pop();
-                text_prompt.message_get_mut().clear();
-                continue;
-            }
-            if char_events.len() > 0 {
-                text_prompt
-                    .input_get_mut()
-                    .extend(char_events.iter().map(|ev| ev.char));
-                text_prompt.message_get_mut().clear();
-            }
-        }
     }
 }
 

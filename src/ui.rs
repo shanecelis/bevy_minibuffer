@@ -258,20 +258,19 @@ impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
         buf.input.clone_from(&self.text.sections[1].value);
         buf.message.clone_from(&self.text.sections[2].value);
     }
-    fn buf_write(&mut self, buf: &PromptBuf) {
+    fn buf_write(&mut self, buf: &mut PromptBuf) {
         self.text.sections[0].value.clone_from(&buf.prompt);
         self.text.sections[1].value.clone_from(&buf.input);
         self.text.sections[2].value.clone_from(&buf.message);
-        if let Some(values) = buf.completion.as_deref() {
-            let new_children: Vec<Entity> = values
-                .clone()
-                .into_iter()
+        if buf.completion.changed() {
+            let new_children = (*buf.completion)
+                .iter()
                 .map(|label| {
                     self.commands
                         .spawn(completion_item(label.into(), Color::WHITE, self.font.clone()))
                         .id()
                 })
-                .collect();
+                .collect::<Vec<Entity>>();
 
             self.commands
                 .entity(self.completion)
@@ -279,13 +278,7 @@ impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
             for child in self.children.iter() {
                 self.commands.entity(*child).despawn();
             }
-        } else {
-            self.commands
-                .entity(self.completion)
-                .remove_children(self.children);
-            for child in self.children.iter() {
-                self.commands.entity(*child).despawn();
-            }
+            buf.completion.reset();
         }
     }
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {

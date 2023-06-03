@@ -16,7 +16,7 @@ const LEFT_PADDING: Val = Val::Px(6.);
 #[derive(Component)]
 pub struct PromptContainer;
 #[derive(Component)]
-pub struct PromptNode;
+pub struct PromptNode(pub Option<ConsoleProc>);
 #[derive(Component)]
 pub struct StatusNode;
 #[derive(Component)]
@@ -193,7 +193,7 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 },
                             ),
                         ]))
-                        .insert(PromptNode {});
+                        .insert(PromptNode(None));
                 });
         });
 }

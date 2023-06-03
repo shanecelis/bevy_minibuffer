@@ -4,6 +4,7 @@ use std::sync::{Arc, Mutex};
 use bevy::ecs::component::Tick;
 use bevy::ecs::prelude::Commands;
 use bevy::ecs::system::{SystemMeta, SystemParam};
+use bevy::window::RequestRedraw;
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::prelude::*;
 use bevy::utils::Duration;
@@ -20,33 +21,64 @@ pub enum NanoError {
     Message(Cow<'static, str>),
 }
 
-struct ReadPrompt {
+pub struct ConsoleProc {
     prompt: Cd<PromptBuf>,
-    // active: bool,
-    // prior: Option<PromptBuf>,
     promise: Producer<PromptBuf, NanoError>,
 }
 
 #[derive(Resource, Clone)]
-pub struct PromptProvider {
-    prompt_stack: Arc<Mutex<Vec<ReadPrompt>>>,
-    hide_delay: f32,
+pub struct ConsoleConfig {
+    state: Arc<Mutex<ConsoleState>>,
 }
 
-impl Default for PromptProvider {
+pub struct ConsoleState {
+    asleep: Vec<ConsoleProc>,
+    unprocessed: Vec<ConsoleProc>,
+}
+
+impl ConsoleState {
+    fn new() -> Self {
+        ConsoleState {
+            asleep: Vec::new(),
+            unprocessed: Vec::new(),
+        }
+    }
+
+    fn push(&mut self, proc: ConsoleProc) {
+        eprintln!("pushed");
+        self.unprocessed.push(proc);
+    }
+}
+
+// #[derive(Resource, Clone)]
+// pub struct PromptProvider {
+//     prompt_stack: Arc<Mutex<Vec<ConsoleProc>>>,
+//     // hide_delay: f32,
+// }
+
+// impl Default for PromptProvider {
+//     fn default() -> Self {
+//         Self {
+//             prompt_stack: Arc::new(Mutex::new(vec![])),
+//             // hide_delay: 1.0,
+//         }
+//     }
+// }
+impl Default for ConsoleConfig {
     fn default() -> Self {
         Self {
-            prompt_stack: Arc::new(Mutex::new(vec![])),
-            hide_delay: 1.0,
+            state: Arc::new(Mutex::new(ConsoleState::new()))
+            // hide_delay: 1.0,
         }
     }
 }
 
-impl PromptProvider {
-    pub fn new_prompt(&mut self) -> Prompt {
-        Prompt::new(self.prompt_stack.clone())
-    }
-}
+
+// impl PromptProvider {
+//     pub fn new_prompt(&mut self) -> Prompt {
+//         Prompt::new(self.prompt_stack.clone())
+//     }
+// }
 
 // TODO: Switch to cows or options.
 #[derive(Clone, Default, Debug)]
@@ -57,8 +89,12 @@ pub struct PromptBuf {
     pub completion: Cd<Vec<String>>,
 }
 
-pub struct Message {
-    pub content: Cow<'static, str>,
+pub struct Message(pub Cow<'static, str>);
+
+impl Message {
+    fn new<T: Into<Cow<'static, str>>>(content: T) -> Self {
+        Message(content.into())
+    }
 }
 
 impl<T> From<T> for PromptBuf
@@ -77,15 +113,15 @@ where
 
 pub struct Prompt {
     pub buf: PromptBuf,
-    prompts: Arc<Mutex<Vec<ReadPrompt>>>,
+    prompts: ConsoleConfig,
 }
 
 unsafe impl SystemParam for Prompt {
-    type State = PromptProvider;
+    type State = ConsoleConfig;
     type Item<'w, 's> = Prompt;
 
     fn init_state(world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
-        world.get_resource_mut::<PromptProvider>().unwrap().clone()
+        world.get_resource_mut::<ConsoleConfig>().unwrap().clone()
     }
 
     #[inline]
@@ -95,16 +131,47 @@ unsafe impl SystemParam for Prompt {
         _world: UnsafeWorldCell<'w>,
         _change_tick: Tick,
     ) -> Self::Item<'w, 's> {
-        state.new_prompt()
+        Prompt::new(state.clone())
+        // state.new_prompt()
     }
 }
 
 impl Prompt {
-    fn new(prompts: Arc<Mutex<Vec<ReadPrompt>>>) -> Self {
+    fn new(prompts: ConsoleConfig) -> Self {
         Self {
             buf: default(),
             prompts,
         }
+    }
+}
+
+impl PromptBuf {
+
+    fn update(&mut self,
+              char_events: &mut EventReader<ReceivedCharacter>,
+              keys: &Res<Input<KeyCode>>,
+              backspace: bool) -> Result<bool, NanoError> {
+
+        if keys.just_pressed(KeyCode::Escape) {
+            self.message = " Quit".into();
+            return Err(NanoError::Cancelled);
+        }
+        if keys.just_pressed(KeyCode::Return) {
+            return Ok(true);
+        }
+        // if keys.just_pressed(KeyCode::Back) {
+        // if keys.pressed(KeyCode::Back) {
+        if backspace {
+            let _ = self.input.pop();
+            self.message.clear();
+            return Ok(false);
+        }
+        if ! char_events.is_empty() {
+            self.input
+                .extend(char_events.iter().map(|ev| ev.char));
+            self.message.clear();
+        }
+        Ok(false)
     }
 }
 
@@ -195,11 +262,9 @@ impl NanoPrompt for Prompt {
     }
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {
         let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
-        self.prompts.lock().unwrap().push(ReadPrompt {
+        self.prompts.state.lock().unwrap().push(ConsoleProc {
             prompt: Cd::new_true(self.buf.clone()),
             promise,
-            // active: false,
-            // prior: None,
         });
         waiter.await
     }
@@ -291,76 +356,76 @@ impl LookUp for TomDickHarry {
 // [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]i
 
 trait ConsoleUpdate {
-    fn should_update(&self,
-              char_events: &EventReader<ReceivedCharacter>,) -> bool;
-    /// Return Ok(true) if finished.
-    fn update(&mut self,
-              char_events: &mut EventReader<ReceivedCharacter>,
-              keys: &Res<Input<KeyCode>>,
-              backspace: bool) -> Result<bool, NanoError>;
+    // fn should_update(&self,
+    //           char_events: &EventReader<ReceivedCharacter>,) -> bool;
+    // Return Ok(true) if finished.
+    // fn update(&mut self,
+    //           char_events: &mut EventReader<ReceivedCharacter>,
+    //           keys: &Res<Input<KeyCode>>,
+    //           backspace: bool) -> Result<bool, NanoError>;
 
-    fn render(&mut self,
-              live: &mut TextPrompt);
+    // fn render(&mut self,
+    //           live: &mut TextPrompt);
 
 }
 
-impl ConsoleUpdate for PromptBuf {
-    fn should_update(&self,
-              char_events: &EventReader<ReceivedCharacter>,
-    ) -> bool {
-        // ! char_events.is_empty()
-        true
-    }
+impl ConsoleUpdate for Message {
 
-    fn update(&mut self,
-              char_events: &mut EventReader<ReceivedCharacter>,
-              keys: &Res<Input<KeyCode>>,
-              backspace: bool) -> Result<bool, NanoError> {
+    // fn should_update(&self,
+    //           char_events: &EventReader<ReceivedCharacter>,
+    // ) -> bool {
+    //     true
+    // }
+    // /// Return Ok(true) if finished.
+    // fn update(&mut self,
+    //           char_events: &mut EventReader<ReceivedCharacter>,
+    //           keys: &Res<Input<KeyCode>>,
+    //           backspace: bool) -> Result<bool, NanoError> {
 
-        if keys.just_pressed(KeyCode::Escape) {
-            self.message = " Quit".into();
-            return Err(NanoError::Cancelled);
-        }
-        if keys.just_pressed(KeyCode::Return) {
-            return Ok(true);
-        }
-        // if keys.just_pressed(KeyCode::Back) {
-        // if keys.pressed(KeyCode::Back) {
-        if backspace {
-            let _ = self.input.pop();
-            self.message.clear();
-            return Ok(false);
-        }
-        if ! char_events.is_empty() {
-            self.input
-                .extend(char_events.iter().map(|ev| ev.char));
-            self.message.clear();
-        }
-        Ok(false)
-    }
 
-    fn render(&mut self,
-              live: &mut TextPrompt) {
-        live.prompt_get_mut().clone_from(&self.prompt);
-        live.input_get_mut().clone_from(&self.input);
-        live.message_get_mut().clone_from(&self.message);
+    // }
 
-        let new_children = (*self.completion)
-            .iter()
-            .map(|label| {
-                label.clone()
-            })
-            .collect::<Vec<String>>();
-        live.completion_set(new_children);
-    }
+    // fn render(&mut self,
+    //           live: &mut TextPrompt) {
+    //     live.prompt_get_mut().clone_from(self.0);
+    //     live.input_get_mut().clear();
+    //     live.message_get_mut().clear();
+    //     live.completion_set(vec![]);
+    // }
+
 }
+
+// impl ConsoleUpdate for PromptBuf {
+//     fn should_update(&self,
+//               char_events: &EventReader<ReceivedCharacter>,
+//     ) -> bool {
+//         // ! char_events.is_empty()
+//         true
+//     }
+
+
+//     fn render(&mut self,
+//               live: &mut TextPrompt) {
+//         live.prompt_get_mut().clone_from(&self.prompt);
+//         live.input_get_mut().clone_from(&self.input);
+//         live.message_get_mut().clone_from(&self.message);
+
+//         let new_children = (*self.completion)
+//             .iter()
+//             .map(|label| {
+//                 label.clone()
+//             })
+//             .collect::<Vec<String>>();
+//         live.completion_set(new_children);
+//     }
+// }
 
 pub fn prompt_input(
-    prompt_provider: ResMut<PromptProvider>,
     mut char_events: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
     mut backspace_delay: Local<Option<Timer>>,
     time: Res<Time>,
+    mut query: Query<&mut PromptNode>,
 ) {
 
     let backspace: bool = if keys.just_pressed(KeyCode::Back) {
@@ -371,17 +436,16 @@ pub fn prompt_input(
     } else {
         false
     };
-    let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
+    let mut node = query.single_mut();
 
-    if ! prompts.last().map(|read_prompt| read_prompt.prompt.should_update(&char_events)).unwrap_or(false) {
-        // No update.
-    } else if let Some(mut read_prompt) = prompts.pop() {
+    if let Some(mut read_prompt) = node.0.take() {
         match read_prompt.prompt.update(&mut char_events, &keys, backspace) {
             Ok(finished) =>
                 if finished {
                     read_prompt.promise.resolve(Cd::take(read_prompt.prompt));
                 } else {
-                    prompts.push(read_prompt);
+                    node.0 = Some(read_prompt);
+                    // prompts.push(read_prompt);
                 },
             Err(e) => {
                 read_prompt.promise.reject(e);
@@ -390,22 +454,49 @@ pub fn prompt_input(
     }
 }
 
+
 /// prints every char coming in; press enter to echo the full string
+pub fn state_update(
+    prompt_provider: ResMut<ConsoleConfig>,
+    mut query: Query<&mut PromptNode>,
+) {
+    let mut console_state = prompt_provider.state.lock().unwrap();
+    let mut node = query.single_mut();
+
+    if ! console_state.unprocessed.is_empty() {
+        match node.0.take() {
+            Some(x) => {
+                console_state.asleep.push(x);
+            }
+            None => {}
+        }
+        let mut unprocessed = vec![];
+        std::mem::swap(&mut console_state.unprocessed, &mut unprocessed);
+        console_state.asleep.extend(unprocessed.drain(0..));
+        node.0 = console_state.asleep.pop();
+        eprintln!("node.0 set 1");
+    } else if node.0.is_none() && ! console_state.asleep.is_empty() {
+        node.0 = console_state.asleep.pop();
+        eprintln!("node.0 set 2");
+    }
+}
+
 pub fn prompt_output(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    prompt_provider: ResMut<PromptProvider>,
+    prompt_provider: ResMut<ConsoleConfig>,
     mut show_prompt: ResMut<NextState<PromptState>>,
     mut show_completion: ResMut<NextState<CompletionState>>,
-    mut query: Query<&mut Text, With<PromptNode>>,
+    mut redraw: EventWriter<RequestRedraw>,
+    mut query: Query<(&mut Text, &mut PromptNode)>,
     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
     // mut completion: Query<&mut CompletionList, With<ScrollingList>>,
 ) {
-    let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
+    let mut console_state = prompt_provider.state.lock().unwrap();
 
     let (completion_node, children) = completion.single();
     let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
-    let mut text = query.single_mut();
+    let (mut text, mut node) = query.single_mut();
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
     let mut text_prompt = TextPrompt {
         text: &mut text,
@@ -414,15 +505,17 @@ pub fn prompt_output(
         font: font,
         commands: &mut commands,
     };
-    if let Some(read_prompt) = prompts.last_mut() {
-        read_prompt.prompt.render(&mut text_prompt);
-        // text_prompt.buf_write(&mut read_prompt.prompt);
+
+    if let Some(read_prompt) = &mut node.0 {
+        // read_prompt.prompt.render(&mut text_prompt);
+        text_prompt.buf_write(&mut read_prompt.prompt);
         show_prompt.set(PromptState::Visible);
         show_completion.set(if read_prompt.prompt.completion.len() > 0 {
             CompletionState::Visible
         } else {
             CompletionState::Invisible
         });
+        redraw.send(RequestRedraw);
     } else {
         show_prompt.set(PromptState::Invisible);
         show_completion.set(CompletionState::Invisible);

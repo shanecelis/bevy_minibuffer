@@ -93,7 +93,6 @@ pub fn run_commands(world: &mut World) {
 
 pub fn exec_command(
     mut prompt: Prompt,
-    // mut run_command: EventWriter<RunCommandEvent>,
     config: Res<CommandConfig>,
 ) -> impl Future<Output = Option<RunCommandEvent>> {
     #[rustfmt::skip]
@@ -108,7 +107,7 @@ pub fn exec_command(
             // our task.
             Some(RunCommandEvent(Box::new(CommandOneShot(command.into()))))
         } else {
-            eprintln!("Got err in ask now");
+            eprintln!("Got err in exec_command");
             None
         }
     }

@@ -12,7 +12,7 @@ fn ask_name5<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
     async move {
         if let Ok(first_name) = prompt.read::<String>("What's your first name? ").await {
             if let Ok(last_name) = prompt.read::<String>("What's your last name? ").await {
-                println!("Hello, {} {}", first_name, last_name);
+                prompt.message(format!("Hello, {} {}", first_name, last_name));
             }
         } else {
             println!("Got err in ask now");

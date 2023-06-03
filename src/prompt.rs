@@ -21,9 +21,9 @@ pub enum NanoError {
 }
 
 struct ReadPrompt {
-    prompt: PromptBuf,
-    active: bool,
-    prior: Option<PromptBuf>,
+    prompt: Cd<PromptBuf>,
+    // active: bool,
+    // prior: Option<PromptBuf>,
     promise: Producer<PromptBuf, NanoError>,
 }
 
@@ -150,6 +150,7 @@ pub trait NanoPrompt {
                 Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
                     Ok(v) => return Ok(v),
                     Err(LookUpError::Message(m)) => {
+                        new_buf.completion.clear();
                         new_buf.message = m.to_string();
                         self.buf_write(&mut new_buf);
                     }
@@ -195,10 +196,10 @@ impl NanoPrompt for Prompt {
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {
         let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
         self.prompts.lock().unwrap().push(ReadPrompt {
-            prompt: self.buf.clone(),
+            prompt: Cd::new_true(self.buf.clone()),
             promise,
-            active: false,
-            prior: None,
+            // active: false,
+            // prior: None,
         });
         waiter.await
     }
@@ -290,14 +291,27 @@ impl LookUp for TomDickHarry {
 // [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]i
 
 trait ConsoleUpdate {
+    fn should_update(&self,
+              char_events: &EventReader<ReceivedCharacter>,) -> bool;
     /// Return Ok(true) if finished.
     fn update(&mut self,
               char_events: &mut EventReader<ReceivedCharacter>,
               keys: &Res<Input<KeyCode>>,
               backspace: bool) -> Result<bool, NanoError>;
+
+    fn render(&mut self,
+              live: &mut TextPrompt);
+
 }
 
 impl ConsoleUpdate for PromptBuf {
+    fn should_update(&self,
+              char_events: &EventReader<ReceivedCharacter>,
+    ) -> bool {
+        // ! char_events.is_empty()
+        true
+    }
+
     fn update(&mut self,
               char_events: &mut EventReader<ReceivedCharacter>,
               keys: &Res<Input<KeyCode>>,
@@ -324,6 +338,21 @@ impl ConsoleUpdate for PromptBuf {
         }
         Ok(false)
     }
+
+    fn render(&mut self,
+              live: &mut TextPrompt) {
+        live.prompt_get_mut().clone_from(&self.prompt);
+        live.input_get_mut().clone_from(&self.input);
+        live.message_get_mut().clone_from(&self.message);
+
+        let new_children = (*self.completion)
+            .iter()
+            .map(|label| {
+                label.clone()
+            })
+            .collect::<Vec<String>>();
+        live.completion_set(new_children);
+    }
 }
 
 pub fn prompt_input(
@@ -343,11 +372,14 @@ pub fn prompt_input(
         false
     };
     let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
-    if let Some(mut read_prompt) = prompts.pop() {
+
+    if ! prompts.last().map(|read_prompt| read_prompt.prompt.should_update(&char_events)).unwrap_or(false) {
+        // No update.
+    } else if let Some(mut read_prompt) = prompts.pop() {
         match read_prompt.prompt.update(&mut char_events, &keys, backspace) {
             Ok(finished) =>
                 if finished {
-                    read_prompt.promise.resolve(read_prompt.prompt);
+                    read_prompt.promise.resolve(Cd::take(read_prompt.prompt));
                 } else {
                     prompts.push(read_prompt);
                 },
@@ -383,7 +415,8 @@ pub fn prompt_output(
         commands: &mut commands,
     };
     if let Some(read_prompt) = prompts.last_mut() {
-        text_prompt.buf_write(&mut read_prompt.prompt);
+        read_prompt.prompt.render(&mut text_prompt);
+        // text_prompt.buf_write(&mut read_prompt.prompt);
         show_prompt.set(PromptState::Visible);
         show_completion.set(if read_prompt.prompt.completion.len() > 0 {
             CompletionState::Visible

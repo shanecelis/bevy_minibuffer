@@ -250,6 +250,24 @@ impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
     pub fn message_get(&self) -> &str {
         &self.text.sections[2].value
     }
+
+    pub fn completion_set(&mut self, labels: Vec<String>) {
+
+        let new_children = labels
+            .into_iter()
+            .map(|label| {
+                self.commands
+                    .spawn(completion_item(label, Color::WHITE, self.font.clone()))
+                    .id()
+            })
+            .collect::<Vec<Entity>>();
+        self.commands
+            .entity(self.completion)
+            .replace_children(&new_children);
+        for child in self.children.iter() {
+            self.commands.entity(*child).despawn();
+        }
+    }
 }
 
 impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {

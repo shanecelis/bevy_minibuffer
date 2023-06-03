@@ -108,12 +108,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        // .add_command("ask_name", ask_name3)
-        // .add_command("ask_name", ask_name4.pipe(task_sink))
         .add_command("ask_name", ask_name5.pipe(task_sink))
-        // .add_command("ask_name", ask_name6.pipe(task_sink))
-        // .add_command("ask_name", ask_name6.pipe(task_sink))
-        // .add_command("ask_age", ask_age.pipe(task_sink))
         .add_command("ask_age2", ask_age2.pipe(task_sink))
         .add_command(
             Command::new("exec_command", Some(KeyCode::Semicolon)),

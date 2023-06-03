@@ -156,6 +156,7 @@ pub trait NanoPrompt {
                     Err(LookUpError::Incomplete(v)) => {
                         new_buf.completion.clear();
                         new_buf.completion.extend_from_slice(&v[..]);
+                        assert!(Cd::changed(&new_buf.completion));
                         self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
@@ -322,7 +323,7 @@ impl ConsoleUpdate for PromptBuf {
     }
 }
 
-pub fn prompt_input3(
+pub fn prompt_input(
     prompt_provider: ResMut<PromptProvider>,
     mut char_events: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
@@ -343,41 +344,6 @@ pub fn prompt_input3(
     }
 }
 
-pub fn prompt_input2(
-    prompt_provider: ResMut<PromptProvider>,
-    mut char_events: EventReader<ReceivedCharacter>,
-    keys: Res<Input<KeyCode>>,
-) {
-    // eprintln!("chars {:?}", char_events.iter().map(|ev| ev.char).collect::<Vec<_>>());
-    let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
-    if let Some(mut read_prompt) = prompts.pop() {
-        if keys.just_pressed(KeyCode::Escape) {
-            read_prompt.prompt.message = " Quit".into();
-            read_prompt.promise.reject(NanoError::Cancelled);
-            return;
-        }
-        if keys.just_pressed(KeyCode::Return) {
-            read_prompt.promise.resolve(read_prompt.prompt);
-            return;
-        }
-        // if keys.just_pressed(KeyCode::Back) {
-        if keys.pressed(KeyCode::Back) {
-            let _ = read_prompt.prompt.input.pop();
-            read_prompt.prompt.message.clear();
-            return;
-        }
-        if char_events.len() > 0 {
-            read_prompt
-                .prompt
-                .input
-                .extend(char_events.iter().map(|ev| ev.char));
-
-            read_prompt.prompt.message.clear();
-        }
-        prompts.push(read_prompt);
-    }
-}
-
 /// prints every char coming in; press enter to echo the full string
 pub fn prompt_output(
     mut commands: Commands,
@@ -392,13 +358,6 @@ pub fn prompt_output(
     let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
 
     let (completion_node, children) = completion.single();
-    let target_state = match children {
-        Some(_) => CompletionState::Visible,
-        None => CompletionState::Invisible,
-    };
-    // if show_completion.current() != target_state {
-    show_completion.set(target_state);
-    // }
     let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
     let mut text = query.single_mut();
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
@@ -412,8 +371,14 @@ pub fn prompt_output(
     if let Some(read_prompt) = prompts.last_mut() {
         text_prompt.buf_write(&mut read_prompt.prompt);
         show_prompt.set(PromptState::Visible);
+        show_completion.set(if read_prompt.prompt.completion.len() > 0 {
+            CompletionState::Visible
+        } else {
+            CompletionState::Invisible
+        });
     } else {
         show_prompt.set(PromptState::Invisible);
+        show_completion.set(CompletionState::Invisible);
     }
 }
 

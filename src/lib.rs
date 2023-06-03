@@ -24,7 +24,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .add_systems(Startup,   spawn_layout)
             .add_systems(PreUpdate, run_commands)
             .add_systems(Update,    hide_prompt_maybe)
-            .add_systems(Update,    prompt_input3)
+            .add_systems(Update,    prompt_input)
             .add_systems(PostUpdate,prompt_output)
             .add_systems(Update,    poll_tasks)
             .add_systems(Update,    poll_event_tasks::<RunCommandEvent>)

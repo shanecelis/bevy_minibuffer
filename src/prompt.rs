@@ -44,8 +44,7 @@ impl Default for PromptProvider {
 
 impl PromptProvider {
     pub fn new_prompt(&mut self) -> Prompt {
-        let prompt = Prompt::new(self.prompt_stack.clone());
-        prompt
+        Prompt::new(self.prompt_stack.clone())
     }
 }
 
@@ -155,7 +154,8 @@ pub trait NanoPrompt {
                         self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::Incomplete(v)) => {
-                        new_buf.completion.clone_from_slice(&v[..]);
+                        new_buf.completion.clear();
+                        new_buf.completion.extend_from_slice(&v[..]);
                         self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
@@ -195,11 +195,11 @@ impl NanoPrompt for Prompt {
         let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
         self.prompts.lock().unwrap().push(ReadPrompt {
             prompt: self.buf.clone(),
-            promise: promise,
+            promise,
             active: false,
             prior: None,
         });
-        return waiter.await;
+        waiter.await
     }
 }
 
@@ -219,14 +219,12 @@ impl<T: AsRef<str>> LookUpObject for &[T] {
             .map(|word| word.as_ref())
             .filter(|word| word.starts_with(input))
             .collect();
-        if matches.len() == 1 {
-            Ok(matches[0].to_string())
-        } else if matches.len() > 1 {
-            Err(LookUpError::Incomplete(
+        match matches[..] {
+            [a] => Ok(a.to_string()),
+            [_a, _b, ..] => Err(LookUpError::Incomplete(
                 matches.into_iter().map(|s| s.to_string()).collect(),
-            ))
-        } else {
-            Err(LookUpError::Message(" no matches".into()))
+            )),
+            [] => Err(LookUpError::Message(" no matches".into())),
         }
     }
 }

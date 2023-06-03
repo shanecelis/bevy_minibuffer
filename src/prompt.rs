@@ -293,13 +293,15 @@ trait ConsoleUpdate {
     /// Return Ok(true) if finished.
     fn update(&mut self,
               char_events: &mut EventReader<ReceivedCharacter>,
-              keys: &Res<Input<KeyCode>>) -> Result<bool, NanoError>;
+              keys: &Res<Input<KeyCode>>,
+              backspace: bool) -> Result<bool, NanoError>;
 }
 
 impl ConsoleUpdate for PromptBuf {
     fn update(&mut self,
               char_events: &mut EventReader<ReceivedCharacter>,
-              keys: &Res<Input<KeyCode>>) -> Result<bool, NanoError> {
+              keys: &Res<Input<KeyCode>>,
+              backspace: bool) -> Result<bool, NanoError> {
 
         if keys.just_pressed(KeyCode::Escape) {
             self.message = " Quit".into();
@@ -309,7 +311,8 @@ impl ConsoleUpdate for PromptBuf {
             return Ok(true);
         }
         // if keys.just_pressed(KeyCode::Back) {
-        if keys.pressed(KeyCode::Back) {
+        // if keys.pressed(KeyCode::Back) {
+        if backspace {
             let _ = self.input.pop();
             self.message.clear();
             return Ok(false);
@@ -327,10 +330,21 @@ pub fn prompt_input(
     prompt_provider: ResMut<PromptProvider>,
     mut char_events: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
+    mut backspace_delay: Local<Option<Timer>>,
+    time: Res<Time>,
 ) {
+
+    let backspace: bool = if keys.just_pressed(KeyCode::Back) {
+        *backspace_delay = Some(Timer::from_seconds(1., TimerMode::Once));
+        true
+    } else if let Some(ref mut timer) = *backspace_delay {
+        timer.tick(time.delta()).finished() && keys.pressed(KeyCode::Back)
+    } else {
+        false
+    };
     let mut prompts = prompt_provider.prompt_stack.lock().unwrap();
     if let Some(mut read_prompt) = prompts.pop() {
-        match read_prompt.prompt.update(&mut char_events, &keys) {
+        match read_prompt.prompt.update(&mut char_events, &keys, backspace) {
             Ok(finished) =>
                 if finished {
                     read_prompt.promise.resolve(read_prompt.prompt);

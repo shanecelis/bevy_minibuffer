@@ -5,30 +5,48 @@ use bitflags::bitflags;
 use futures_lite::future;
 use std::borrow::Cow;
 use std::future::Future;
+use trie_rs::{Trie, TrieBuilder};
 
-use crate::prompt::*;
 use crate::tasks::*;
+use crate::proc::*;
+use crate::prompt::*;
 
 pub struct RunCommandEvent(Box<dyn ScheduleLabel>);
 // Could this be make generic? That way people could choose their own command run handles?
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CommandOneShot(Cow<'static, str>);
-#[derive(Resource, Debug, Default)]
+#[derive(Resource, Default)]
 pub struct CommandConfig {
     commands: Vec<Command>,
+    hotkeys: Option<Trie<Key>>,
+}
+
+impl CommandConfig {
+    fn hotkeys(&mut self) -> &Trie<Key> {
+        let hks = self.hotkeys.get_or_insert_with(|| {
+            let mut builder = TrieBuilder::new();
+            for hotkey in self.commands.iter().filter_map(|command| command.hotkey.as_ref()) {
+                builder.push(hotkey.clone());
+            }
+            builder.build()
+        });
+        self.hotkeys.as_ref().unwrap()
+
+    }
+
 }
 
 #[derive(Debug, Clone)]
 pub struct Command {
     name: Cow<'static, str>,
-    hotkey: Option<Key>,
+    hotkey: Option<KeySeq>,
 }
 
 impl Command {
-    pub fn new(name: impl Into<Cow<'static, str>>, hotkey: Option<impl Into<Key>>) -> Self {
+    pub fn new(name: impl Into<Cow<'static, str>>, hotkey: Option<Vec<impl Into<Key>>>) -> Self {
         Command {
             name: name.into(),
-            hotkey: hotkey.map(|v| v.into()),
+            hotkey: hotkey.map(|v| v.into_iter().map(|v| v.into()).collect()),
         }
     }
 }
@@ -132,24 +150,49 @@ pub fn poll_event_tasks<T: Send + Event>(
 pub fn hotkey_input(
     mut run_command: EventWriter<RunCommandEvent>,
     keys: Res<Input<KeyCode>>,
-    config: Res<CommandConfig>,
+    mut config: ResMut<CommandConfig>,
+    mut last_keys: Local<Vec<Key>>,
 ) {
     let mods = Modifiers::from_input(&keys);
-    for command in &config.commands {
-        if let Some(ref hotkey) = command.hotkey {
-            if hotkey.mods == mods && keys.just_pressed(hotkey.key) {
-                eprintln!("We were called for {}", command.name);
+    let trie = config.hotkeys();
+    let mut matches = vec![];
 
-                run_command.send(RunCommandEvent(Box::new(CommandOneShot(
-                    command.name.clone(),
-                ))))
+    for key_code in keys.get_just_pressed() {
+        let key = Key::new(key_code.clone(), mods);
+        last_keys.push(key);
+        eprintln!("key seq {:?}", *last_keys);
+        if (trie.exact_match(&*last_keys)) {
+            eprintln!("got match {:?}", last_keys);
+            let mut new_keys = vec![];
+            std::mem::swap(&mut new_keys, &mut *last_keys);
+            matches.push(new_keys);
+            // Let's assume it's for running a command
+            // last_keys.clear();
+        } else if (trie.predictive_search(&*last_keys).is_empty()) {
+            eprintln!("No key seq prefix for {:?}", *last_keys);
+            last_keys.clear();
+        }
+    }
+
+    for amatch in matches.into_iter() {
+        for command in &config.commands {
+            if let Some(ref keyseq) = command.hotkey {
+                eprintln!("Comparing against command {:?}", keyseq);
+                if &amatch == keyseq {
+                // if hotkey.mods == mods && keys.just_pressed(hotkey.key) {
+                    eprintln!("We were called for {}", command.name);
+
+                    run_command.send(RunCommandEvent(Box::new(CommandOneShot(
+                        command.name.clone(),
+                    ))))
+                }
             }
         }
     }
 }
 
 bitflags! {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    #[derive(Clone, Copy, Debug, PartialOrd, PartialEq, Eq, Hash, Ord)]
     pub struct Modifiers: u8 {
         const Alt     = 0b00000001;
         const Control = 0b00000010;
@@ -158,12 +201,22 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Hash, Ord)]
 pub struct Key {
     pub mods: Modifiers,
     pub key: KeyCode,
 }
+
 pub type KeySeq = Vec<Key>;
+
+impl Key {
+    fn new(v: KeyCode, mods: Modifiers) -> Self {
+        Key {
+            key: v,
+            mods
+        }
+    }
+}
 
 impl From<KeyCode> for Key {
     fn from(v: KeyCode) -> Self {
@@ -190,5 +243,42 @@ impl Modifiers {
             mods |= Modifiers::System;
         }
         mods
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use bevy::prelude::*;
+    use crate::commands::*;
+    #[allow(unused_must_use)]
+    #[test]
+    fn test_key_eq() {
+        let a: Key = KeyCode::A.into();
+        let b: Key = KeyCode::A.into();
+        assert_eq!(a, b);
+        assert!(a == b);
+    }
+
+    #[test]
+    fn test_key_eq_not() {
+        let a: Key = KeyCode::A.into();
+        let b: Key = KeyCode::B.into();
+        // assert_eq!(a, b);
+        assert!(a != b);
+    }
+
+    #[test]
+    fn test_key_eq_vec() {
+        let a: Vec<Key> = vec![KeyCode::A.into()];
+        let b: Vec<Key> = vec![KeyCode::B.into()];
+        let c: Vec<Key> = vec![KeyCode::A.into()];
+        let e: Vec<Key> = vec![];
+        assert!(a != b);
+        assert!(a == c);
+        assert_eq!(a, c);
+        assert!(e != a);
+        assert!(e != b);
+        assert!(e != c);
     }
 }

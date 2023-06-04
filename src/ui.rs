@@ -1,4 +1,5 @@
 use crate::prompt::*;
+use crate::proc::*;
 use bevy::{
     a11y::{
         accesskit::{NodeBuilder, Role},
@@ -266,15 +267,13 @@ impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
             self.commands.entity(*child).despawn();
         }
     }
-}
 
-impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
     fn buf_read(&self, buf: &mut PromptBuf) {
         buf.prompt.clone_from(&self.text.sections[0].value);
         buf.input.clone_from(&self.text.sections[1].value);
         buf.message.clone_from(&self.text.sections[2].value);
     }
-    fn buf_write(&mut self, buf: &mut PromptBuf) {
+    pub fn buf_write(&mut self, buf: &mut PromptBuf) {
         self.text.sections[0].value.clone_from(&buf.prompt);
         self.text.sections[1].value.clone_from(&buf.input);
         self.text.sections[2].value.clone_from(&buf.message);
@@ -301,7 +300,10 @@ impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
         // Cd::reset(&mut buf.completion);
         // }
     }
-    async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {
-        panic!("Not sure this should ever be called.");
-    }
 }
+
+// impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
+//     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {
+//         panic!("Not sure this should ever be called.");
+//     }
+// }

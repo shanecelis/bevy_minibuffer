@@ -12,3 +12,4 @@ bitflags = "2.3.1"
 # changed = "0.1.2"
 futures-lite = "1.13.0"
 promise_out = { git = "https://github.com/shanecelis/promise_out.git" }
+trie-rs = "0.1.1"

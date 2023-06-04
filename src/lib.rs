@@ -1,9 +1,10 @@
 // #![feature(return_position_impl_trait_in_trait)]
 #![allow(incomplete_features)]
 #![feature(async_fn_in_trait)]
+pub mod tasks;
+pub mod proc;
 pub mod commands;
 pub mod prompt;
-pub mod tasks;
 pub mod ui;
 
 pub struct NanoPromptPlugin;
@@ -16,6 +17,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
         use commands::*;
         use prompt::*;
         use tasks::*;
+        use proc::*;
         use ui::*;
         app.add_event::<RunCommandEvent>()
             .add_state::<PromptState>()

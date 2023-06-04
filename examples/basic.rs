@@ -4,23 +4,24 @@ use nanoprompt::commands::*;
 use nanoprompt::prompt::*;
 use nanoprompt::tasks::*;
 use nanoprompt::ui::*;
+use nanoprompt::proc::*;
 use nanoprompt::*;
 use std::future::Future;
 
-fn ask_name5<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
-    println!("ask name 5 called");
+fn ask_name<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
+    // println!("ask name 5 called");
     async move {
         if let Ok(first_name) = prompt.read::<String>("What's your first name? ").await {
             if let Ok(last_name) = prompt.read::<String>("What's your last name? ").await {
-                prompt.message(format!("Hello, {} {}", first_name, last_name));
+                prompt.message(format!("Hello, {first_name} {last_name}!"));
             }
         } else {
-            println!("Got err in ask now");
+            // println!("Got err in ask now");
         }
     }
 }
 
-fn ask_age2(mut prompt: Prompt) -> impl Future<Output = ()> {
+fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
     println!("ask age2 called");
     async move {
         if let Ok(age) = prompt.read::<i32>("What's your age? ").await {
@@ -43,14 +44,16 @@ fn main() {
             }),
             ..Default::default()
         }))
-        // .add_command("ask_name", ask_name5.pipe(task_sink))
+        // .add_command("ask_name", ask_name.pipe(task_sink))
         .add_command(
-            Command::new("ask_name", Some(KeyCode::Key1)),
-            ask_name5.pipe(task_sink),
+            Command::new("ask_name", Some(vec![KeyCode::Key1])),
+            ask_name.pipe(task_sink),
         )
-        .add_command("ask_age2", ask_age2.pipe(task_sink))
+        .add_command(Command::new("ask_age",
+                                  Some(vec![KeyCode::A, KeyCode::A])),
+                                  ask_age.pipe(task_sink))
         .add_command(
-            Command::new("exec_command", Some(KeyCode::Semicolon)),
+            Command::new("exec_command", Some(vec![KeyCode::Semicolon])),
             exec_command.pipe(task_sink),
         )
         .run();

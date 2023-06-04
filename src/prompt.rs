@@ -12,78 +12,20 @@ use bevy::window::RequestRedraw;
 use promise_out::{pair::Producer, Promise};
 
 use crate::ui::*;
-type CowStr = Cow<'static, str>;
+use crate::proc::*;
 
-#[allow(dead_code)]
+pub type CowStr = Cow<'static, str>;
+
 #[derive(Debug)]
 pub enum NanoError {
     Cancelled,
-    Message(Cow<'static, str>),
-}
-
-#[derive(Debug)]
-pub struct ReadPrompt {
-    prompt: PromptBuf,
-    promise: Producer<PromptBuf, NanoError>,
-}
-
-#[derive(Debug, PartialEq)]
-enum ProcState {
-    Uninit,
-    Active,
-}
-
-#[derive(Debug)]
-enum ProcContent {
-    Prompt(ReadPrompt),
     Message(CowStr),
 }
 
 #[derive(Debug)]
-pub struct Proc(ProcContent, ProcState);
-
-impl Proc {
-    fn prompt(prompt: ReadPrompt) -> Self {
-        Self(ProcContent::Prompt(prompt), ProcState::Uninit)
-    }
-
-    fn message(msg: CowStr) -> Self {
-        Self(ProcContent::Message(msg), ProcState::Uninit)
-    }
-}
-
-#[derive(Debug, Resource, Clone)]
-pub struct ConsoleConfig {
-    state: Arc<Mutex<ConsoleState>>,
-    hide_delay: u64,
-}
-
-#[derive(Debug)]
-pub struct ConsoleState {
-    asleep: Vec<Proc>,
-    unprocessed: Vec<Proc>,
-}
-
-impl ConsoleState {
-    fn new() -> Self {
-        ConsoleState {
-            asleep: Vec::new(),
-            unprocessed: Vec::new(),
-        }
-    }
-
-    fn push(&mut self, proc: Proc) {
-        self.unprocessed.push(proc);
-    }
-}
-
-impl Default for ConsoleConfig {
-    fn default() -> Self {
-        Self {
-            state: Arc::new(Mutex::new(ConsoleState::new())),
-            hide_delay: 500, /* milliseconds */
-        }
-    }
+pub(crate) struct ReadPrompt {
+    pub(crate) prompt: PromptBuf,
+    pub(crate) promise: Producer<PromptBuf, NanoError>,
 }
 
 // TODO: Switch to cows or options.
@@ -106,48 +48,6 @@ where
             message: "".into(),
             completion: Vec::new(),
         }
-    }
-}
-
-pub struct Prompt {
-    pub buf: PromptBuf,
-    prompts: ConsoleConfig,
-}
-
-unsafe impl SystemParam for Prompt {
-    type State = ConsoleConfig;
-    type Item<'w, 's> = Prompt;
-
-    fn init_state(world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
-        world.get_resource_mut::<ConsoleConfig>().unwrap().clone()
-    }
-
-    #[inline]
-    unsafe fn get_param<'w, 's>(
-        state: &'s mut Self::State,
-        _system_meta: &SystemMeta,
-        _world: UnsafeWorldCell<'w>,
-        _change_tick: Tick,
-    ) -> Self::Item<'w, 's> {
-        Prompt::new(state.clone())
-        // state.new_prompt()
-    }
-}
-
-impl Prompt {
-    fn new(prompts: ConsoleConfig) -> Self {
-        Self {
-            buf: default(),
-            prompts,
-        }
-    }
-
-    pub fn message<T: Into<Cow<'static, str>>>(&mut self, msg: T) {
-        self.prompts
-            .state
-            .lock()
-            .unwrap()
-            .push(Proc::message(msg.into()))
     }
 }
 
@@ -192,24 +92,26 @@ impl PromptBuf {
 pub trait NanoPrompt {
     // type Output<T> = Result<T, NanoError>;
 
-    fn buf_read(&self, buf: &mut PromptBuf);
-    fn buf_write(&mut self, buf: &mut PromptBuf); // -> Result<(),
-    async fn read_raw(&mut self) -> Result<PromptBuf, NanoError>;
+    // fn buf_read(&self, buf: &mut PromptBuf);
+    // fn buf_write(&mut self, buf: &mut PromptBuf); // -> Result<(),
+    async fn read_raw(&mut self, prompt: PromptBuf) -> Result<PromptBuf, NanoError>;
 
     async fn read<T: LookUp>(&mut self, prompt: impl Into<PromptBuf>) -> Result<T, NanoError> {
         let mut buf = prompt.into();
-        self.buf_write(&mut buf);
+        // self.buf_write(&mut buf);
         loop {
-            match self.read_raw().await {
+            match self.read_raw(buf.clone()).await {
                 Ok(mut new_buf) => match T::look_up(&new_buf.input) {
                     Ok(v) => return Ok(v),
                     Err(LookUpError::Message(m)) => {
                         new_buf.message = m.to_string();
-                        self.buf_write(&mut new_buf);
+                        buf = new_buf;
+                        // self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::Incomplete(v)) => {
                         new_buf.completion.clone_from_slice(&v[..]);
-                        self.buf_write(&mut new_buf);
+                        buf = new_buf;
+                        // self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
                 },
@@ -224,21 +126,23 @@ pub trait NanoPrompt {
         look_up: &impl LookUpObject<Item = T>,
     ) -> Result<T, NanoError> {
         let mut buf = prompt.into();
-        self.buf_write(&mut buf);
+        // self.buf_write(&mut buf);
         loop {
-            match self.read_raw().await {
+            match self.read_raw(buf.clone()).await {
                 Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
                     Ok(v) => return Ok(v),
                     Err(LookUpError::Message(m)) => {
                         new_buf.completion.clear();
                         new_buf.message = m.to_string();
-                        self.buf_write(&mut new_buf);
+                        buf = new_buf;
+                        // self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::Incomplete(v)) => {
                         new_buf.completion.clear();
                         new_buf.completion.extend_from_slice(&v[..]);
                         // assert!(Cd::changed(&new_buf.completion));
-                        self.buf_write(&mut new_buf);
+                        buf = new_buf;
+                        // self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
                 },
@@ -267,17 +171,17 @@ pub enum CompletionState {
 impl NanoPrompt for Prompt {
     // type Output<T> = Consumer<T, NanoError>;
 
-    fn buf_read(&self, buf: &mut PromptBuf) {
-        buf.clone_from(&self.buf);
-    }
-    fn buf_write(&mut self, buf: &mut PromptBuf) {
-        self.buf.clone_from(&buf);
-    }
-    async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {
+    // fn buf_read(&self, buf: &mut PromptBuf) {
+    //     buf.clone_from(&self.buf);
+    // }
+    // fn buf_write(&mut self, buf: &mut PromptBuf) {
+    //     self.buf.clone_from(&buf);
+    // }
+    async fn read_raw(&mut self, buf: PromptBuf) -> Result<PromptBuf, NanoError> {
         let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
-        self.prompts.state.lock().unwrap().push(Proc(
+        self.config.state.lock().unwrap().push(Proc(
             ProcContent::Prompt(ReadPrompt {
-                prompt: self.buf.clone(),
+                prompt: buf,
                 promise,
             }),
             ProcState::Uninit,

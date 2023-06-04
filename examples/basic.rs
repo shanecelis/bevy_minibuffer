@@ -24,7 +24,7 @@ fn ask_age2(mut prompt: Prompt) -> impl Future<Output = ()> {
     println!("ask age2 called");
     async move {
         if let Ok(age) = prompt.read::<i32>("What's your age? ").await {
-            println!("You are {} years old.", age);
+            prompt.message(format!("You are {age} years old."));
         } else {
             println!("Got err in ask age");
         }

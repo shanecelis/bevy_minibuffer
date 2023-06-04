@@ -16,7 +16,7 @@ const LEFT_PADDING: Val = Val::Px(6.);
 #[derive(Component)]
 pub struct PromptContainer;
 #[derive(Component)]
-pub struct PromptNode(pub Option<ConsoleProc>);
+pub struct PromptNode(pub Option<Proc>);
 #[derive(Component)]
 pub struct StatusNode;
 #[derive(Component)]

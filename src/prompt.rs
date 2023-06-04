@@ -13,6 +13,7 @@ use changed::Cd;
 use promise_out::{pair::Producer, Promise};
 
 use crate::ui::*;
+type CowStr = Cow<'static, str>;
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -21,24 +22,50 @@ pub enum NanoError {
     Message(Cow<'static, str>),
 }
 
+#[derive(Debug)]
 pub struct ReadPrompt {
     prompt: Cd<PromptBuf>,
     promise: Producer<PromptBuf, NanoError>,
 }
 
-pub enum ConsoleProc {
-    Prompt(ReadPrompt),
-    Message(Message),
+#[derive(Debug)]
+enum ProcState {
+    Uninit,
+    Active
 }
 
-#[derive(Resource, Clone)]
+#[derive(Debug)]
+enum ProcContent {
+    Prompt(ReadPrompt),
+    Message(CowStr),
+}
+
+#[derive(Debug)]
+pub struct Proc(ProcContent, ProcState);
+//     state: ProcState,
+//     content: ProcContent,
+// }
+
+impl Proc {
+    fn prompt(prompt: ReadPrompt) -> Self {
+        Self(ProcContent::Prompt(prompt), ProcState::Uninit)
+    }
+
+    fn message(msg: CowStr) -> Self {
+        Self(ProcContent::Message(msg), ProcState::Uninit)
+    }
+
+}
+
+#[derive(Debug, Resource, Clone)]
 pub struct ConsoleConfig {
     state: Arc<Mutex<ConsoleState>>,
 }
 
+#[derive(Debug)]
 pub struct ConsoleState {
-    asleep: Vec<ConsoleProc>,
-    unprocessed: Vec<ConsoleProc>,
+    asleep: Vec<Proc>,
+    unprocessed: Vec<Proc>,
 }
 
 impl ConsoleState {
@@ -49,7 +76,7 @@ impl ConsoleState {
         }
     }
 
-    fn push(&mut self, proc: ConsoleProc) {
+    fn push(&mut self, proc: Proc) {
         eprintln!("pushed");
         self.unprocessed.push(proc);
     }
@@ -94,13 +121,13 @@ pub struct PromptBuf {
     pub completion: Cd<Vec<String>>,
 }
 
-pub struct Message(pub Cow<'static, str>);
+// pub struct Message(pub Cow<'static, str>);
 
-impl Message {
-    fn new<T: Into<Cow<'static, str>>>(content: T) -> Self {
-        Message(content.into())
-    }
-}
+// impl Message {
+//     fn new<T: Into<Cow<'static, str>>>(content: T) -> Self {
+//         Message(content.into())
+//     }
+// }
 
 impl<T> From<T> for PromptBuf
 where
@@ -150,7 +177,7 @@ impl Prompt {
     }
 
     pub fn message<T: Into<Cow<'static, str>>>(&mut self, msg: T) {
-        self.prompts.state.lock().unwrap().push(ConsoleProc::Message(Message::new(msg)))
+        self.prompts.state.lock().unwrap().push(Proc::message(msg.into()))
     }
 }
 
@@ -254,9 +281,9 @@ pub enum PromptState {
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
 pub enum CompletionState {
-    #[default]
     // Uninit,
     Invisible,
+    #[default]
     Visible,
 }
 
@@ -271,10 +298,11 @@ impl NanoPrompt for Prompt {
     }
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {
         let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
-        self.prompts.state.lock().unwrap().push(ConsoleProc::Prompt(ReadPrompt {
+        self.prompts.state.lock().unwrap().push(Proc(ProcContent::Prompt(ReadPrompt {
             prompt: Cd::new_true(self.buf.clone()),
             promise,
-        }));
+        }),
+        ProcState::Uninit));
         waiter.await
     }
 }
@@ -364,71 +392,6 @@ impl LookUp for TomDickHarry {
 
 // [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]i
 
-trait ConsoleUpdate {
-    // fn should_update(&self,
-    //           char_events: &EventReader<ReceivedCharacter>,) -> bool;
-    // Return Ok(true) if finished.
-    // fn update(&mut self,
-    //           char_events: &mut EventReader<ReceivedCharacter>,
-    //           keys: &Res<Input<KeyCode>>,
-    //           backspace: bool) -> Result<bool, NanoError>;
-
-    // fn render(&mut self,
-    //           live: &mut TextPrompt);
-
-}
-
-impl ConsoleUpdate for Message {
-
-    // fn should_update(&self,
-    //           char_events: &EventReader<ReceivedCharacter>,
-    // ) -> bool {
-    //     true
-    // }
-    // /// Return Ok(true) if finished.
-    // fn update(&mut self,
-    //           char_events: &mut EventReader<ReceivedCharacter>,
-    //           keys: &Res<Input<KeyCode>>,
-    //           backspace: bool) -> Result<bool, NanoError> {
-
-
-    // }
-
-    // fn render(&mut self,
-    //           live: &mut TextPrompt) {
-    //     live.prompt_get_mut().clone_from(self.0);
-    //     live.input_get_mut().clear();
-    //     live.message_get_mut().clear();
-    //     live.completion_set(vec![]);
-    // }
-
-}
-
-// impl ConsoleUpdate for PromptBuf {
-//     fn should_update(&self,
-//               char_events: &EventReader<ReceivedCharacter>,
-//     ) -> bool {
-//         // ! char_events.is_empty()
-//         true
-//     }
-
-
-//     fn render(&mut self,
-//               live: &mut TextPrompt) {
-//         live.prompt_get_mut().clone_from(&self.prompt);
-//         live.input_get_mut().clone_from(&self.input);
-//         live.message_get_mut().clone_from(&self.message);
-
-//         let new_children = (*self.completion)
-//             .iter()
-//             .map(|label| {
-//                 label.clone()
-//             })
-//             .collect::<Vec<String>>();
-//         live.completion_set(new_children);
-//     }
-// }
-
 pub fn prompt_input(
     mut char_events: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
@@ -438,7 +401,7 @@ pub fn prompt_input(
 ) {
 
     let backspace: bool = if keys.just_pressed(KeyCode::Back) {
-        *backspace_delay = Some(Timer::from_seconds(1., TimerMode::Once));
+        *backspace_delay = Some(Timer::from_seconds(0.5, TimerMode::Once));
         true
     } else if let Some(ref mut timer) = *backspace_delay {
         timer.tick(time.delta()).finished() && keys.pressed(KeyCode::Back)
@@ -446,21 +409,22 @@ pub fn prompt_input(
         false
     };
     let mut node = query.single_mut();
-
-    if let Some(ConsoleProc::Prompt(mut read_prompt)) = node.0.take() {
+    let mut proc = node.0.take();
+    if let Some(Proc(ProcContent::Prompt(mut read_prompt), ProcState::Active)) = proc {
         match read_prompt.prompt.update(&mut char_events, &keys, backspace) {
             Ok(finished) =>
                 if finished {
                     read_prompt.promise.resolve(Cd::take(read_prompt.prompt));
-                } else {
-                    node.0 = Some(ConsoleProc::Prompt(read_prompt));
-                    // prompts.push(read_prompt);
+                    return;
                 },
             Err(e) => {
                 read_prompt.promise.reject(e);
+                return;
             }
         }
+        proc = Some(Proc(ProcContent::Prompt(read_prompt), ProcState::Active));
     }
+    node.0 = proc;
 }
 
 
@@ -483,16 +447,74 @@ pub fn state_update(
         std::mem::swap(&mut console_state.unprocessed, &mut unprocessed);
         console_state.asleep.extend(unprocessed.drain(0..));
         node.0 = console_state.asleep.pop();
-        eprintln!("node.0 set 1");
+        eprintln!("node.0 set 1 {:?}", node.0);
     } else if node.0.is_none() && ! console_state.asleep.is_empty() {
         node.0 = console_state.asleep.pop();
         eprintln!("node.0 set 2");
+        eprintln!("node.0 set 2 {:?}", node.0);
     }
 }
 
 pub fn prompt_output(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    prompt_provider: ResMut<ConsoleConfig>,
+    mut show_prompt: ResMut<NextState<PromptState>>,
+    mut show_completion: ResMut<NextState<CompletionState>>,
+    mut redraw: EventWriter<RequestRedraw>,
+    mut query: Query<(&mut Text, &mut PromptNode), Changed<PromptNode>>,
+    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
+    // mut completion: Query<&mut CompletionList, With<ScrollingList>>,
+) {
+    let mut console_state = prompt_provider.state.lock().unwrap();
+
+    let (completion_node, children) = completion.single();
+    let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
+    if let Some((mut text, mut node)) = query.get_single_mut().ok() {
+    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+    let mut text_prompt = TextPrompt {
+        text: &mut text,
+        completion: completion_node,
+        children: &children,
+        font: font,
+        commands: &mut commands,
+    };
+
+    match &mut node.0 {
+        // Some(Proc(ProcContent::Prompt(read_prompt), x @ ProcState::Uninit)) => {
+        Some(Proc(ProcContent::Prompt(read_prompt), x)) => {
+            // read_prompt.prompt.render(&mut text_prompt);
+            eprintln!("setting prompt");
+            text_prompt.buf_write(&mut read_prompt.prompt);
+            show_prompt.set(PromptState::Visible);
+            show_completion.set(
+                if read_prompt.prompt.completion.len() > 0 {
+                    CompletionState::Visible
+                } else {
+                    CompletionState::Invisible
+                });
+            redraw.send(RequestRedraw);
+            *x = ProcState::Active;
+        },
+        None => {
+            eprintln!("setting prompt invisible");
+            show_prompt.set(PromptState::Invisible);
+            show_completion.set(CompletionState::Invisible);
+        },
+        _ => {}
+    };
+    } else {
+        eprintln!("quick return");
+        return;
+    }
+}
+
+
+pub fn message_update(
+    mut commands: Commands,
+    time: Res<Time>,
+    asset_server: Res<AssetServer>,
+    keys: Res<Input<KeyCode>>,
     prompt_provider: ResMut<ConsoleConfig>,
     mut show_prompt: ResMut<NextState<PromptState>>,
     mut show_completion: ResMut<NextState<CompletionState>>,
@@ -516,58 +538,25 @@ pub fn prompt_output(
     };
 
     match &mut node.0 {
-        Some(ConsoleProc::Prompt(read_prompt)) => {
-            // read_prompt.prompt.render(&mut text_prompt);
-            text_prompt.buf_write(&mut read_prompt.prompt);
-            show_prompt.set(PromptState::Visible);
-            show_completion.set(if read_prompt.prompt.completion.len() > 0 {
-                CompletionState::Visible
-            } else {
-                CompletionState::Invisible
-            });
-            redraw.send(RequestRedraw);
+        Some(Proc(ProcContent::Message(msg), ProcState::Active)) => {
+            if keys.get_just_pressed().len() > 0 {
+                // Remove ourselves.
+                node.0 = None;
+                eprintln!("removing message at {:?}", time.elapsed_seconds());
+                return;
+            }
         },
-        None => {
-            show_prompt.set(PromptState::Invisible);
+        Some(Proc(ProcContent::Message(msg), x @ ProcState::Uninit)) => {
+            eprintln!("setting message at {:?}", time.elapsed_seconds());
+            *text_prompt.prompt_get_mut() = msg.to_string();
+            text_prompt.input_get_mut().clear();
+            text_prompt.message_get_mut().clear();
+            show_prompt.set(PromptState::Visible);
             show_completion.set(CompletionState::Invisible);
+            redraw.send(RequestRedraw);
+            *x = ProcState::Active;
         },
         _ => {}
-    };
-}
-
-
-pub fn message_update(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    prompt_provider: ResMut<ConsoleConfig>,
-    mut show_prompt: ResMut<NextState<PromptState>>,
-    mut show_completion: ResMut<NextState<CompletionState>>,
-    mut redraw: EventWriter<RequestRedraw>,
-    mut query: Query<(&mut Text, &mut PromptNode)>,
-    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
-    // mut completion: Query<&mut CompletionList, With<ScrollingList>>,
-) {
-    let mut console_state = prompt_provider.state.lock().unwrap();
-
-    let (completion_node, children) = completion.single();
-    let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
-    let (mut text, mut node) = query.single_mut();
-    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-    let mut text_prompt = TextPrompt {
-        text: &mut text,
-        completion: completion_node,
-        children: &children,
-        font: font,
-        commands: &mut commands,
-    };
-
-    if let Some(ConsoleProc::Message(Message(msg))) = &node.0 {
-        *text_prompt.prompt_get_mut() = msg.to_string();
-        text_prompt.input_get_mut().clear();
-        text_prompt.message_get_mut().clear();
-        show_prompt.set(PromptState::Visible);
-        show_completion.set(CompletionState::Invisible);
-        redraw.send(RequestRedraw);
     }
 }
 
@@ -606,9 +595,9 @@ pub fn hide_prompt_maybe(
             if *state == PromptState::Invisible {
                 eprintln!("hiding after delay.");
                 *visibility = Visibility::Hidden;
+                redraw.send(RequestRedraw);
             }
             commands.entity(id).remove::<HideTime>();
-            redraw.send(RequestRedraw);
         }
     }
 }

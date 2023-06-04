@@ -42,9 +42,6 @@ enum ProcContent {
 
 #[derive(Debug)]
 pub struct Proc(ProcContent, ProcState);
-//     state: ProcState,
-//     content: ProcContent,
-// }
 
 impl Proc {
     fn prompt(prompt: ReadPrompt) -> Self {
@@ -82,20 +79,6 @@ impl ConsoleState {
     }
 }
 
-// #[derive(Resource, Clone)]
-// pub struct PromptProvider {
-//     prompt_stack: Arc<Mutex<Vec<ReadPrompt>>>,
-//     // hide_delay: f32,
-// }
-
-// impl Default for PromptProvider {
-//     fn default() -> Self {
-//         Self {
-//             prompt_stack: Arc::new(Mutex::new(vec![])),
-//             // hide_delay: 1.0,
-//         }
-//     }
-// }
 impl Default for ConsoleConfig {
     fn default() -> Self {
         Self {
@@ -105,13 +88,6 @@ impl Default for ConsoleConfig {
     }
 }
 
-
-// impl PromptProvider {
-//     pub fn new_prompt(&mut self) -> Prompt {
-//         Prompt::new(self.prompt_stack.clone())
-//     }
-// }
-
 // TODO: Switch to cows or options.
 #[derive(Clone, Default, Debug)]
 pub struct PromptBuf {
@@ -120,14 +96,6 @@ pub struct PromptBuf {
     pub message: String,
     pub completion: Cd<Vec<String>>,
 }
-
-// pub struct Message(pub Cow<'static, str>);
-
-// impl Message {
-//     fn new<T: Into<Cow<'static, str>>>(content: T) -> Self {
-//         Message(content.into())
-//     }
-// }
 
 impl<T> From<T> for PromptBuf
 where
@@ -469,7 +437,6 @@ pub fn state_update(
         eprintln!("node.0 set 1 {:?}", node.0);
     } else if node.0.is_none() && ! console_state.asleep.is_empty() {
         node.0 = console_state.asleep.pop();
-        eprintln!("node.0 set 2");
         eprintln!("node.0 set 2 {:?}", node.0);
     }
 }

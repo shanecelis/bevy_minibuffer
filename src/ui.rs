@@ -1,5 +1,4 @@
 use crate::prompt::*;
-use std::borrow::Cow;
 use bevy::{
     a11y::{
         accesskit::{NodeBuilder, Role},
@@ -8,7 +7,7 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
-use changed::Cd;
+use std::borrow::Cow;
 // const MARGIN: Val = Val::Px(5.);
 const PADDING: Val = Val::Px(3.);
 const LEFT_PADDING: Val = Val::Px(6.);
@@ -184,14 +183,14 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 },
                             ),
                             // This is a dummy section to keep the line height stable.
-                            TextSection::new(
-                                " ",
-                                TextStyle {
-                                    font,
-                                    font_size: 24.0,
-                                    color: Color::WHITE,
-                                },
-                            ),
+                            // TextSection::new(
+                            //     " ",
+                            //     TextStyle {
+                            //         font,
+                            //         font_size: 24.0,
+                            //         color: Color::WHITE,
+                            //     },
+                            // ),
                         ]))
                         .insert(PromptNode(None));
                 });
@@ -252,7 +251,6 @@ impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
     }
 
     pub fn completion_set(&mut self, labels: Vec<String>) {
-
         let new_children = labels
             .into_iter()
             .map(|label| {
@@ -280,24 +278,28 @@ impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
         self.text.sections[0].value.clone_from(&buf.prompt);
         self.text.sections[1].value.clone_from(&buf.input);
         self.text.sections[2].value.clone_from(&buf.message);
-        if Cd::changed(&buf.completion) {
-            let new_children = (*buf.completion)
-                .iter()
-                .map(|label| {
-                    self.commands
-                        .spawn(completion_item(label.into(), Color::WHITE, self.font.clone()))
-                        .id()
-                })
-                .collect::<Vec<Entity>>();
+        // if Cd::changed(&buf.completion) {
+        let new_children = (*buf.completion)
+            .iter()
+            .map(|label| {
+                self.commands
+                    .spawn(completion_item(
+                        label.into(),
+                        Color::WHITE,
+                        self.font.clone(),
+                    ))
+                    .id()
+            })
+            .collect::<Vec<Entity>>();
 
-            self.commands
-                .entity(self.completion)
-                .replace_children(&new_children);
-            for child in self.children.iter() {
-                self.commands.entity(*child).despawn();
-            }
-            Cd::reset(&mut buf.completion);
+        self.commands
+            .entity(self.completion)
+            .replace_children(&new_children);
+        for child in self.children.iter() {
+            self.commands.entity(*child).despawn();
         }
+        // Cd::reset(&mut buf.completion);
+        // }
     }
     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {
         panic!("Not sure this should ever be called.");

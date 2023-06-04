@@ -6,6 +6,8 @@ pub mod proc;
 pub mod commands;
 pub mod prompt;
 pub mod ui;
+pub mod hotkey;
+
 
 pub struct NanoPromptPlugin;
 #[rustfmt::skip]
@@ -17,6 +19,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
         use commands::*;
         use prompt::*;
         use tasks::*;
+        use hotkey::*;
         use proc::*;
         use ui::*;
         app.add_event::<RunCommandEvent>()

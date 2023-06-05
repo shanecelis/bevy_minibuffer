@@ -1,26 +1,95 @@
 extern crate proc_macro;
 
-use proc_macro::{TokenStream, Delimiter, Group, TokenTree, Punct, Spacing};
+use proc_macro2::{TokenStream, Delimiter, Group, TokenTree, Punct, Spacing, Ident};
 use quote::quote;
-// use syn::{self, parse_macro_input};
+use syn::{self, parse_macro_input};
+use std::borrow::Cow;
 
 #[proc_macro]
-pub fn key(input: TokenStream) -> TokenStream {
+pub fn noop(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    proc_macro::TokenStream::new()
+}
 
-    let ts: TokenStream = quote! {
-        Key::new(KeyCode::A, Modifiers::empty())
-    }.into();
-    eprintln!("{:?}", ts);
+#[proc_macro]
+pub fn key(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let input: TokenStream = input.into();
     let mut r = TokenStream::new();
     let mut i = input.into_iter().peekable();
     let mut key_code: Option<TokenStream> = None;
     while let Some(tree) = i.next() {
         if i.peek().is_none() {
             key_code = match tree {
+                TokenTree::Literal(ref literal) => {
+                    let x = literal.to_string();
+                    if x.len() == 1 && x.parse::<u8>().is_ok() {
+                        let key = Ident::new(&format!("Key{x}"), literal.span());
+                        Some(quote! {KeyCode::#key })
+                    } else {
+                        match x.as_str() {
+                            "'\\''" => Some(quote! { KeyCode::Apostrophe }),
+                            "'`'" => Some(quote! { KeyCode::Grave }),
+                            "'\\\\'" => Some(quote! { KeyCode::Backslash}),
+                            _ => todo!("literal char {x} {:?}", literal),
+                        }
+                    }
+                    // else {
+                    //     todo!("literal {:?}", literal);
+                    // }
+                },
+                TokenTree::Punct(ref punct) => {
+                    let name : Option<Cow<'static, str>> = match punct.as_char() {
+                        ';' => Some("Semicolon".into()),
+                        ':' => Some("Colon".into()),
+                        ',' => Some("Comma".into()),
+                        '.' => Some("Period".into()),
+                        '^' => Some("Caret".into()),
+                        '=' => Some("Equals".into()),
+                        '/' => Some("Slash".into()),
+                        '-' => Some("Minus".into()),
+                        '*' => Some("Asterisk".into()),
+                        '+' => Some("Plus".into()),
+                        '@' => Some("At".into()),
+                        // '\'' => Some("Apostrophe".into()),
+                        // _ => None
+
+                        _ => todo!("punct {:?}", punct),
+                    };
+                    name.as_ref().map(|n| {
+                        let token = Ident::new(n, punct.span());
+                        quote! {KeyCode::#token }
+                    })
+                },
                 TokenTree::Ident(ref ident) => {
-                    match ident.to_string().as_str() {
-                        "A" => Some(quote! { KeyCode::A }.into()),
-                        _ => None
+                    // Some(quote! { KeyCode::#ident })
+                    let label = ident.to_string();
+                    if label.len() == 1 {
+                        let name : Option<Cow<'static, str>>
+                            = match label.chars().next().unwrap() {
+                            x @ 'A'..='Z' | x @ 'a'..='z' => {
+                                let s = x.to_ascii_uppercase().to_string();
+                                // let upper = Ident::new(&s, ident.span());
+                                Some(s.into())
+                                // Some(quote! {KeyCode::#upper })
+                            },
+                                '_' => Some("Underline".into()),
+                            // Identifiers can't start with a number.
+                            // x @ '0'..='9' => {
+                            //     let key = Ident::new(&format!("Key{x}"), ident.span());
+                            //     Some(quote! {KeyCode::#key })
+                            // },
+                            _ => todo!("ident {:?}", ident),
+                        };
+                        name.as_ref().map(|n| {
+                            let token = Ident::new(n, ident.span());
+                            quote! {KeyCode::#token }
+                        })
+                    } else {
+                        match label.as_str() {
+                            // "A" => Some(quote! { KeyCode::A }),
+                            _ => {
+                                Some(quote! {KeyCode::#ident})
+                            }
+                        }
                     }
                 },
                 _ => None
@@ -30,9 +99,9 @@ pub fn key(input: TokenStream) -> TokenStream {
                 TokenTree::Ident(ref ident) => {
                     match ident.to_string().as_str() {
                         "ctrl" => Some(TokenTree::Group(Group::new(Delimiter::None,
-                                                            quote! { Modifiers::Control }.into()))),
+                                                            quote! { Modifiers::Control }))),
                         "alt" => Some(TokenTree::Group(Group::new(Delimiter::None,
-                                                            quote! { Modifiers::Alt }.into()))),
+                                                            quote! { Modifiers::Alt }))),
                         _ => None
                     }
                 },
@@ -47,9 +116,15 @@ pub fn key(input: TokenStream) -> TokenStream {
             r.extend([replacement.unwrap_or(tree)]);
         }
     }
-    let key_code = key_code.unwrap();
-    // quote! {
-    //     Key::new(#key_code, #r)
-    // }.into()
-    r
+    // This will add an empty to finish the expression:
+    //
+    //    ctrl-alt-EMPTY -> Control | Alt | EMPTY.
+    //
+    //  And it will provide a valid Modifier when none have been provided.
+    r.extend([quote! { Modifiers::empty() }]);
+    let key_code = key_code.expect("No KeyCode found.");
+    quote! {
+        Key::new(#key_code, #r)
+    }.into()
+    // r.into()
 }

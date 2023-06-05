@@ -1,10 +1,6 @@
 use std::borrow::Cow;
-use std::sync::{Arc, Mutex};
 
-use bevy::ecs::component::Tick;
 use bevy::ecs::prelude::Commands;
-use bevy::ecs::system::{SystemMeta, SystemParam};
-use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::prelude::*;
 use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
@@ -406,7 +402,7 @@ pub fn message_update(
     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
     // mut completion: Query<&mut CompletionList, With<ScrollingList>>,
 ) {
-    let (text, node) = query.single();
+    let (_text, node) = query.single();
     let mutate = node
         .0
         .as_ref()
@@ -428,7 +424,7 @@ pub fn message_update(
         };
 
         match &mut node.0 {
-            Some(Proc(ProcContent::Message(msg), ProcState::Active)) => {
+            Some(Proc(ProcContent::Message(_msg), ProcState::Active)) => {
                 if keys.get_just_pressed().len() > 0 {
                     // Remove ourselves.
                     node.0 = None;

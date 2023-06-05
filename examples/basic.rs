@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
-use nanoprompt::commands::*;
-use nanoprompt::prompt::*;
-use nanoprompt::tasks::*;
-use nanoprompt::ui::*;
-use nanoprompt::proc::*;
-use nanoprompt::*;
+use bevy_nano_console::commands::*;
+use bevy_nano_console::prompt::*;
+use bevy_nano_console::tasks::*;
+use bevy_nano_console::ui::*;
+use bevy_nano_console::proc::*;
+use bevy_nano_console::*;
 use std::future::Future;
 
 fn ask_name<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {

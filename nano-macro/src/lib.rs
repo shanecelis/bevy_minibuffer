@@ -13,15 +13,33 @@ pub fn noop(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 #[proc_macro_error]
 #[proc_macro]
 pub fn key(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let (result, leftover) = partial_key(input);
+    let (result, leftover) = partial_key(input.into());
     if ! leftover.is_empty() {
         abort!(leftover, "Left over tokens");
     }
-    result
+    result.into()
 }
 
-fn partial_key(input: proc_macro::TokenStream) -> (proc_macro::TokenStream, TokenStream) {
-    let input: TokenStream = input.into();
+#[proc_macro_error]
+#[proc_macro]
+pub fn keyseq(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let mut input: TokenStream = input.into();
+    let mut keys = vec![];
+    loop {
+        let (result, leftover) = partial_key(input);
+        keys.push(result);
+        if leftover.is_empty() {
+            break;
+        }
+        input = leftover;
+    }
+    quote! {
+        vec![#(#keys),*]
+    }.into()
+}
+
+fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
+    // let input: TokenStream = input.into();
     let mut r = TokenStream::new();
     let mut i = input.into_iter().peekable();
     let mut key_code: Option<TokenStream> = None;
@@ -40,12 +58,12 @@ fn partial_key(input: proc_macro::TokenStream) -> (proc_macro::TokenStream, Toke
                     let x = literal.to_string();
                     if x.len() == 1 && x.parse::<u8>().is_ok() {
                         let key = Ident::new(&format!("Key{x}"), literal.span());
-                        Some(quote! { KeyCode::#key })
+                        Some(quote! { ::bevy::prelude::KeyCode::#key })
                     } else {
                         match x.as_str() {
-                            "'\\''" => Some(quote! { KeyCode::Apostrophe }),
-                            "'`'" => Some(quote! { KeyCode::Grave }),
-                            "'\\\\'" => Some(quote! { KeyCode::Backslash}),
+                            "'\\''" => Some(quote! { ::bevy::prelude::KeyCode::Apostrophe }),
+                            "'`'" => Some(quote! { ::bevy::prelude::KeyCode::Grave }),
+                            "'\\\\'" => Some(quote! { ::bevy::prelude::KeyCode::Backslash }),
                             _ => todo!("literal char {x} {:?}", literal),
                         }
                     }
@@ -72,11 +90,11 @@ fn partial_key(input: proc_macro::TokenStream) -> (proc_macro::TokenStream, Toke
                     };
                     name.as_ref().map(|n| {
                         let token = Ident::new(n, punct.span());
-                        quote! {KeyCode::#token }
+                        quote! {::bevy::prelude::KeyCode::#token }
                     })
                 },
                 TokenTree::Ident(ref ident) => {
-                    // Some(quote! { KeyCode::#ident })
+                    // Some(quote! { ::bevy::prelude::KeyCode::#ident })
                     let label = ident.to_string();
                     if label.len() == 1 {
                         let name : Option<Cow<'static, str>>
@@ -85,25 +103,25 @@ fn partial_key(input: proc_macro::TokenStream) -> (proc_macro::TokenStream, Toke
                                 let s = x.to_ascii_uppercase().to_string();
                                 // let upper = Ident::new(&s, ident.span());
                                 Some(s.into())
-                                // Some(quote! {KeyCode::#upper })
+                                // Some(quote! {::bevy::prelude::KeyCode::#upper })
                             },
                                 '_' => Some("Underline".into()),
                             // Identifiers can't start with a number.
                             // x @ '0'..='9' => {
                             //     let key = Ident::new(&format!("Key{x}"), ident.span());
-                            //     Some(quote! {KeyCode::#key })
+                            //     Some(quote! {::bevy::prelude::KeyCode::#key })
                             // },
                             _ => todo!("ident {:?}", ident),
                         };
                         name.as_ref().map(|n| {
                             let token = Ident::new(n, ident.span());
-                            quote! {KeyCode::#token }
+                            quote! {::bevy::prelude::KeyCode::#token }
                         })
                     } else {
                         match label.as_str() {
-                            // "A" => Some(quote! { KeyCode::A }),
+                            // "A" => Some(quote! { ::bevy::prelude::KeyCode::A }),
                             _ => {
-                                Some(quote! {KeyCode::#ident})
+                                Some(quote! { ::bevy::prelude::KeyCode::#ident})
                             }
                         }
                     }
@@ -116,9 +134,9 @@ fn partial_key(input: proc_macro::TokenStream) -> (proc_macro::TokenStream, Toke
                 TokenTree::Ident(ref ident) => {
                     match ident.to_string().as_str() {
                         "ctrl" => Some(TokenTree::Group(Group::new(Delimiter::None,
-                                                            quote! { Modifiers::Control }))),
+                                                            quote! { ::bevy_nano_console::hotkey::Modifiers::Control }))),
                         "alt" => Some(TokenTree::Group(Group::new(Delimiter::None,
-                                                            quote! { Modifiers::Alt }))),
+                                                            quote! { ::bevy_nano_console::hotkey::Modifiers::Alt }))),
                         _ => None
                     }
                 },
@@ -138,11 +156,11 @@ fn partial_key(input: proc_macro::TokenStream) -> (proc_macro::TokenStream, Toke
     //    ctrl-alt-EMPTY -> Control | Alt | EMPTY.
     //
     //  And it will provide a valid Modifier when none have been provided.
-    r.extend([quote! { Modifiers::empty() }]);
-    let key_code = key_code.expect("No KeyCode found.");
+    r.extend([quote! { ::bevy_nano_console::hotkey::Modifiers::empty() }]);
+    let key_code = key_code.expect("No ::bevy::prelude::KeyCode found.");
     (quote! {
-        Key::new(#key_code, #r)
-    }.into(),
+        ::bevy_nano_console::hotkey::Key::new(#key_code, #r)
+    },
      TokenStream::from_iter(i))
     // r.into()
 }

@@ -2,11 +2,9 @@ use std::borrow::Cow;
 use std::sync::{Arc, Mutex};
 
 use bevy::ecs::component::Tick;
-use bevy::ecs::prelude::Commands;
 use bevy::ecs::system::{SystemMeta, SystemParam};
 use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::prelude::*;
-use promise_out::{pair::Producer, Promise};
 
 // Try not to rely on these things.
 use crate::prompt::*;

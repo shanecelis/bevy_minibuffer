@@ -23,14 +23,13 @@ pub struct CommandConfig {
 
 impl CommandConfig {
     pub fn hotkeys(&mut self) -> &Trie<Key> {
-        let hks = self.hotkeys.get_or_insert_with(|| {
+        self.hotkeys.get_or_insert_with(|| {
             let mut builder = TrieBuilder::new();
             for hotkey in self.commands.iter().filter_map(|command| command.hotkey.as_ref()) {
                 builder.push(hotkey.clone());
             }
             builder.build()
-        });
-        self.hotkeys.as_ref().unwrap()
+        })
     }
 }
 
@@ -143,40 +142,4 @@ pub fn poll_event_tasks<T: Send + Event>(
             commands.entity(entity).despawn();
         }
     }
-}
-#[cfg(test)]
-mod tests {
-
-    use bevy::prelude::*;
-    use crate::commands::*;
-    // #[allow(unused_must_use)]
-    // #[test]
-    // fn test_key_eq() {
-    //     let a: Key = KeyCode::A.into();
-    //     let b: Key = KeyCode::A.into();
-    //     assert_eq!(a, b);
-    //     assert!(a == b);
-    // }
-
-    // #[test]
-    // fn test_key_eq_not() {
-    //     let a: Key = KeyCode::A.into();
-    //     let b: Key = KeyCode::B.into();
-    //     // assert_eq!(a, b);
-    //     assert!(a != b);
-    // }
-
-    // #[test]
-    // fn test_key_eq_vec() {
-    //     let a: Vec<Key> = vec![KeyCode::A.into()];
-    //     let b: Vec<Key> = vec![KeyCode::B.into()];
-    //     let c: Vec<Key> = vec![KeyCode::A.into()];
-    //     let e: Vec<Key> = vec![];
-    //     assert!(a != b);
-    //     assert!(a == c);
-    //     assert_eq!(a, c);
-    //     assert!(e != a);
-    //     assert!(e != b);
-    //     assert!(e != c);
-    // }
 }

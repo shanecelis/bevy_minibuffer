@@ -11,5 +11,6 @@ bevy = { git = "https://github.com/bevyengine/bevy.git" }
 bitflags = "2.3.1"
 # changed = "0.1.2"
 futures-lite = "1.13.0"
+nano-macro = { version = "0.1.0", path = "nano-macro" }
 promise_out = { git = "https://github.com/shanecelis/promise_out.git" }
 trie-rs = "0.1.1"

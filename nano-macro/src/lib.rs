@@ -2,11 +2,10 @@ extern crate proc_macro;
 
 use proc_macro2::{TokenStream, Delimiter, Group, TokenTree, Punct, Spacing, Ident};
 use quote::quote;
-use syn::{self, parse_macro_input};
 use std::borrow::Cow;
 
 #[proc_macro]
-pub fn noop(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn noop(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     proc_macro::TokenStream::new()
 }
 

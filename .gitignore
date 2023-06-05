@@ -1,1 +1,3 @@
 /target
+/nano-macro/target/
+Cargo.lock

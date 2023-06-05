@@ -99,9 +99,8 @@ pub fn run_commands(world: &mut World) {
     };
 
     for schedule in schedules {
-        match world.try_run_schedule(schedule) {
-            Err(e) => eprintln!("Problem running command: {:?}", e),
-            _ => {}
+        if let Err(e) = world.try_run_schedule(schedule) {
+            eprintln!("Problem running command: {:?}", e);
         }
     }
 }

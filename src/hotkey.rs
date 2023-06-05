@@ -13,7 +13,7 @@ pub fn hotkey_input(
     let mut matches = vec![];
 
     for key_code in keys.get_just_pressed() {
-        let key = Key(mods, key_code.clone());
+        let key = Key(mods, *key_code);
         last_keys.push(key);
         eprintln!("key seq {:?}", *last_keys);
         if trie.exact_match(&*last_keys) {

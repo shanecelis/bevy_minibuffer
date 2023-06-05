@@ -32,8 +32,6 @@ use bevy_nano_console::hotkey::*;
     #[allow(unused_must_use)]
     #[test]
     fn test_key_macro() {
-        assert_eq!(Key(Modifiers::Control, KeyCode::A), key!{ ctrl-A });
-        assert_eq!(Key(Modifiers::Control, KeyCode::A), key!{ ctrl-a });
         assert_eq!(Key(Modifiers::Control, KeyCode::B), key!{ ctrl-b });
         assert_eq!(Key(Modifiers::Control, KeyCode::Key1), key!{ ctrl-1 });
         assert_eq!(Key(Modifiers::Control, KeyCode::Key2), key!{ ctrl-2 });
@@ -48,7 +46,15 @@ use bevy_nano_console::hotkey::*;
         assert_eq!(Key(Modifiers::Control, KeyCode::Slash), key!{ ctrl-/ });
         assert_eq!(Key(Modifiers::Control, KeyCode::Minus), key!{ ctrl-- });
         assert_eq!(Key(Modifiers::Control, KeyCode::Underline), key!{ ctrl-_ });
-        assert_eq!(Key(Modifiers::Control, KeyCode::Asterisk), key!{ ctrl-* });
+
+
+        assert_eq!(Key(Modifiers::Control, KeyCode::A), key!{ ctrl-A });
+        assert_eq!(Key(Modifiers::Control, KeyCode::A), key!{ ctrl-a }); // Allow lowercase?
+        assert_eq!(Key(Modifiers::empty(), KeyCode::A), key!{ A });
+        assert_eq!(Key(Modifiers::Control, KeyCode::Asterisk), key!{ ctrl-Asterisk }); // All bevy KeyCode names work.
+        assert_eq!(Key(Modifiers::Control, KeyCode::Asterisk), key!{ ctrl-* }); // with some short hand.
+
+
         assert_eq!(Key(Modifiers::Control, KeyCode::Plus), key!{ ctrl-+ });
         assert_eq!(Key(Modifiers::Control, KeyCode::At), key!{ ctrl-@ });
         assert_eq!(Key(Modifiers::Control, KeyCode::Grave), key!{ ctrl-'`' });

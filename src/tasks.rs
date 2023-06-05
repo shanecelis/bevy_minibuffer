@@ -16,7 +16,7 @@ impl<T: Send + 'static> TaskSink<T> {
 
 pub fn poll_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut TaskSink<()>)>) {
     for (entity, mut task) in &mut command_tasks {
-        if let Some(_) = future::block_on(future::poll_once(&mut task.0)) {
+        if future::block_on(future::poll_once(&mut task.0)).is_some() {
             eprintln!("Got () poll task");
             // Once
             //

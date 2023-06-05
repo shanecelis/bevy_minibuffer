@@ -5,10 +5,10 @@ use proc_macro2::{TokenStream, Delimiter, Group, TokenTree, Punct, Spacing, Iden
 use quote::quote;
 use std::borrow::Cow;
 
-#[proc_macro]
-pub fn noop(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    proc_macro::TokenStream::new()
-}
+// #[proc_macro]
+// fn noop(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+//     proc_macro::TokenStream::new()
+// }
 
 #[proc_macro_error]
 #[proc_macro]
@@ -52,7 +52,7 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
     }
 
     while let Some(tree) = i.next() {
-        if i.peek().is_none() || (!is_dash(&tree) && !is_dash(&i.peek().unwrap())) {
+        if i.peek().is_none() || (!is_dash(&tree) && !is_dash(i.peek().unwrap())) {
             key_code = match tree {
                 TokenTree::Literal(ref literal) => {
                     let x = literal.to_string();
@@ -118,12 +118,7 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
                             quote! {::bevy::prelude::KeyCode::#token }
                         })
                     } else {
-                        match label.as_str() {
-                            // "A" => Some(quote! { ::bevy::prelude::KeyCode::A }),
-                            _ => {
-                                Some(quote! { ::bevy::prelude::KeyCode::#ident})
-                            }
-                        }
+                        Some(quote! { ::bevy::prelude::KeyCode::#ident})
                     }
                 },
                 _ => None

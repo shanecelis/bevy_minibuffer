@@ -70,8 +70,6 @@ impl PromptBuf {
         if keys.just_pressed(KeyCode::Return) {
             return Ok(true);
         }
-        // if keys.just_pressed(KeyCode::Back) {
-        // if keys.pressed(KeyCode::Back) {
         if backspace {
             let _ = self.input.pop();
             self.message.clear();
@@ -87,27 +85,21 @@ impl PromptBuf {
 
 pub trait NanoPrompt {
     // type Output<T> = Result<T, NanoError>;
-
-    // fn buf_read(&self, buf: &mut PromptBuf);
-    // fn buf_write(&mut self, buf: &mut PromptBuf); // -> Result<(),
     async fn read_raw(&mut self, prompt: PromptBuf) -> Result<PromptBuf, NanoError>;
 
-    async fn read<T: LookUp>(&mut self, prompt: impl Into<PromptBuf>) -> Result<T, NanoError> {
+    async fn read<T: Parse>(&mut self, prompt: impl Into<PromptBuf>) -> Result<T, NanoError> {
         let mut buf = prompt.into();
-        // self.buf_write(&mut buf);
         loop {
             match self.read_raw(buf.clone()).await {
-                Ok(mut new_buf) => match T::look_up(&new_buf.input) {
+                Ok(mut new_buf) => match T::parse(&new_buf.input) {
                     Ok(v) => return Ok(v),
                     Err(LookUpError::Message(m)) => {
                         new_buf.message = m.to_string();
                         buf = new_buf;
-                        // self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::Incomplete(v)) => {
                         new_buf.completion.clone_from_slice(&v[..]);
                         buf = new_buf;
-                        // self.buf_write(&mut new_buf);
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
                 },
@@ -119,10 +111,9 @@ pub trait NanoPrompt {
     async fn read_crit<T>(
         &mut self,
         prompt: impl Into<PromptBuf>,
-        look_up: &impl LookUpObject<Item = T>,
+        look_up: &impl LookUp<Item = T>,
     ) -> Result<T, NanoError> {
         let mut buf = prompt.into();
-        // self.buf_write(&mut buf);
         loop {
             match self.read_raw(buf.clone()).await {
                 Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
@@ -166,13 +157,6 @@ pub enum CompletionState {
 
 impl NanoPrompt for Prompt {
     // type Output<T> = Consumer<T, NanoError>;
-
-    // fn buf_read(&self, buf: &mut PromptBuf) {
-    //     buf.clone_from(&self.buf);
-    // }
-    // fn buf_write(&mut self, buf: &mut PromptBuf) {
-    //     self.buf.clone_from(&buf);
-    // }
     async fn read_raw(&mut self, buf: PromptBuf) -> Result<PromptBuf, NanoError> {
         let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
         self.config.state.lock().unwrap().push(Proc(
@@ -194,7 +178,7 @@ pub enum LookUpError {
 }
 
 /// Handles &str, String, Cow<'_, str>. Does it all.
-impl<T: AsRef<str>> LookUpObject for &[T] {
+impl<T: AsRef<str>> LookUp for &[T] {
     type Item = String;
     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
         let matches: Vec<&str> = self
@@ -212,39 +196,43 @@ impl<T: AsRef<str>> LookUpObject for &[T] {
     }
 }
 
-pub trait LookUpObject: Sized {
+trait DefaultFor<T> {
+    fn default_for() -> T;
+}
+
+pub trait LookUp: Sized {
     type Item;
     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError>;
 }
 
-impl<T> LookUpObject for T
+impl<T> LookUp for T
 where
-    T: LookUp,
+    T: Parse,
 {
     type Item = T;
     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
-        T::look_up(input)
+        T::parse(input)
     }
 }
 
-pub trait LookUp: Sized {
-    fn look_up(input: &str) -> Result<Self, LookUpError>;
+pub trait Parse: Sized {
+    fn parse(input: &str) -> Result<Self, LookUpError>;
 }
 
-impl LookUp for () {
-    fn look_up(_: &str) -> Result<Self, LookUpError> {
+impl Parse for () {
+    fn parse(_: &str) -> Result<Self, LookUpError> {
         Ok(())
     }
 }
 
-impl LookUp for String {
-    fn look_up(input: &str) -> Result<Self, LookUpError> {
+impl Parse for String {
+    fn parse(input: &str) -> Result<Self, LookUpError> {
         Ok(input.to_owned())
     }
 }
 
-impl LookUp for i32 {
-    fn look_up(input: &str) -> Result<Self, LookUpError> {
+impl Parse for i32 {
+    fn parse(input: &str) -> Result<Self, LookUpError> {
         match input.parse::<i32>() {
             Ok(int) => Ok(int),
             Err(e) => Err(LookUpError::Message(format!(" expected int: {}", e).into())),
@@ -252,25 +240,7 @@ impl LookUp for i32 {
     }
 }
 
-struct TomDickHarry(String);
-
-impl LookUp for TomDickHarry {
-    fn look_up(input: &str) -> Result<Self, LookUpError> {
-        match input {
-            "Tom" => Ok(TomDickHarry(input.into())),
-            "Dick" => Ok(TomDickHarry(input.into())),
-            "Harry" => Ok(TomDickHarry(input.into())),
-            _ => Err(LookUpError::Incomplete(vec![
-                "Tom".into(),
-                "Dick".into(),
-                "Harry".into(),
-            ])),
-        }
-    }
-}
-
 // [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]i
-
 pub fn prompt_input(
     mut char_events: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
@@ -325,20 +295,17 @@ pub fn state_update(prompt_provider: ResMut<ConsoleConfig>, mut query: Query<&mu
     let mut node = query.single_mut();
 
     if !console_state.unprocessed.is_empty() {
-        match node.0.take() {
-            Some(x) => {
-                console_state.asleep.push(x);
-            }
-            None => {}
+        if let Some(x) = node.0.take() {
+            console_state.asleep.push(x);
         }
         let mut unprocessed = vec![];
         std::mem::swap(&mut console_state.unprocessed, &mut unprocessed);
         console_state.asleep.extend(unprocessed.drain(0..));
         node.0 = console_state.asleep.pop();
-        eprintln!("node.0 set 1 {:?}", node.0);
+        // eprintln!("node.0 set 1 {:?}", node.0);
     } else if node.0.is_none() && !console_state.asleep.is_empty() {
         node.0 = console_state.asleep.pop();
-        eprintln!("node.0 set 2 {:?}", node.0);
+        // eprintln!("node.0 set 2 {:?}", node.0);
     }
 }
 
@@ -353,13 +320,13 @@ pub fn prompt_output(
 ) {
     if let Ok((mut text, mut node)) = query.get_single_mut() {
         let (completion_node, children) = completion.single();
-        let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
+        let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(Vec::new);
         let font = asset_server.load("fonts/FiraSans-Bold.ttf");
         let mut text_prompt = TextPrompt {
             text: &mut text,
             completion: completion_node,
             children: &children,
-            font: font,
+            font,
             commands: &mut commands,
         };
 
@@ -369,7 +336,7 @@ pub fn prompt_output(
                 eprintln!("setting prompt");
                 text_prompt.buf_write(&mut read_prompt.prompt);
                 show_prompt.set(PromptState::Visible);
-                show_completion.set(if read_prompt.prompt.completion.len() > 0 {
+                show_completion.set(if ! read_prompt.prompt.completion.is_empty() {
                     CompletionState::Visible
                 } else {
                     CompletionState::Invisible
@@ -392,7 +359,7 @@ pub fn prompt_output(
 
 pub fn message_update(
     mut commands: Commands,
-    time: Res<Time>,
+    // time: Res<Time>,
     asset_server: Res<AssetServer>,
     keys: Res<Input<KeyCode>>,
     mut show_prompt: ResMut<NextState<PromptState>>,
@@ -400,7 +367,6 @@ pub fn message_update(
     mut redraw: EventWriter<RequestRedraw>,
     mut query: Query<(&mut Text, &mut PromptNode)>,
     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
-    // mut completion: Query<&mut CompletionList, With<ScrollingList>>,
 ) {
     let (_text, node) = query.single();
     let mutate = node
@@ -413,13 +379,13 @@ pub fn message_update(
     if mutate {
         let (mut text, mut node) = query.single_mut();
         let (completion_node, children) = completion.single();
-        let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(|| vec![]);
+        let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(Vec::new);
         let font = asset_server.load("fonts/FiraSans-Bold.ttf");
         let mut text_prompt = TextPrompt {
             text: &mut text,
             completion: completion_node,
             children: &children,
-            font: font,
+            font,
             commands: &mut commands,
         };
 
@@ -428,12 +394,11 @@ pub fn message_update(
                 if keys.get_just_pressed().len() > 0 {
                     // Remove ourselves.
                     node.0 = None;
-                    eprintln!("removing message at {:?}", time.elapsed_seconds());
-                    return;
+                    // eprintln!("removing message at {:?}", time.elapsed_seconds());
                 }
             }
             Some(Proc(ProcContent::Message(msg), x @ ProcState::Uninit)) => {
-                eprintln!("setting message at {:?}", time.elapsed_seconds());
+                // eprintln!("setting message at {:?}", time.elapsed_seconds());
                 *text_prompt.prompt_get_mut() = msg.to_string();
                 text_prompt.input_get_mut().clear();
                 text_prompt.message_get_mut().clear();
@@ -500,6 +465,26 @@ pub fn hide<T: Component>(mut query: Query<&mut Visibility, With<T>>) {
 
 #[cfg(test)]
 mod tests {
+use crate::prompt::Parse;
+use crate::prompt::LookUpError;
+
+struct TomDickHarry(String);
+
+impl Parse for TomDickHarry {
+    fn parse(input: &str) -> Result<Self, LookUpError> {
+        match input {
+            "Tom" => Ok(TomDickHarry(input.into())),
+            "Dick" => Ok(TomDickHarry(input.into())),
+            "Harry" => Ok(TomDickHarry(input.into())),
+            _ => Err(LookUpError::Incomplete(vec![
+                "Tom".into(),
+                "Dick".into(),
+                "Harry".into(),
+            ])),
+        }
+    }
+}
+
 
     // #[allow(unused_must_use)]
     // #[test]

@@ -13,7 +13,7 @@ pub fn hotkey_input(
     let mut matches = vec![];
 
     for key_code in keys.get_just_pressed() {
-        let key = Key::new(key_code.clone(), mods);
+        let key = Key(mods, key_code.clone());
         last_keys.push(key);
         eprintln!("key seq {:?}", *last_keys);
         if trie.exact_match(&*last_keys) {
@@ -61,10 +61,7 @@ bitflags! {
 
 
 #[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Hash, Ord)]
-pub struct Key {
-    pub mods: Modifiers,
-    pub key: KeyCode,
-}
+pub struct Key (pub Modifiers, pub KeyCode);
 
 pub type KeySeq = Vec<Key>;
 
@@ -77,21 +74,18 @@ pub type KeySeq = Vec<Key>;
 /// use nano_macro::key;
 ///    key!{ ctrl-A b };
 /// ```
-impl Key {
-    pub fn new(v: KeyCode, mods: Modifiers) -> Self {
-        Key {
-            key: v,
-            mods
-        }
-    }
-}
+// impl Key {
+//     pub fn new(v: KeyCode, mods: Modifiers) -> Self {
+//         Key {
+//             key: v,
+//             mods
+//         }
+//     }
+// }
 
 impl From<KeyCode> for Key {
     fn from(v: KeyCode) -> Self {
-        Key {
-            key: v,
-            mods: Modifiers::empty(),
-        }
+        Key(Modifiers::empty(), v)
     }
 }
 

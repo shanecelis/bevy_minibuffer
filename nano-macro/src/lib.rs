@@ -159,7 +159,7 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
     r.extend([quote! { ::bevy_nano_console::hotkey::Modifiers::empty() }]);
     let key_code = key_code.expect("No ::bevy::prelude::KeyCode found.");
     (quote! {
-        ::bevy_nano_console::hotkey::Key::new(#key_code, #r)
+        ::bevy_nano_console::hotkey::Key(#r, #key_code)
     },
      TokenStream::from_iter(i))
     // r.into()

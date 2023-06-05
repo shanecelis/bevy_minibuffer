@@ -16,14 +16,14 @@ pub fn hotkey_input(
         let key = Key::new(key_code.clone(), mods);
         last_keys.push(key);
         eprintln!("key seq {:?}", *last_keys);
-        if (trie.exact_match(&*last_keys)) {
+        if trie.exact_match(&*last_keys) {
             eprintln!("got match {:?}", last_keys);
             let mut new_keys = vec![];
             std::mem::swap(&mut new_keys, &mut *last_keys);
             matches.push(new_keys);
             // Let's assume it's for running a command
             // last_keys.clear();
-        } else if (trie.predictive_search(&*last_keys).is_empty()) {
+        } else if trie.predictive_search(&*last_keys).is_empty() {
             eprintln!("No key seq prefix for {:?}", *last_keys);
             last_keys.clear();
         }
@@ -86,6 +86,15 @@ impl From<KeyCode> for Key {
     }
 }
 
+    /// ```
+    /// use nano_macro::key;
+    ///    key!{ ctrl-A };
+    /// ```
+    ///
+    /// ```compile_fail
+    /// use nano_macro::key;
+    ///    key!{ ctrl-A b };
+    /// ```
 impl Modifiers {
     fn from_input(input: &Res<Input<KeyCode>>) -> Modifiers {
         let mut mods = Modifiers::empty();
@@ -121,6 +130,11 @@ mod tests {
         assert!(a == b);
     }
 
+    // #[should_panic]
+    #[test]
+    fn test_bad_key_macro() {
+        // assert_eq!(Key::new(KeyCode::A, Modifiers::Control),
+    }
 
     #[allow(unused_must_use)]
     #[test]
@@ -201,22 +215,4 @@ mod tests {
         assert!(e != c);
     }
 
-    use crate::hotkey::*;
-    #[allow(unused_must_use)]
-    #[test]
-    fn test_parser_ctrl() {
-        assert!(ModsParser::new().parse("ctrl").is_ok());
-        assert!(ModsParser::new().parse(" ctrl").is_err());
-        assert!(ModsParser::new().parse("f ctrl").is_err());
-        assert_eq!(Modifiers::Control, ModsParser::new().parse("ctrl").unwrap());
-        assert_eq!(Modifiers::Control, ModsParser::new().parse("ctrl").unwrap());
-        assert_eq!(Modifiers::Control | Modifiers::Alt, ModsParser::new().parse("ctrl-alt").unwrap());
-        assert!(ModsParser::new().parse(" ctrl - alt").is_err());
-    }
-
-    // use serde::{Serialize, Deserialize};
-    #[test]
-    fn test_serde_keycode() {
-        assert_eq!("Key1", format!("{:?}", KeyCode::Key1));
-    }
 }

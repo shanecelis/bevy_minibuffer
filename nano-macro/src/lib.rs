@@ -1,4 +1,5 @@
 extern crate proc_macro;
+use proc_macro_error::{proc_macro_error, abort};
 
 use proc_macro2::{TokenStream, Delimiter, Group, TokenTree, Punct, Spacing, Ident};
 use quote::quote;
@@ -9,20 +10,37 @@ pub fn noop(_input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     proc_macro::TokenStream::new()
 }
 
+#[proc_macro_error]
 #[proc_macro]
 pub fn key(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let (result, leftover) = partial_key(input);
+    if ! leftover.is_empty() {
+        abort!(leftover, "Left over tokens");
+    }
+    result
+}
+
+fn partial_key(input: proc_macro::TokenStream) -> (proc_macro::TokenStream, TokenStream) {
     let input: TokenStream = input.into();
     let mut r = TokenStream::new();
     let mut i = input.into_iter().peekable();
     let mut key_code: Option<TokenStream> = None;
+
+    fn is_dash(tree: &TokenTree) -> bool {
+        match tree {
+            TokenTree::Punct(ref punct) => punct.as_char() == '-',
+            _ => false
+        }
+    }
+
     while let Some(tree) = i.next() {
-        if i.peek().is_none() {
+        if i.peek().is_none() || (!is_dash(&tree) && !is_dash(&i.peek().unwrap())) {
             key_code = match tree {
                 TokenTree::Literal(ref literal) => {
                     let x = literal.to_string();
                     if x.len() == 1 && x.parse::<u8>().is_ok() {
                         let key = Ident::new(&format!("Key{x}"), literal.span());
-                        Some(quote! {KeyCode::#key })
+                        Some(quote! { KeyCode::#key })
                     } else {
                         match x.as_str() {
                             "'\\''" => Some(quote! { KeyCode::Apostrophe }),
@@ -48,7 +66,6 @@ pub fn key(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                         '*' => Some("Asterisk".into()),
                         '+' => Some("Plus".into()),
                         '@' => Some("At".into()),
-                        // '\'' => Some("Apostrophe".into()),
                         // _ => None
 
                         _ => todo!("punct {:?}", punct),
@@ -93,6 +110,7 @@ pub fn key(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
                 },
                 _ => None
             };
+            break;
         } else {
             let replacement = match tree {
                 TokenTree::Ident(ref ident) => {
@@ -122,8 +140,9 @@ pub fn key(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     //  And it will provide a valid Modifier when none have been provided.
     r.extend([quote! { Modifiers::empty() }]);
     let key_code = key_code.expect("No KeyCode found.");
-    quote! {
+    (quote! {
         Key::new(#key_code, #r)
-    }.into()
+    }.into(),
+     TokenStream::from_iter(i))
     // r.into()
 }

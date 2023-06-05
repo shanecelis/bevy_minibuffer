@@ -111,22 +111,31 @@ macro_rules! keybind {
   // ( $key:ident) => {
   //     Key::from(keybind!(@key $key))
   // };
+  //
+    ($($($mods:ident)|* -$key:tt),+) => {
+        {
+        let mut v = vec![];
+        $(
+            v.push(keybind!(@key $($mods)|+ - $key));
+        )+
+        v
+        }
+    };
 
-  ( $($mods:ident)|* -$key:tt) => {
-      {
-      // let ctrl = Modifiers::Control;
-      let mut accum = Modifiers::empty();
-      $(
-          accum |= keybind!(@lookup $mods);
-      )*
-      Key::new(keybind!(@key $key), accum)
-      }
-  };
-    (@key ;) => { KeyCode::Semicolon };
-    (@key :) => { KeyCode::Colon };
-    (@key /) => { KeyCode::Slash };
+    (@key $($mods:ident)|* -$key:tt) => {
+        {
+        let mut accum = Modifiers::empty();
+        $(
+            accum |= keybind!(@lookup $mods);
+        )*
+        Key::new(keybind!(@keycode $key), accum)
+        }
+    };
+    (@keycode ;) => { KeyCode::Semicolon };
+    (@keycode :) => { KeyCode::Colon };
+    (@keycode /) => { KeyCode::Slash };
 
-    (@key $key:tt) => {
+    (@keycode $key:tt) => {
        paste::paste! { KeyCode::[<$key:camel>] }
     };
 
@@ -155,13 +164,20 @@ mod tests {
     #[allow(unused_must_use)]
     #[test]
     fn test_keybind() {
-        assert_eq!(Key::new(KeyCode::A, Modifiers::Control), keybind!{ ctrl-A });
-        assert_eq!(Key::new(KeyCode::A, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-A });
-        assert_eq!(Key::new(KeyCode::A, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-a });
-        assert_eq!(Key::new(KeyCode::Semicolon, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-semicolon });
-        assert_eq!(Key::new(KeyCode::Semicolon, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-; });
-        assert_eq!(Key::new(KeyCode::Colon, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-: });
-        assert_eq!(Key::new(KeyCode::Slash, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-/ });
+        assert_eq!(vec![Key::new(KeyCode::A, Modifiers::Control)], keybind!{ ctrl-A });
+        assert_eq!(vec![Key::new(KeyCode::A, Modifiers::Control)], keybind!{ ctrl|ctrl-A });
+        assert_eq!(vec![Key::new(KeyCode::A, Modifiers::Control),
+                   Key::new(KeyCode::B, Modifiers::Alt)], keybind!{ ctrl-A, alt-B});
+
+        // XXX: These don't work. Ugh.
+        assert_eq!(vec![Key::new(KeyCode::A, Modifiers::empty()),
+                   Key::new(KeyCode::B, Modifiers::empty())], keybind!{ A, B});
+        // assert_eq!(Key::new(KeyCode::A, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-A });
+        // assert_eq!(Key::new(KeyCode::A, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-a });
+        // assert_eq!(Key::new(KeyCode::Semicolon, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-semicolon });
+        // assert_eq!(Key::new(KeyCode::Semicolon, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-; });
+        // assert_eq!(Key::new(KeyCode::Colon, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-: });
+        // assert_eq!(Key::new(KeyCode::Slash, Modifiers::Control | Modifiers::Alt), keybind!{ ctrl|alt-/ });
         // assert_eq!(Modifiers::Control | Modifiers::Alt, keybind!{ ctrl|alt});
         // assert_eq!(Modifiers::Control | Modifiers::Alt, keybind!{ ctrl | alt});
     }

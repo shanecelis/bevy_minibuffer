@@ -1,5 +1,5 @@
 use bevy::ecs::schedule::ScheduleLabel;
-use bevy::ecs::system::SystemState;
+use bevy::ecs::system::{SystemState, SystemId, RunSystemOnce};
 use bevy::prelude::*;
 use futures_lite::future;
 use std::borrow::Cow;
@@ -11,7 +11,8 @@ use crate::proc::*;
 use crate::prompt::*;
 use crate::hotkey::*;
 
-pub struct RunCommandEvent(pub Box<dyn ScheduleLabel>);
+pub struct RunCommandEvent(pub SystemId);
+impl Event for RunCommandEvent {}
 // Could this be make generic? That way people could choose their own command run handles?
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct CommandOneShot(pub CowStr);
@@ -37,6 +38,7 @@ impl CommandConfig {
 pub struct Command {
     pub(crate) name: Cow<'static, str>,
     pub(crate) hotkey: Option<KeySeq>,
+    pub system_id: Option<SystemId>,
 }
 
 impl Command {
@@ -44,9 +46,38 @@ impl Command {
         Command {
             name: name.into(),
             hotkey: hotkey.map(|v| v.into_iter().map(|v| v.into()).collect()),
+            system_id: None,
         }
     }
 }
+
+impl LookUp for Vec<Command> {
+    type Item = Command;
+    fn look_up(&self, input: &str) -> Result<Command, LookUpError> {
+
+        let matches: Vec<&Command> = self
+            .iter()
+            // .map(|word| word.as_ref())
+            .filter(|command| command.name.starts_with(input))
+            .collect();
+        match matches[..] {
+            [a] => Ok(a.clone()),
+            [_a, _b, ..] => Err(LookUpError::Incomplete(
+                matches.into_iter().map(|s| s.name.to_string()).collect(),
+            )),
+            [] => Err(LookUpError::Message(" no matches".into())),
+        }
+        // self.iter().find(|item| item.name == input)
+        //     .ok_or_else(
+
+    }
+}
+
+// impl AsRef<str> for Command {
+//     fn as_ref(&self) -> &str {
+//         self.name
+//     }
+// }
 
 impl<T> From<T> for Command
 where
@@ -56,6 +87,7 @@ where
         Command {
             name: v.into(),
             hotkey: None,
+            system_id: None,
         }
     }
 }
@@ -64,7 +96,7 @@ pub trait AddCommand {
     fn add_command<Params>(
         &mut self,
         cmd: impl Into<Command>,
-        system: impl IntoSystemConfigs<Params>,
+        system: impl IntoSystem<(), (), Params> + 'static,
     ) -> &mut Self;
 }
 
@@ -72,11 +104,13 @@ impl AddCommand for App {
     fn add_command<Params>(
         &mut self,
         cmd: impl Into<Command>,
-        system: impl IntoSystemConfigs<Params>,
+        // system: impl IntoSystemConfigs<Params>,
+        system: impl IntoSystem<(), (), Params> + 'static,
     ) -> &mut Self {
-        let cmd = cmd.into();
+        let mut cmd = cmd.into();
         let name = cmd.name.clone();
-        self.add_systems(CommandOneShot(name.clone()), system);
+        cmd.system_id = Some(self.world.register_system(system));
+        // self.add_systems(CommandOneShot(name.clone()), system);
         // Create an ad hoc start up system to register this name.
         let sys = move |mut config: ResMut<CommandConfig>| {
             if config.commands.iter().any(|i| i.name == name) {
@@ -91,35 +125,42 @@ impl AddCommand for App {
     }
 }
 
-pub fn run_commands(world: &mut World) {
-    let mut event_system_state = SystemState::<EventReader<RunCommandEvent>>::new(world);
-    let schedules: Vec<Box<dyn ScheduleLabel>> = {
-        let mut events = event_system_state.get_mut(world);
-        events.iter().map(|e| e.0.clone()).collect()
-    };
+// pub fn run_commands(world: &mut World) {
+//     let mut event_system_state = SystemState::<EventReader<RunCommandEvent>>::new(world);
+//     for event in event_system_state.get_mut(world).read() {
+//         world.run_system_once(event.0);
+//     }
+    
+//     // let schedules: Vec<Box<dyn ScheduleLabel>> = {
+//     //     let mut events = event_system_state.get_mut(world);
+//     //     events.iter().map(|e| e.0.clone()).collect()
+//     // };
 
-    for schedule in schedules {
-        if let Err(e) = world.try_run_schedule(schedule) {
-            eprintln!("Problem running command: {:?}", e);
-        }
+//     // for schedule in schedules {
+//     //     if let Err(e) = world.try_run_schedule(schedule) {
+//     //         eprintln!("Problem running command: {:?}", e);
+//     //     }
+//     // }
+// }
+// 
+pub fn run_command_listener(
+    mut events: EventReader<RunCommandEvent>,
+    mut commands: Commands) {
+    for e in events.read() {
+        commands.run_system(e.0);
     }
 }
-
 pub fn exec_command(
     mut prompt: Prompt,
     config: Res<CommandConfig>,
 ) -> impl Future<Output = Option<RunCommandEvent>> {
-    #[rustfmt::skip]
-    let commands: Vec<_> = config
-        .commands
-        .iter()
-        .map(|c| c.name.clone())
-        .collect();
+    let commands = config.commands.clone();
     async move {
-        if let Ok(command) = prompt.read_crit(": ", &&commands[..]).await {
+        if let Ok(command) = prompt.read_crit(": ", &commands).await {
             // We can't keep an EventWriter in our closure so we return it from
             // our task.
-            Some(RunCommandEvent(Box::new(CommandOneShot(command.into()))))
+            // commands.run_system(command.system_id.unwrap())
+            Some(RunCommandEvent(command.system_id.unwrap()))
         } else {
             eprintln!("Got err in exec_command");
             None

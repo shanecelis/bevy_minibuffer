@@ -76,7 +76,7 @@ impl PromptBuf {
             return Ok(false);
         }
         if !char_events.is_empty() {
-            self.input.extend(char_events.iter().map(|ev| ev.char).filter(|c| !c.is_ascii_control()));
+            self.input.extend(char_events.read().map(|ev| ev.char).filter(|c| !c.is_ascii_control()));
             self.message.clear();
         }
         Ok(false)

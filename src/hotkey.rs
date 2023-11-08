@@ -36,10 +36,7 @@ pub fn hotkey_input(
                 if &amatch == keyseq {
                 // if hotkey.mods == mods && keys.just_pressed(hotkey.key) {
                     eprintln!("We were called for {}", command.name);
-
-                    run_command.send(RunCommandEvent(Box::new(CommandOneShot(
-                        command.name.clone(),
-                    ))))
+                    run_command.send(RunCommandEvent(command.system_id.unwrap()));
                 }
             }
         }
@@ -92,16 +89,16 @@ impl From<KeyCode> for Key {
 impl Modifiers {
     fn from_input(input: &Res<Input<KeyCode>>) -> Modifiers {
         let mut mods = Modifiers::empty();
-        if input.any_pressed([KeyCode::LShift, KeyCode::RShift]) {
+        if input.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
             mods |= Modifiers::Shift;
         }
-        if input.any_pressed([KeyCode::LControl, KeyCode::RControl]) {
+        if input.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight]) {
             mods |= Modifiers::Control;
         }
-        if input.any_pressed([KeyCode::LAlt, KeyCode::RAlt]) {
+        if input.any_pressed([KeyCode::AltLeft, KeyCode::AltRight]) {
             mods |= Modifiers::Alt;
         }
-        if input.any_pressed([KeyCode::LWin, KeyCode::RWin]) {
+        if input.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight]) {
             mods |= Modifiers::System;
         }
         mods

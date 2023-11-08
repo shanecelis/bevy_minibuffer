@@ -35,7 +35,7 @@ fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
 fn main() {
     App::new()
         .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
-        .add_plugin(NanoPromptPlugin)
+        .add_plugins(NanoPromptPlugin)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: [400., 400.].into(),

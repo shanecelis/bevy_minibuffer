@@ -49,7 +49,7 @@ bitflags! {
         const Alt     = 0b00000001;
         const Control = 0b00000010;
         const Shift   = 0b00000100;
-        const System  = 0b00001000; // Windows or Command
+        const Super   = 0b00001000; // Windows or Command
     }
 }
 
@@ -99,7 +99,7 @@ impl Modifiers {
             mods |= Modifiers::Alt;
         }
         if input.any_pressed([KeyCode::SuperLeft, KeyCode::SuperRight]) {
-            mods |= Modifiers::System;
+            mods |= Modifiers::Super;
         }
         mods
     }

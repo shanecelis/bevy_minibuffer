@@ -13,3 +13,5 @@ Generalize the handling of input and TextPrompt.
 ** What depends on what?
 ** What could be offered without the other?
 command could be offered.
+* BUGS
+** 1 starts a new prompt recursively.

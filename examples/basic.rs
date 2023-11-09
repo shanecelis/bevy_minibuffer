@@ -3,10 +3,9 @@ use bevy::winit::WinitSettings;
 use bevy_nano_console::commands::*;
 use bevy_nano_console::prompt::*;
 use bevy_nano_console::tasks::*;
-use bevy_nano_console::ui::*;
+// use bevy_nano_console::ui::*;
 use bevy_nano_console::proc::*;
 use bevy_nano_console::*;
-
 use nano_macro::*;
 use std::future::Future;
 
@@ -23,7 +22,6 @@ fn ask_name<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
 }
 
 fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
-    println!("ask age2 called");
     async move {
         if let Ok(age) = prompt.read::<i32>("What's your age? ").await {
             prompt.message(format!("You are {age} years old."));
@@ -48,13 +46,13 @@ fn main() {
         // .add_command("ask_name", ask_name.pipe(task_sink))
         .add_command(
             // Command::new("ask_name", Some(vec![KeyCode::Key1])),
-            Command::new("ask_name", Some(keyseq!(1))),
+            Command::new("ask_name", keyseq!(1)),
             ask_name.pipe(task_sink))
         .add_command(
-            Command::new("ask_age", Some(vec![KeyCode::A, KeyCode::A])),
+            Command::new("ask_age", vec![KeyCode::A, KeyCode::A]),
             ask_age.pipe(task_sink))
         .add_command(
-            Command::new("exec_command", Some(vec![KeyCode::Semicolon])),
+            Command::new("exec_command", vec![KeyCode::Semicolon]),
             exec_command.pipe(task_sink))
         .run();
 }

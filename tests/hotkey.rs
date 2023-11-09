@@ -32,7 +32,7 @@ use bevy_nano_console::hotkey::*;
     #[allow(unused_must_use)]
     #[test]
     fn test_key_macro() {
-        assert_eq!(Key(Modifiers::Control, KeyCode::B), key!{ ctrl-b });
+        assert_eq!(Key(Modifiers::Control, KeyCode::B), key!{ ctrl-B });
         assert_eq!(Key(Modifiers::Control, KeyCode::Key1), key!{ ctrl-1 });
         assert_eq!(Key(Modifiers::Control, KeyCode::Key2), key!{ ctrl-2 });
         assert_eq!(Key(Modifiers::Control, KeyCode::F2), key!{ ctrl-F2 });
@@ -48,9 +48,13 @@ use bevy_nano_console::hotkey::*;
         assert_eq!(Key(Modifiers::Control, KeyCode::Underline), key!{ ctrl-_ });
 
 
-        assert_eq!(Key(Modifiers::Control, KeyCode::A), key!{ ctrl-A });
-        assert_eq!(Key(Modifiers::Control, KeyCode::A), key!{ ctrl-a }); // Allow lowercase?
+        assert_eq!(Key(Modifiers::Control | Modifiers::Shift, KeyCode::A), key!{ ctrl-shift-A });
+        // assert_eq!(Key(Modifiers::Control, KeyCode::A), key!{ ctrl-A });
+        assert_eq!(Key(Modifiers::Super,   KeyCode::A), key!{ super-A });
+        assert_eq!(Key(Modifiers::Control, KeyCode::A), key!{ ctrl-A }); // Allow lowercase or demand lowercase?
         assert_eq!(Key(Modifiers::empty(), KeyCode::A), key!{ A });
+        let k: Key = KeyCode::A.into();
+        assert_eq!(k, key!{ A });
         assert_eq!(Key(Modifiers::Control, KeyCode::Asterisk), key!{ ctrl-Asterisk }); // All bevy KeyCode names work.
         assert_eq!(Key(Modifiers::Control, KeyCode::Asterisk), key!{ ctrl-* }); // with some short hand.
 
@@ -64,7 +68,7 @@ use bevy_nano_console::hotkey::*;
         assert_eq!(Key(Modifiers::Control | Modifiers::Alt, KeyCode::A), key!{ ctrl-alt-A });
         assert_eq!(Key(Modifiers::empty(), KeyCode::A), key!{ A });
         assert_eq!(Key(Modifiers::Control | Modifiers::Alt, KeyCode::A), key!{ ctrl-alt-A });
-        assert_eq!(Key(Modifiers::Control | Modifiers::Alt, KeyCode::A), key!{ ctrl-alt-a });
+        assert_eq!(Key(Modifiers::Control | Modifiers::Alt, KeyCode::A), key!{ ctrl-alt-A });
         assert_eq!(Key(Modifiers::Control | Modifiers::Alt, KeyCode::Semicolon), key!{ ctrl-alt-Semicolon });
         // assert_eq!(Key(Modifiers::Control | Modifiers::Alt, KeyCode::Semicolon), key!{ ctrl-alt-semicolon });
         assert_eq!(Key(Modifiers::Control | Modifiers::Alt, KeyCode::Semicolon), key!{ ctrl-alt-; });
@@ -80,7 +84,6 @@ use bevy_nano_console::hotkey::*;
     #[test]
     fn test_keyseq() {
         assert_eq!(vec![Key(Modifiers::Control, KeyCode::A)], keyseq!{ ctrl-A });
-        assert_eq!(vec![Key(Modifiers::Control, KeyCode::A)], keyseq!{ ctrl-a });
         assert_eq!(vec![Key(Modifiers::Control, KeyCode::A)], keyseq!{ ctrl-ctrl-A });
         assert_eq!(vec![Key(Modifiers::Control, KeyCode::A),
                    Key(Modifiers::Alt, KeyCode::B)], keyseq!{ ctrl-A alt-B});

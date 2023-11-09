@@ -1,5 +1,5 @@
 use bevy::ecs::schedule::ScheduleLabel;
-use bevy::ecs::system::{SystemState, SystemId, RunSystemOnce};
+use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
 use futures_lite::future;
 use std::borrow::Cow;
@@ -42,10 +42,10 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn new(name: impl Into<Cow<'static, str>>, hotkey: Option<Vec<impl Into<Key>>>) -> Self {
+    pub fn new(name: impl Into<Cow<'static, str>>, hotkey: Vec<impl Into<Key>>) -> Self {
         Command {
             name: name.into(),
-            hotkey: hotkey.map(|v| v.into_iter().map(|v| v.into()).collect()),
+            hotkey: Some(hotkey.into_iter().map(|v| v.into()).collect()),
             system_id: None,
         }
     }

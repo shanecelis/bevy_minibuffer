@@ -43,6 +43,7 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
     let mut r = TokenStream::new();
     let mut i = input.into_iter().peekable();
     let mut key_code: Option<TokenStream> = None;
+    let add_shift: bool = false;
 
     fn is_dash(tree: &TokenTree) -> bool {
         match tree {
@@ -99,11 +100,15 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
                     if label.len() == 1 {
                         let name : Option<Cow<'static, str>>
                             = match label.chars().next().unwrap() {
-                            x @ 'A'..='Z' | x @ 'a'..='z' => {
-                                let s = x.to_ascii_uppercase().to_string();
-                                // let upper = Ident::new(&s, ident.span());
-                                Some(s.into())
-                                // Some(quote! {::bevy::prelude::KeyCode::#upper })
+                            x @ 'A'..='Z' => {
+                                // I'm not sure I like this.
+                                // add_shift = true;
+                                Some(x.to_string().into())
+                            },
+                            x @ 'a'..='z' => {
+                                abort!(x, "Use uppercase key names.");
+                                // let s = x.to_ascii_uppercase().to_string();
+                                // Some(s.into())
                             },
                                 '_' => Some("Underline".into()),
                             // Identifiers can't start with a number.
@@ -128,10 +133,14 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
             let replacement = match tree {
                 TokenTree::Ident(ref ident) => {
                     match ident.to_string().as_str() {
-                        "ctrl" => Some(TokenTree::Group(Group::new(Delimiter::None,
-                                                            quote! { ::bevy_nano_console::hotkey::Modifiers::Control }))),
                         "alt" => Some(TokenTree::Group(Group::new(Delimiter::None,
                                                             quote! { ::bevy_nano_console::hotkey::Modifiers::Alt }))),
+                        "ctrl" => Some(TokenTree::Group(Group::new(Delimiter::None,
+                                                            quote! { ::bevy_nano_console::hotkey::Modifiers::Control }))),
+                        "shift" => Some(TokenTree::Group(Group::new(Delimiter::None,
+                                                            quote! { ::bevy_nano_console::hotkey::Modifiers::Shift }))),
+                        "super" => Some(TokenTree::Group(Group::new(Delimiter::None,
+                                                            quote! { ::bevy_nano_console::hotkey::Modifiers::Super }))),
                         _ => None
                     }
                 },
@@ -151,8 +160,12 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
     //    ctrl-alt-EMPTY -> Control | Alt | EMPTY.
     //
     //  And it will provide a valid Modifier when none have been provided.
+    if add_shift {
+        r.extend([quote! { ::bevy_nano_console::hotkey::Modifiers::Shift | }]);
+    }
     r.extend([quote! { ::bevy_nano_console::hotkey::Modifiers::empty() }]);
     let key_code = key_code.expect("No ::bevy::prelude::KeyCode found.");
+
     (quote! {
         ::bevy_nano_console::hotkey::Key(#r, #key_code)
     },

@@ -1,4 +1,3 @@
-use bevy::ecs::schedule::ScheduleLabel;
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
 use futures_lite::future;
@@ -13,9 +12,6 @@ use crate::hotkey::*;
 
 pub struct RunCommandEvent(pub SystemId);
 impl Event for RunCommandEvent {}
-// Could this be make generic? That way people could choose their own command run handles?
-#[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct CommandOneShot(pub CowStr);
 #[derive(Resource, Default)]
 pub struct CommandConfig {
     pub(crate) commands: Vec<Command>,
@@ -57,11 +53,17 @@ impl LookUp for Vec<Command> {
 
         let matches: Vec<&Command> = self
             .iter()
-            // .map(|word| word.as_ref())
             .filter(|command| command.name.starts_with(input))
             .collect();
         match matches[..] {
-            [a] => Ok(a.clone()),
+            [a] => {
+                // Require an exact match to return the item.
+                if input == a.name {
+                    Ok(a.clone())
+                } else {
+                    Err(LookUpError::Incomplete(vec![a.name.to_string()]))
+                }
+            },
             [_a, _b, ..] => Err(LookUpError::Incomplete(
                 matches.into_iter().map(|s| s.name.to_string()).collect(),
             )),
@@ -110,17 +112,22 @@ impl AddCommand for App {
         let mut cmd = cmd.into();
         let name = cmd.name.clone();
         cmd.system_id = Some(self.world.register_system(system));
-        // self.add_systems(CommandOneShot(name.clone()), system);
+        let mut config = self.world.resource_mut::<CommandConfig>();
+        if config.commands.iter().any(|i| i.name == name) {
+            warn!("nano command '{name}' already registered; ignoring.");
+        } else {
+            config.commands.push(cmd.clone());
+        }
         // Create an ad hoc start up system to register this name.
-        let sys = move |mut config: ResMut<CommandConfig>| {
-            if config.commands.iter().any(|i| i.name == name) {
-                warn!("nano command '{name}' already registered.");
-            } else {
-                config.commands.push(cmd.clone());
-            }
-        };
-        // XXX: Do these Startup systems stick around?
-        self.add_systems(Startup, sys);
+        // let sys = move |mut config: ResMut<CommandConfig>| {
+        //     if config.commands.iter().any(|i| i.name == name) {
+        //         warn!("nano command '{name}' already registered.");
+        //     } else {
+        //         config.commands.push(cmd.clone());
+        //     }
+        // };
+        // // XXX: Do these Startup systems stick around?
+        // self.add_systems(Startup, sys);
         self
     }
 }
@@ -160,7 +167,7 @@ pub fn exec_command(
             // We can't keep an EventWriter in our closure so we return it from
             // our task.
             // commands.run_system(command.system_id.unwrap())
-            Some(RunCommandEvent(command.system_id.unwrap()))
+            Some(RunCommandEvent(command.system_id.expect("No system_id for command; was it registered?")))
         } else {
             eprintln!("Got err in exec_command");
             None

@@ -1,4 +1,6 @@
 use std::borrow::Cow;
+use std::fmt::Debug;
+use bitflags::bitflags;
 
 use bevy::ecs::prelude::Commands;
 use bevy::prelude::*;
@@ -24,6 +26,14 @@ pub(crate) struct ReadPrompt {
     pub(crate) promise: Producer<PromptBuf, NanoError>,
 }
 
+bitflags! {
+    #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
+    pub struct Requests: u8 {
+        const Submit       = 0b00000001;
+        const AutoComplete = 0b00000010;
+    }
+}
+
 // TODO: Switch to cows or options.
 #[derive(Clone, Default, Debug)]
 pub struct PromptBuf {
@@ -31,7 +41,9 @@ pub struct PromptBuf {
     pub input: String,
     pub message: String,
     pub completion: Vec<String>,
+    pub flags: Requests,
 }
+
 
 impl<T> From<T> for PromptBuf
 where
@@ -43,8 +55,32 @@ where
             input: "".into(),
             message: "".into(),
             completion: Vec::new(),
+            flags: Requests::empty(),
         }
     }
+}
+
+fn longest_common_prefix(strings: &Vec<String>) -> String {
+    if strings.is_empty() {
+        return String::new();
+    }
+
+    let first_string = &strings[0];
+
+    for (i, char) in first_string.chars().enumerate() {
+        for string in strings.iter().skip(1) {
+            if i >= string.len() || char != string.chars().nth(i).unwrap() {
+                return first_string[..i].to_string();
+            }
+        }
+    }
+
+    first_string.to_string()
+}
+
+enum Update {
+    ReturnRaw,
+    Continue,
 }
 
 impl PromptBuf {
@@ -62,29 +98,33 @@ impl PromptBuf {
         char_events: &mut EventReader<ReceivedCharacter>,
         keys: &Res<Input<KeyCode>>,
         backspace: bool,
-    ) -> Result<bool, NanoError> {
+    ) -> Result<Update, NanoError> {
         if keys.just_pressed(KeyCode::Escape) {
             self.message = " Quit".into();
             return Err(NanoError::Cancelled);
         }
         if keys.just_pressed(KeyCode::Return) {
-            return Ok(true);
+            self.flags |= Requests::Submit;
+            return Ok(Update::ReturnRaw);
+        }
+        if keys.just_pressed(KeyCode::Tab) {
+            self.flags |= Requests::AutoComplete;
+            return Ok(Update::ReturnRaw);
         }
         if backspace {
             let _ = self.input.pop();
             self.message.clear();
-            return Ok(false);
+            return Ok(Update::Continue);
         }
         if !char_events.is_empty() {
             self.input.extend(char_events.read().map(|ev| ev.char).filter(|c| !c.is_ascii_control()));
             self.message.clear();
         }
-        Ok(false)
+        Ok(Update::Continue)
     }
 }
 
 pub trait NanoPrompt {
-    // type Output<T> = Result<T, NanoError>;
     async fn read_raw(&mut self, prompt: PromptBuf) -> Result<PromptBuf, NanoError>;
 
     async fn read<T: Parse>(&mut self, prompt: impl Into<PromptBuf>) -> Result<T, NanoError> {
@@ -92,13 +132,19 @@ pub trait NanoPrompt {
         loop {
             match self.read_raw(buf.clone()).await {
                 Ok(mut new_buf) => match T::parse(&new_buf.input) {
-                    Ok(v) => return Ok(v),
+                    Ok(v) => if new_buf.flags.contains(Requests::Submit) {
+                                return Ok(v);
+                            } else {
+                                buf = new_buf
+                            }
                     Err(LookUpError::Message(m)) => {
                         new_buf.message = m.to_string();
                         buf = new_buf;
                     }
                     Err(LookUpError::Incomplete(v)) => {
-                        new_buf.completion.clone_from_slice(&v[..]);
+                        if new_buf.flags.contains(Requests::AutoComplete) {
+                            new_buf.completion.clone_from_slice(&v[..]);
+                        }
                         buf = new_buf;
                     }
                     Err(LookUpError::NanoError(e)) => return Err(e),
@@ -116,23 +162,44 @@ pub trait NanoPrompt {
         let mut buf = prompt.into();
         loop {
             match self.read_raw(buf.clone()).await {
-                Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
-                    Ok(v) => return Ok(v),
-                    Err(LookUpError::Message(m)) => {
-                        new_buf.completion.clear();
-                        new_buf.message = m.to_string();
-                        buf = new_buf;
-                        // self.buf_write(&mut new_buf);
+                Ok(mut new_buf) =>
+                    match look_up.look_up(&new_buf.input) {
+                        Ok(v) => {
+                            if new_buf.flags.contains(Requests::Submit) {
+                                return Ok(v);
+                            } else {
+                                buf = new_buf
+                            }
+                        }
+                        Err(LookUpError::Message(m)) => {
+                            new_buf.completion.clear();
+                            new_buf.message = m.to_string();
+                            buf = new_buf;
+                            // self.buf_write(&mut new_buf);
+                        }
+                        Err(LookUpError::Incomplete(v)) => {
+                            if new_buf.flags.contains(Requests::AutoComplete) {
+                                new_buf.completion.clear();
+                                new_buf.completion.extend_from_slice(&v[..]);
+
+                                if new_buf.completion.len() > 0 {
+                                    let prefix = longest_common_prefix(&new_buf.completion);
+                                    dbg!(&prefix);
+                                    dbg!(&new_buf.input);
+                                    if prefix.len() > new_buf.input.len() {
+                                        dbg!("setting input to prefix");
+                                        new_buf.input = prefix;
+                                        dbg!(&new_buf.input);
+                                    }
+                                    new_buf.message.clear();
+                                }
+                            }
+                            // assert!(Cd::changed(&new_buf.completion));
+                            buf = new_buf;
+                            // self.buf_write(&mut new_buf);
+                        }
+                        Err(LookUpError::NanoError(e)) => return Err(e)
                     }
-                    Err(LookUpError::Incomplete(v)) => {
-                        new_buf.completion.clear();
-                        new_buf.completion.extend_from_slice(&v[..]);
-                        // assert!(Cd::changed(&new_buf.completion));
-                        buf = new_buf;
-                        // self.buf_write(&mut new_buf);
-                    }
-                    Err(LookUpError::NanoError(e)) => return Err(e),
-                },
                 Err(e) => return Err(e),
             }
         }
@@ -215,7 +282,7 @@ where
     }
 }
 
-pub trait Parse: Sized {
+pub trait Parse: Debug + Sized {
     fn parse(input: &str) -> Result<Self, LookUpError>;
 }
 
@@ -240,7 +307,7 @@ impl Parse for i32 {
     }
 }
 
-// [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]i
+// [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]
 pub fn prompt_input(
     mut char_events: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
@@ -267,24 +334,34 @@ pub fn prompt_input(
     if mutate {
         let mut node = query.single_mut();
         let mut proc = node.0.take();
+        eprintln!("taking");
         if let Some(Proc(ProcContent::Prompt(mut read_prompt), ProcState::Active)) = proc {
             match read_prompt
                 .prompt
                 .update(&mut char_events, &keys, backspace)
             {
-                Ok(finished) => {
-                    if finished {
-                        read_prompt.promise.resolve(read_prompt.prompt);
-                        return;
+                Ok(update) => {
+                    match update {
+                        Update::ReturnRaw => {
+                            // This returns to the raw_read
+                            dbg!(&read_prompt.prompt.input);
+                            read_prompt.promise.resolve(read_prompt.prompt);
+            eprintln!("leaving 1");
+                            return;
+                        }
+                        Update::Continue => {
+                        }
                     }
                 }
                 Err(e) => {
                     read_prompt.promise.reject(e);
+        eprintln!("leaving 2");
                     return;
                 }
             }
             proc = Some(Proc(ProcContent::Prompt(read_prompt), ProcState::Active));
         }
+        eprintln!("returning");
         node.0 = proc;
     }
 }
@@ -394,11 +471,11 @@ pub fn message_update(
                 if keys.get_just_pressed().len() > 0 {
                     // Remove ourselves.
                     node.0 = None;
-                    // eprintln!("removing message at {:?}", time.elapsed_seconds());
+                    eprintln!("removing message");
                 }
             }
             Some(Proc(ProcContent::Message(msg), x @ ProcState::Uninit)) => {
-                // eprintln!("setting message at {:?}", time.elapsed_seconds());
+                eprintln!("setting message");
                 *text_prompt.prompt_get_mut() = msg.to_string();
                 text_prompt.input_get_mut().clear();
                 text_prompt.message_get_mut().clear();
@@ -427,10 +504,13 @@ pub struct HideTime {
     pub timer: Timer,
 }
 
-pub fn hide_delayed<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
+pub fn hide_delayed<T: Component>(mut commands: Commands,
+                                  config: Res<ConsoleConfig>,
+                                  query: Query<Entity, With<T>>) {
     if let Ok(id) = query.get_single() {
-        commands.entity(id).insert(HideTime {
-            timer: Timer::new(Duration::from_secs(1), TimerMode::Once),
+        commands.entity(id)
+                .insert(HideTime {
+                    timer: Timer::new(Duration::from_millis(config.hide_delay), TimerMode::Once),
         });
     }
 }

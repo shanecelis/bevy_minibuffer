@@ -52,7 +52,11 @@ fn main() {
             Command::new("ask_age", vec![KeyCode::A, KeyCode::A]),
             ask_age.pipe(task_sink))
         .add_command(
-            Command::new("exec_command", vec![KeyCode::Semicolon]),
+            Command::new("exec_command", keyseq!(:)
+                         // BUG: This doesn't work because pressing colon produces shift-Semicolon.
+                         // How do we deal with that?
+                         // vec![KeyCode::Colon]
+            ),
             exec_command.pipe(task_sink))
         .run();
 }

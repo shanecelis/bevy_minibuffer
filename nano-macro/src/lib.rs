@@ -43,7 +43,7 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
     let mut r = TokenStream::new();
     let mut i = input.into_iter().peekable();
     let mut key_code: Option<TokenStream> = None;
-    let add_shift: bool = false;
+    let mut add_shift: bool = false;
 
     fn is_dash(tree: &TokenTree) -> bool {
         match tree {
@@ -75,7 +75,7 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
                 TokenTree::Punct(ref punct) => {
                     let name : Option<Cow<'static, str>> = match punct.as_char() {
                         ';' => Some("Semicolon".into()),
-                        ':' => Some("Colon".into()),
+                        ':' => { add_shift = true; Some("Semicolon".into()) },
                         ',' => Some("Comma".into()),
                         '.' => Some("Period".into()),
                         '^' => Some("Caret".into()),
@@ -101,7 +101,7 @@ fn partial_key(input: TokenStream) -> (TokenStream, TokenStream) {
                         let name : Option<Cow<'static, str>>
                             = match label.chars().next().unwrap() {
                             x @ 'A'..='Z' => {
-                                // I'm not sure I like this.
+                                // I'm not sure I like adding shift.
                                 // add_shift = true;
                                 Some(x.to_string().into())
                             },

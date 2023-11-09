@@ -13,6 +13,7 @@ use crate::prompt::*;
 pub enum ProcState {
     Uninit,
     Active,
+    // Warm,
 }
 
 #[derive(Debug)]
@@ -66,7 +67,7 @@ impl Default for ConsoleConfig {
     fn default() -> Self {
         Self {
             state: Arc::new(Mutex::new(ConsoleState::new())),
-            hide_delay: 500, /* milliseconds */
+            hide_delay: 2000, /* milliseconds */
         }
     }
 }

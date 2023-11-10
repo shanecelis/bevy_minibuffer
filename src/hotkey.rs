@@ -1,6 +1,6 @@
+use crate::commands::*;
 use bevy::prelude::*;
 use bitflags::bitflags;
-use crate::commands::*;
 
 pub fn hotkey_input(
     mut run_command: EventWriter<RunCommandEvent>,
@@ -34,7 +34,7 @@ pub fn hotkey_input(
             if let Some(ref keyseq) = command.hotkey {
                 eprintln!("Comparing against command {:?}", keyseq);
                 if &amatch == keyseq {
-                // if hotkey.mods == mods && keys.just_pressed(hotkey.key) {
+                    // if hotkey.mods == mods && keys.just_pressed(hotkey.key) {
                     eprintln!("We were called for {}", command.name);
                     run_command.send(RunCommandEvent(command.system_id.unwrap()));
                 }
@@ -56,9 +56,8 @@ bitflags! {
 // alt-ctrl-shift-KeyCode::A
 // m::alt | m::ctrl
 
-
 #[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Hash, Ord)]
-pub struct Key (pub Modifiers, pub KeyCode);
+pub struct Key(pub Modifiers, pub KeyCode);
 
 // Consider using arrayvec::ArrayVec instead of Vec since key sequences will
 // rarely go over 5. A Vec occupies 24 bytes on 64-bit machines on the stack or

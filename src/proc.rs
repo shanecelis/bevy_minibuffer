@@ -31,12 +31,11 @@ impl From<ReadPrompt> for Proc {
     }
 }
 
-impl<T:Into<CowStr>> From<T> for Proc {
+impl<T: Into<CowStr>> From<T> for Proc {
     fn from(msg: T) -> Self {
         Self(ProcContent::Message(msg.into()), ProcState::Uninit)
     }
 }
-
 
 #[derive(Debug, Resource, Clone)]
 pub struct ConsoleConfig {
@@ -106,11 +105,6 @@ impl Prompt {
     }
 
     pub fn message<T: Into<Cow<'static, str>>>(&mut self, msg: T) {
-        self.config
-            .state
-            .lock()
-            .unwrap()
-            .push(msg.into().into())
+        self.config.state.lock().unwrap().push(msg.into().into())
     }
 }
-

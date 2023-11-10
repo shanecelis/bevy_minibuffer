@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use bevy::winit::WinitSettings;
 use bevy_nano_console::commands::*;
 use bevy_nano_console::prompt::*;
 use bevy_nano_console::tasks::*;
@@ -7,8 +6,8 @@ use bevy_nano_console::tasks::*;
 use bevy_nano_console::proc::*;
 use bevy_nano_console::*;
 use nano_macro::*;
-use std::future::Future;
 use std::f32::consts::TAU;
+use std::future::Future;
 
 // Define a component to designate a rotation speed to an entity.
 #[derive(Component)]
@@ -42,7 +41,6 @@ fn main() {
     App::new()
         // When spinning the cube, the frames will stop when prompting
         // if we're in desktop_app mode.
-
         // .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
         .add_plugins(NanoPromptPlugin)
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -57,13 +55,16 @@ fn main() {
         .add_command(
             // Command::new("ask_name", Some(vec![KeyCode::Key1])),
             Command::new("ask_name", keyseq!(1)),
-            ask_name.pipe(task_sink))
+            ask_name.pipe(task_sink),
+        )
         .add_command(
             Command::new("ask_age", vec![KeyCode::A, KeyCode::A]),
-            ask_age.pipe(task_sink))
+            ask_age.pipe(task_sink),
+        )
         .add_command(
             Command::new("exec_command", keyseq!(:)).autocomplete(false),
-            exec_command.pipe(task_sink))
+            exec_command.pipe(task_sink),
+        )
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
         .run();

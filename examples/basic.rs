@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_nano_console::commands::*;
+use bevy_nano_console::proc::*;
 use bevy_nano_console::prompt::*;
 use bevy_nano_console::tasks::*;
-use bevy_nano_console::proc::*;
 use bevy_nano_console::*;
 use nano_macro::*;
 use std::future::Future;
@@ -50,18 +50,22 @@ fn main() {
         .add_command(
             // Command::new("ask_name", Some(vec![KeyCode::Key1])),
             Command::new("ask_name", keyseq!(1)),
-            ask_name.pipe(task_sink))
+            ask_name.pipe(task_sink),
+        )
         .add_command(
             Command::new("ask_age", vec![KeyCode::A, KeyCode::A]),
-            ask_age.pipe(task_sink))
-
+            ask_age.pipe(task_sink),
+        )
         .add_command(
-            Command::new("exec_command", keyseq!(:)
-                         // BUG: This doesn't work because pressing colon produces shift-Semicolon.
-                         // How do we deal with that?
-                         // vec![KeyCode::Colon]
-            ).autocomplete(false),
-            exec_command.pipe(task_sink))
+            Command::new(
+                "exec_command",
+                keyseq!(:), // BUG: This doesn't work because pressing colon produces shift-Semicolon.
+                            // How do we deal with that?
+                            // vec![KeyCode::Colon]
+            )
+            .autocomplete(false),
+            exec_command.pipe(task_sink),
+        )
         .add_systems(Startup, setup)
         .run();
 }

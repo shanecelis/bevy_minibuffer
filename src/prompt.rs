@@ -223,7 +223,6 @@ pub enum CompletionState {
 }
 
 impl NanoPrompt for Prompt {
-    // type Output<T> = Consumer<T, NanoError>;
     async fn read_raw(&mut self, buf: PromptBuf) -> Result<PromptBuf, NanoError> {
         let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
         self.config.state.lock().unwrap().push(Proc(
@@ -511,12 +510,18 @@ pub struct HideTime {
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<ConsoleConfig>,
-    query: Query<Entity, With<T>>,
+    mut query: Query<(Entity, Option<&mut HideTime>), With<T>>,
 ) {
-    if let Ok(id) = query.get_single() {
-        commands.entity(id).insert(HideTime {
-            timer: Timer::new(Duration::from_millis(config.hide_delay), TimerMode::Once),
-        });
+    if let Ok((id, hide_time_maybe)) = query.get_single_mut() {
+        match hide_time_maybe {
+            Some(mut hide_time) => { hide_time.timer = Timer::new(Duration::from_millis(config.hide_delay),
+                                                              TimerMode::Once); }
+            None => {
+                commands.entity(id).insert(HideTime {
+                    timer: Timer::new(Duration::from_millis(config.hide_delay), TimerMode::Once),
+                });
+            }
+        }
     }
 }
 

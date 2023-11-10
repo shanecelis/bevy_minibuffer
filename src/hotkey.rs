@@ -66,14 +66,69 @@ pub struct Key(pub Modifiers, pub KeyCode);
 // we could have 192 bits/40 bits = 4.8 Keys for the same stack price.
 pub type KeySeq = Vec<Key>;
 
+///
 /// ```
 /// use nano_macro::key;
 ///    key!{ ctrl-A };
 /// ```
 ///
+/// No `KeyCode::` prefix is necessary.
+///
 /// ```compile_fail
 /// use nano_macro::key;
-///    key!{ ctrl-A b };
+///    key!{ ctrl-KeyCode::A };
+/// ```
+/// A key! expects a single key chord. A key sequence will not compile.
+///
+/// ```compile_fail
+/// use nano_macro::key;
+///    key!{ ctrl-A B };
+/// ```
+///
+/// Use the keyseq! for key sequences.
+///
+/// ```
+/// use nano_macro::keyseq;
+///    keyseq!{ ctrl-A B };
+/// ```
+///
+/// Refer to keys as uppercase, matches their actual name KeyCode::A and avoids
+/// the ambiguity as to whether ctrl-A means ctrl-shift-A.
+///
+/// ```compile_fail
+/// use nano_macro::key;
+///    key!{ ctrl-a };
+/// ```
+///
+/// Use PascalCase names for other KeyCodes. All lowercase will not compile.
+///
+/// ```compile_fail
+/// use nano_macro::key;
+///    key!{ ctrl-semicolon };
+/// ```
+///
+/// ```
+/// use nano_macro::key;
+///    key!{ ctrl-Semicolon };
+/// ```
+///
+/// Some common keys can be referred to by their symbols like semicolon.
+///
+/// ```
+/// use nano_macro::key;
+///    key!{ ctrl-; };
+/// ```
+///
+/// Similarly F2 keys are required to be uppercase.
+///
+/// ```compile_fail
+/// use nano_macro::key;
+///    key!{ ctrl-f2 };
+/// ```
+///
+/// ```
+/// use nano_macro::key;
+///    key!{ ctrl-F2 };
 /// ```
 // impl Key {
 //     pub fn new(v: KeyCode, mods: Modifiers) -> Self {

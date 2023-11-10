@@ -52,7 +52,13 @@ pub fn completion_item(
 
 pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-    commands.spawn(Camera2dBundle::default());
+    // commands.spawn(Camera2dBundle {
+    //     camera: Camera {
+    //         order: 100,
+    //         is_active: false,
+    //         ..default()
+    //     },
+    //     ..default()});
 
     commands
         .spawn(NodeBundle {

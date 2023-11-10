@@ -133,10 +133,10 @@ pub trait NanoPrompt {
             match self.read_raw(buf.clone()).await {
                 Ok(mut new_buf) => match T::parse(&new_buf.input) {
                     Ok(v) => if new_buf.flags.contains(Requests::Submit) {
-                                return Ok(v);
-                            } else {
-                                buf = new_buf
-                            }
+                        return Ok(v);
+                    } else {
+                        buf = new_buf
+                    }
                     Err(LookUpError::Message(m)) => {
                         new_buf.message = m.to_string();
                         buf = new_buf;
@@ -151,6 +151,7 @@ pub trait NanoPrompt {
                 },
                 Err(e) => return Err(e),
             }
+            buf.flags = Requests::empty();
         }
     }
 
@@ -175,7 +176,6 @@ pub trait NanoPrompt {
                             new_buf.completion.clear();
                             new_buf.message = m.to_string();
                             buf = new_buf;
-                            // self.buf_write(&mut new_buf);
                         }
                         Err(LookUpError::Incomplete(v)) => {
                             if new_buf.flags.contains(Requests::AutoComplete) {
@@ -184,24 +184,19 @@ pub trait NanoPrompt {
 
                                 if new_buf.completion.len() > 0 {
                                     let prefix = longest_common_prefix(&new_buf.completion);
-                                    dbg!(&prefix);
-                                    dbg!(&new_buf.input);
                                     if prefix.len() > new_buf.input.len() {
-                                        dbg!("setting input to prefix");
                                         new_buf.input = prefix;
-                                        dbg!(&new_buf.input);
                                     }
                                     new_buf.message.clear();
                                 }
                             }
-                            // assert!(Cd::changed(&new_buf.completion));
                             buf = new_buf;
-                            // self.buf_write(&mut new_buf);
                         }
                         Err(LookUpError::NanoError(e)) => return Err(e)
                     }
                 Err(e) => return Err(e),
             }
+            buf.flags = Requests::empty();
         }
     }
 }

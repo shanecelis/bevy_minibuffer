@@ -182,7 +182,7 @@ pub trait NanoPrompt {
                                 new_buf.completion.clear();
                                 new_buf.completion.extend_from_slice(&v[..]);
 
-                                if new_buf.completion.len() > 0 {
+                                if !new_buf.completion.is_empty() {
                                     let prefix = longest_common_prefix(&new_buf.completion);
                                     if prefix.len() > new_buf.input.len() {
                                         new_buf.input = prefix;
@@ -406,7 +406,7 @@ pub fn prompt_output(
             // Some(Proc(ProcContent::Prompt(read_prompt), x @ ProcState::Uninit)) => {
             Some(Proc(ProcContent::Prompt(read_prompt), x)) => {
                 eprintln!("setting prompt");
-                text_prompt.buf_write(&mut read_prompt.prompt);
+                text_prompt.buf_write(&read_prompt.prompt);
                 show_prompt.set(PromptState::Visible);
                 show_completion.set(if ! read_prompt.prompt.completion.is_empty() {
                     CompletionState::Visible

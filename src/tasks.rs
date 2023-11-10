@@ -30,5 +30,6 @@ pub fn task_sink<T: Send + 'static>(
     mut commands: Commands,
 ) {
     eprintln!("spawn task sink for type {:?}", std::any::type_name::<T>());
-    commands.spawn(TaskSink::new(async move { future.await }));
+    // commands.spawn(TaskSink::new(async move { future.await }));
+    commands.spawn(TaskSink::new(future));
 }

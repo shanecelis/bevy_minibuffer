@@ -279,7 +279,7 @@ impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
         buf.input.clone_from(&self.text.sections[1].value);
         buf.message.clone_from(&self.text.sections[2].value);
     }
-    pub fn buf_write(&mut self, buf: &mut PromptBuf) {
+    pub fn buf_write(&mut self, buf: &PromptBuf) {
         self.text.sections[0].value.clone_from(&buf.prompt);
         self.text.sections[1].value.clone_from(&buf.input);
         self.text.sections[2].value.clone_from(&buf.message);

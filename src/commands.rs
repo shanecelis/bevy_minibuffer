@@ -120,7 +120,7 @@ impl AddCommand for App {
     ) -> &mut Self {
         // Register the system.
         let mut cmd = cmd.into();
-        if cmd.system_id != None {
+        if cmd.system_id.is_some() {
             panic!("nano command '{}' already has a system_id; was it added before?", cmd.name);
         }
         cmd.system_id = Some(self.world.register_system(system));
@@ -133,7 +133,7 @@ impl AddCommand for App {
         } else {
             config.commands.push(cmd);
         }
-        if config.hotkeys != None {
+        if config.hotkeys.is_some() {
             warn!("resetting hotkey trie.");
             config.hotkeys = None
         }

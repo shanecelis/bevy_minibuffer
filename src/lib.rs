@@ -37,8 +37,8 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .add_systems(Update,    poll_event_tasks::<RunCommandEvent>)
             .add_systems(Update,    mouse_scroll)
             .add_systems(Update,    hotkey_input)
-            .add_systems(OnEnter(PromptState::Visible), show::<PromptContainer>)
-            .add_systems( OnExit(PromptState::Visible), hide_delayed::<PromptContainer>)
+            .add_systems(OnEnter(PromptState::Visible),     show::<PromptContainer>)
+            .add_systems( OnExit(PromptState::Visible),     hide_delayed::<PromptContainer>)
             .add_systems(OnEnter(CompletionState::Visible), show::<CompletionContainer>)
             .add_systems( OnExit(CompletionState::Visible), hide::<CompletionContainer>)
             ;

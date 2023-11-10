@@ -7,11 +7,9 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.12.0"
-# bevy = { git = "https://github.com/bevyengine/bevy.git" }
 bitflags = "2.3.1"
-# changed = "0.1.2"
 futures-lite = "1.13.0"
 nano-macro = { version = "0.1.0", path = "nano-macro" }
-promise_out = { git = "https://github.com/shanecelis/promise_out.git" }
+promise_out = "1.0.0"
 trie-rs = "0.1.1"
 colored = { version = "2.0.0", features = [ "no-color" ] }

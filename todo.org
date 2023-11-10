@@ -13,5 +13,7 @@ Generalize the handling of input and TextPrompt.
 ** What depends on what?
 ** What could be offered without the other?
 command could be offered.
+** Add configuration for autohide
 * BUGS
 ** 1 starts a new prompt recursively.
+** quit message not shown.

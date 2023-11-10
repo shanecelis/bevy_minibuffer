@@ -4,6 +4,7 @@ use futures_lite::future;
 use std::borrow::Cow;
 use std::future::Future;
 use trie_rs::{Trie, TrieBuilder};
+use bitflags::bitflags;
 
 use crate::tasks::*;
 use crate::proc::*;
@@ -30,11 +31,20 @@ impl CommandConfig {
     }
 }
 
+bitflags! {
+    #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
+    pub struct CommandFlags: u8 {
+        const Active       = 0b00000001;
+        const AutoComplete = 0b00000010;
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Command {
     pub(crate) name: Cow<'static, str>,
     pub(crate) hotkey: Option<KeySeq>,
     pub system_id: Option<SystemId>,
+    pub flags: CommandFlags,
 }
 
 impl Command {
@@ -43,17 +53,25 @@ impl Command {
             name: name.into(),
             hotkey: Some(hotkey.into_iter().map(|v| v.into()).collect()),
             system_id: None,
+            flags: CommandFlags::Active | CommandFlags::AutoComplete,
         }
+    }
+
+    pub fn autocomplete(mut self, yes: bool) -> Self {
+        self.flags.set(CommandFlags::AutoComplete, yes);
+        self
     }
 }
 
 impl LookUp for Vec<Command> {
     type Item = Command;
     fn look_up(&self, input: &str) -> Result<Command, LookUpError> {
-
+        // It'd be nice to do this without an allocation.
         let matches: Vec<&Command> = self
             .iter()
-            .filter(|command| command.name.starts_with(input))
+            .filter(|command|
+                    command.flags.contains(CommandFlags::AutoComplete | CommandFlags::Active)
+                    && command.name.starts_with(input))
             .collect();
         match matches[..] {
             [a] => {
@@ -69,17 +87,8 @@ impl LookUp for Vec<Command> {
             )),
             [] => Err(LookUpError::Message(" no matches".into())),
         }
-        // self.iter().find(|item| item.name == input)
-        //     .ok_or_else(
-
     }
 }
-
-// impl AsRef<str> for Command {
-//     fn as_ref(&self) -> &str {
-//         self.name
-//     }
-// }
 
 impl<T> From<T> for Command
 where
@@ -90,6 +99,7 @@ where
             name: v.into(),
             hotkey: None,
             system_id: None,
+            flags: CommandFlags::Active | CommandFlags::AutoComplete,
         }
     }
 }
@@ -106,50 +116,31 @@ impl AddCommand for App {
     fn add_command<Params>(
         &mut self,
         cmd: impl Into<Command>,
-        // system: impl IntoSystemConfigs<Params>,
         system: impl IntoSystem<(), (), Params> + 'static,
     ) -> &mut Self {
+        // Register the system.
         let mut cmd = cmd.into();
-        let name = cmd.name.clone();
-        cmd.system_id = Some(self.world.register_system(system));
-        let mut config = self.world.resource_mut::<CommandConfig>();
-        if config.commands.iter().any(|i| i.name == name) {
-            warn!("nano command '{name}' already registered; ignoring.");
-        } else {
-            config.commands.push(cmd.clone());
+        if cmd.system_id != None {
+            panic!("nano command '{}' already has a system_id; was it added before?", cmd.name);
         }
-        // Create an ad hoc start up system to register this name.
-        // let sys = move |mut config: ResMut<CommandConfig>| {
-        //     if config.commands.iter().any(|i| i.name == name) {
-        //         warn!("nano command '{name}' already registered.");
-        //     } else {
-        //         config.commands.push(cmd.clone());
-        //     }
-        // };
-        // // XXX: Do these Startup systems stick around?
-        // self.add_systems(Startup, sys);
+        cmd.system_id = Some(self.world.register_system(system));
+
+        // Add the command.
+        let mut config = self.world.resource_mut::<CommandConfig>();
+        if config.commands.iter().any(|i| i.name == cmd.name) {
+            let name = cmd.name;
+            warn!("nano command '{name}' already added; ignoring.");
+        } else {
+            config.commands.push(cmd);
+        }
+        if config.hotkeys != None {
+            warn!("resetting hotkey trie.");
+            config.hotkeys = None
+        }
         self
     }
 }
 
-// pub fn run_commands(world: &mut World) {
-//     let mut event_system_state = SystemState::<EventReader<RunCommandEvent>>::new(world);
-//     for event in event_system_state.get_mut(world).read() {
-//         world.run_system_once(event.0);
-//     }
-    
-//     // let schedules: Vec<Box<dyn ScheduleLabel>> = {
-//     //     let mut events = event_system_state.get_mut(world);
-//     //     events.iter().map(|e| e.0.clone()).collect()
-//     // };
-
-//     // for schedule in schedules {
-//     //     if let Err(e) = world.try_run_schedule(schedule) {
-//     //         eprintln!("Problem running command: {:?}", e);
-//     //     }
-//     // }
-// }
-// 
 pub fn run_command_listener(
     mut events: EventReader<RunCommandEvent>,
     mut commands: Commands) {
@@ -157,6 +148,7 @@ pub fn run_command_listener(
         commands.run_system(e.0);
     }
 }
+
 pub fn exec_command(
     mut prompt: Prompt,
     config: Res<CommandConfig>,
@@ -166,7 +158,6 @@ pub fn exec_command(
         if let Ok(command) = prompt.read_crit(": ", &commands).await {
             // We can't keep an EventWriter in our closure so we return it from
             // our task.
-            // commands.run_system(command.system_id.unwrap())
             Some(RunCommandEvent(command.system_id.expect("No system_id for command; was it registered?")))
         } else {
             eprintln!("Got err in exec_command");

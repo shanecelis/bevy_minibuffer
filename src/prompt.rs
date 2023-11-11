@@ -380,6 +380,7 @@ pub fn prompt_input(
                 Err(e) => match e {
                     NanoError::Message(msg) => read_prompt.prompt.message = msg.to_string(),
                     NanoError::Cancelled => {
+                        // XXX: This does not work. Would like to show "Quit" or some message when cancelled.
                         node.0 = Some(Proc(ProcContent::Message(format!("{:?}", e).into()), ProcState::Active));
                         read_prompt.promise.reject(e);
                         eprintln!("leaving 2");

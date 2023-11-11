@@ -52,13 +52,6 @@ pub fn completion_item(
 
 pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-    // commands.spawn(Camera2dBundle {
-    //     camera: Camera {
-    //         order: 100,
-    //         is_active: false,
-    //         ..default()
-    //     },
-    //     ..default()});
 
     commands
         .spawn(NodeBundle {
@@ -170,7 +163,7 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 TextStyle {
                                     font: font.clone(),
                                     font_size: 24.0,
-                                    color: Color::WHITE,
+                                    color: Color::GRAY,
                                 },
                             ),
                             TextSection::new(
@@ -178,7 +171,7 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 TextStyle {
                                     font: font.clone(),
                                     font_size: 24.0,
-                                    color: Color::GRAY,
+                                    color: Color::WHITE,
                                 },
                             ),
                             TextSection::new(
@@ -282,7 +275,6 @@ impl<'a> TextPrompt<'a> {
         self.text.sections[0].value.clone_from(&buf.prompt);
         self.text.sections[1].value.clone_from(&buf.input);
         self.text.sections[2].value.clone_from(&buf.message);
-        // if Cd::changed(&buf.completion) {
         let new_children = (*buf.completion)
             .iter()
             .map(|label| {
@@ -302,8 +294,6 @@ impl<'a> TextPrompt<'a> {
         for child in self.children.iter() {
             commands.entity(*child).despawn();
         }
-        // Cd::reset(&mut buf.completion);
-        // }
     }
 }
 

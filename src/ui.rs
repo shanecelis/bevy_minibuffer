@@ -228,16 +228,15 @@ pub fn mouse_scroll(
     }
 }
 
-pub struct TextPrompt<'a, 'w, 's> {
+pub struct TextPrompt<'a> {
     pub text: &'a mut Text,
     pub completion: Entity,
     pub children: &'a [Entity],
-    pub commands: &'a mut Commands<'w, 's>,
     pub font: Handle<Font>,
 }
 
 #[allow(dead_code)]
-impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
+impl<'a> TextPrompt<'a> {
     pub fn prompt_get_mut(&mut self) -> &mut String {
         &mut self.text.sections[0].value
     }
@@ -257,20 +256,20 @@ impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
         &self.text.sections[2].value
     }
 
-    pub fn completion_set(&mut self, labels: Vec<String>) {
+    pub fn completion_set(&mut self, labels: Vec<String>, commands: &mut Commands) {
         let new_children = labels
             .into_iter()
             .map(|label| {
-                self.commands
+                commands
                     .spawn(completion_item(label, Color::WHITE, self.font.clone()))
                     .id()
             })
             .collect::<Vec<Entity>>();
-        self.commands
+        commands
             .entity(self.completion)
             .replace_children(&new_children);
         for child in self.children.iter() {
-            self.commands.entity(*child).despawn();
+            commands.entity(*child).despawn();
         }
     }
 
@@ -279,7 +278,7 @@ impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
         buf.input.clone_from(&self.text.sections[1].value);
         buf.message.clone_from(&self.text.sections[2].value);
     }
-    pub fn buf_write(&mut self, buf: &PromptBuf) {
+    pub fn buf_write(&mut self, buf: &PromptBuf, commands: &mut Commands) {
         self.text.sections[0].value.clone_from(&buf.prompt);
         self.text.sections[1].value.clone_from(&buf.input);
         self.text.sections[2].value.clone_from(&buf.message);
@@ -287,7 +286,7 @@ impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
         let new_children = (*buf.completion)
             .iter()
             .map(|label| {
-                self.commands
+                commands
                     .spawn(completion_item(
                         label.into(),
                         Color::WHITE,
@@ -297,11 +296,11 @@ impl<'a, 'w, 's> TextPrompt<'a, 'w, 's> {
             })
             .collect::<Vec<Entity>>();
 
-        self.commands
+        commands
             .entity(self.completion)
             .replace_children(&new_children);
         for child in self.children.iter() {
-            self.commands.entity(*child).despawn();
+            commands.entity(*child).despawn();
         }
         // Cd::reset(&mut buf.completion);
         // }

@@ -15,16 +15,16 @@ pub fn hotkey_input(
     for key_code in keys.get_just_pressed() {
         let key = Key(mods, *key_code);
         last_keys.push(key);
-        eprintln!("key seq {:?}", *last_keys);
+        // eprintln!("key seq {:?}", *last_keys);
         if trie.exact_match(&*last_keys) {
-            eprintln!("got match {:?}", last_keys);
+            // eprintln!("got match {:?}", last_keys);
             let mut new_keys = vec![];
             std::mem::swap(&mut new_keys, &mut *last_keys);
             matches.push(new_keys);
             // Let's assume it's for running a command
             // last_keys.clear();
         } else if trie.predictive_search(&*last_keys).is_empty() {
-            eprintln!("No key seq prefix for {:?}", *last_keys);
+            // eprintln!("No key seq prefix for {:?}", *last_keys);
             last_keys.clear();
         }
     }
@@ -32,11 +32,11 @@ pub fn hotkey_input(
     for amatch in matches.into_iter() {
         for command in &config.commands {
             if let Some(ref keyseq) = command.hotkey {
-                eprintln!("Comparing against command {:?}", keyseq);
+                // eprintln!("Comparing against command {:?}", keyseq);
                 if &amatch == keyseq {
                     // if hotkey.mods == mods && keys.just_pressed(hotkey.key) {
-                    eprintln!("We were called for {}", command.name);
-                    run_command.send(RunCommandEvent(command.system_id.unwrap()));
+                    // eprintln!("We were called for {}", command.name);
+                    run_command.send(RunCommandEvent(command.system_id.expect("No system_id for command.")));
                 }
             }
         }
@@ -52,9 +52,6 @@ bitflags! {
         const Super   = 0b00001000; // Windows or Command
     }
 }
-
-// alt-ctrl-shift-KeyCode::A
-// m::alt | m::ctrl
 
 #[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Hash, Ord)]
 pub struct Key(pub Modifiers, pub KeyCode);

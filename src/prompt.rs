@@ -243,27 +243,49 @@ pub enum LookUpError {
     Incomplete(Vec<String>),
 }
 
-/// Handles &str, String, Cow<'_, str>. Does it all.
+/// Handles arrays of &str, String, Cow<'_, str>. Does it all.
 impl<T: AsRef<str>> LookUp for &[T] {
     type Item = String;
     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
-        let matches: Vec<&str> = self
+        // Collecting and matching is nice expressively. But manually iterating
+        // avoids that allocation.
+
+        // let matches: Vec<&str> = self
+        //     .iter()
+        //     .map(|word| word.as_ref())
+        //     .filter(|word| word.starts_with(input))
+        //     .collect();
+        // match matches[..] {
+        //     [a] => Ok(a.to_string()),
+        //     [_a, _b, ..] => Err(LookUpError::Incomplete(
+        //         matches.into_iter().map(|s| s.to_string()).collect(),
+        //     )),
+        //     [] => Err(LookUpError::Message(" no matches".into())),
+        // }
+
+        let mut matches = self
             .iter()
             .map(|word| word.as_ref())
-            .filter(|word| word.starts_with(input))
-            .collect();
-        match matches[..] {
-            [a] => Ok(a.to_string()),
-            [_a, _b, ..] => Err(LookUpError::Incomplete(
-                matches.into_iter().map(|s| s.to_string()).collect(),
-            )),
-            [] => Err(LookUpError::Message(" no matches".into())),
+            .filter(|word| word.starts_with(input));
+
+        if let Some(first) = matches.next() {
+            if let Some(second) = matches.next() {
+                let mut result = vec![first.to_string(), second.to_string()];
+                for item in matches {
+                    result.push(item.to_string());
+                }
+                Err(LookUpError::Incomplete(result))
+            } else {
+                if input == first {
+                    Ok(first.to_string())
+                } else {
+                    Err(LookUpError::Incomplete(vec![first.to_string()]))
+                }
+            }
+        } else {
+            Err(LookUpError::Message(" no matches".into()))
         }
     }
-}
-
-trait DefaultFor<T> {
-    fn default_for() -> T;
 }
 
 pub trait LookUp: Sized {
@@ -317,7 +339,7 @@ pub fn prompt_input(
 ) {
     let backspace: bool = if keys.just_pressed(KeyCode::Back) {
         *backspace_delay = Some(Timer::new(
-            Duration::from_millis(config.hide_delay),
+            Duration::from_millis(300),
             TimerMode::Once,
         ));
         true
@@ -338,7 +360,6 @@ pub fn prompt_input(
     if mutate {
         let mut node = query.single_mut();
         let mut proc = node.0.take();
-        eprintln!("taking");
         if let Some(Proc(ProcContent::Prompt(mut read_prompt), ProcState::Active)) = proc {
             match read_prompt
                 .prompt
@@ -348,28 +369,30 @@ pub fn prompt_input(
                     match update {
                         Update::ReturnRaw => {
                             // This returns to the raw_read
-                            dbg!(&read_prompt.prompt.input);
+                            // dbg!(&read_prompt.prompt.input);
                             read_prompt.promise.resolve(read_prompt.prompt);
-                            eprintln!("leaving 1");
+                            // eprintln!("leaving 1");
                             return;
                         }
                         Update::Continue => {}
                     }
                 }
-                Err(e) => {
-                    read_prompt.promise.reject(e);
-                    eprintln!("leaving 2");
-                    return;
+                Err(e) => match e {
+                    NanoError::Message(msg) => read_prompt.prompt.message = msg.to_string(),
+                    NanoError::Cancelled => {
+                        node.0 = Some(Proc(ProcContent::Message(format!("{:?}", e).into()), ProcState::Active));
+                        read_prompt.promise.reject(e);
+                        eprintln!("leaving 2");
+                        return;
+                    }
                 }
             }
             proc = Some(Proc(ProcContent::Prompt(read_prompt), ProcState::Active));
         }
-        eprintln!("returning");
         node.0 = proc;
     }
 }
 
-/// prints every char coming in; press enter to echo the full string
 pub fn state_update(prompt_provider: ResMut<ConsoleConfig>, mut query: Query<&mut PromptNode>) {
     let mut console_state = prompt_provider.state.lock().unwrap();
     let mut node = query.single_mut();
@@ -406,15 +429,14 @@ pub fn prompt_output(
             text: &mut text,
             completion: completion_node,
             children: &children,
-            font,
-            commands: &mut commands,
+            font
         };
 
         match &mut node.0 {
             // Some(Proc(ProcContent::Prompt(read_prompt), x @ ProcState::Uninit)) => {
             Some(Proc(ProcContent::Prompt(read_prompt), x)) => {
-                eprintln!("setting prompt");
-                text_prompt.buf_write(&read_prompt.prompt);
+                // eprintln!("setting prompt");
+                text_prompt.buf_write(&read_prompt.prompt, &mut commands);
                 show_prompt.set(PromptState::Visible);
                 show_completion.set(if !read_prompt.prompt.completion.is_empty() {
                     CompletionState::Visible
@@ -425,7 +447,7 @@ pub fn prompt_output(
                 *x = ProcState::Active;
             }
             None => {
-                eprintln!("setting prompt invisible");
+                // eprintln!("setting prompt invisible");
                 show_prompt.set(PromptState::Invisible);
                 show_completion.set(CompletionState::Invisible);
                 redraw.send(RequestRedraw);
@@ -438,7 +460,7 @@ pub fn prompt_output(
 }
 
 pub fn message_update(
-    mut commands: Commands,
+    // mut commands: Commands,
     // time: Res<Time>,
     asset_server: Res<AssetServer>,
     keys: Res<Input<KeyCode>>,
@@ -465,8 +487,7 @@ pub fn message_update(
             text: &mut text,
             completion: completion_node,
             children: &children,
-            font,
-            commands: &mut commands,
+            font
         };
 
         match &mut node.0 {

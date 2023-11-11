@@ -14,12 +14,29 @@ impl<T: Send + 'static> TaskSink<T> {
     }
 }
 
-pub fn poll_tasks(mut commands: Commands, mut command_tasks: Query<(Entity, &mut TaskSink<()>)>) {
-    for (entity, mut task) in &mut command_tasks {
+pub fn poll_tasks(mut commands: Commands, mut tasks: Query<(Entity, &mut TaskSink<()>)>) {
+    for (entity, mut task) in &mut tasks {
         if future::block_on(future::poll_once(&mut task.0)).is_some() {
             eprintln!("Got () poll task");
             // Once
             //
+            commands.entity(entity).despawn();
+        }
+    }
+}
+
+/// Check for tasks which may emit a event we want to send.
+pub fn poll_event_tasks<T: Send + Event>(
+    mut commands: Commands,
+    mut run_command: EventWriter<T>,
+    mut tasks: Query<(Entity, &mut TaskSink<Option<T>>)>,
+) {
+    for (entity, mut task) in &mut tasks {
+        if let Some(maybe) = future::block_on(future::poll_once(&mut task.0)) {
+            eprintln!("Got event poll task");
+            if let Some(event) = maybe {
+                run_command.send(event);
+            }
             commands.entity(entity).despawn();
         }
     }

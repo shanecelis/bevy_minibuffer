@@ -70,29 +70,32 @@ impl Command {
 impl LookUp for Vec<Command> {
     type Item = Command;
     fn look_up(&self, input: &str) -> Result<Command, LookUpError> {
-        // It'd be nice to do this without an allocation.
-        let matches: Vec<&Command> = self
+        let mut matches = self
             .iter()
             .filter(|command| {
                 command
                     .flags
                     .contains(CommandFlags::AutoComplete | CommandFlags::Active)
                     && command.name.starts_with(input)
-            })
-            .collect();
-        match matches[..] {
-            [a] => {
-                // Require an exact match to return the item.
-                if input == a.name {
-                    Ok(a.clone())
+            });
+        // Collecting and matching is nice expressively. But manually iterating
+        // avoids that allocation.
+        if let Some(first) = matches.next() {
+            if let Some(second) = matches.next() {
+                let mut result = vec![first.name.to_string(), second.name.to_string()];
+                for item in matches {
+                    result.push(item.name.to_string());
+                }
+                Err(LookUpError::Incomplete(result))
+            } else {
+                if input == first.name {
+                    Ok(first.clone())
                 } else {
-                    Err(LookUpError::Incomplete(vec![a.name.to_string()]))
+                    Err(LookUpError::Incomplete(vec![first.name.to_string()]))
                 }
             }
-            [_a, _b, ..] => Err(LookUpError::Incomplete(
-                matches.into_iter().map(|s| s.name.to_string()).collect(),
-            )),
-            [] => Err(LookUpError::Message(" no matches".into())),
+        } else {
+            Err(LookUpError::Message(" no matches".into()))
         }
     }
 }
@@ -163,33 +166,19 @@ pub fn exec_command(
 ) -> impl Future<Output = Option<RunCommandEvent>> {
     let commands = config.commands.clone();
     async move {
-        if let Ok(command) = prompt.read_crit(": ", &commands).await {
-            // We can't keep an EventWriter in our closure so we return it from
-            // our task.
-            Some(RunCommandEvent(
-                command
-                    .system_id
-                    .expect("No system_id for command; was it registered?"),
-            ))
-        } else {
-            eprintln!("Got err in exec_command");
-            None
+        match prompt.read_crit(": ", &commands).await {
+            Ok(command) =>
+                // We can't keep an EventWriter in our closure so we return it from
+                // our task.
+                Some(RunCommandEvent(
+                    command
+                        .system_id
+                        .expect("No system_id for command; was it registered?"))),
+            Err(e) => {
+                eprintln!("Got err in exec_command: {:?}", e);
+                None
+            }
         }
     }
 }
 
-pub fn poll_event_tasks<T: Send + Event>(
-    mut commands: Commands,
-    mut run_command: EventWriter<T>,
-    mut command_tasks: Query<(Entity, &mut TaskSink<Option<T>>)>,
-) {
-    for (entity, mut task) in &mut command_tasks {
-        if let Some(maybe) = future::block_on(future::poll_once(&mut task.0)) {
-            eprintln!("Got event poll task");
-            if let Some(event) = maybe {
-                run_command.send(event);
-            }
-            commands.entity(entity).despawn();
-        }
-    }
-}

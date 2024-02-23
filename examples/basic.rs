@@ -5,7 +5,7 @@ use bevy_nano_console::proc::*;
 use bevy_nano_console::prompt::*;
 use bevy_nano_console::tasks::*;
 use bevy_nano_console::*;
-use nano_macro::*;
+use keyseq::bevy::pkeyseq as keyseq;
 use std::future::Future;
 
 fn ask_name<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
@@ -53,7 +53,8 @@ fn main() {
             ask_name.pipe(task_sink),
         )
         .add_command(
-            Command::new("ask_age", vec![KeyCode::A, KeyCode::A]),
+            // Command::new("ask_age", vec![KeyCode::A, KeyCode::A]),
+            Command::new("ask_age", keyseq!(A A)),
             ask_age.pipe(task_sink),
         )
         .add_command(

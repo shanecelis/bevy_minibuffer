@@ -1,7 +1,6 @@
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
 use bitflags::bitflags;
-use futures_lite::future;
 use std::borrow::Cow;
 use std::future::Future;
 use trie_rs::{Trie, TrieBuilder};
@@ -9,7 +8,6 @@ use trie_rs::{Trie, TrieBuilder};
 use crate::hotkey::*;
 use crate::proc::*;
 use crate::prompt::*;
-use crate::tasks::*;
 
 pub struct RunCommandEvent(pub SystemId);
 impl Event for RunCommandEvent {}
@@ -52,7 +50,9 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn new(name: impl Into<Cow<'static, str>>, hotkey: Vec<impl Into<Key>>) -> Self {
+
+    pub fn new<T>(name: impl Into<Cow<'static, str>>, hotkey: impl IntoIterator<Item = T>) -> Self
+        where Key: From<T> {
         Command {
             name: name.into(),
             hotkey: Some(hotkey.into_iter().map(|v| v.into()).collect()),

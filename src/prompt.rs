@@ -333,7 +333,7 @@ pub fn prompt_input(
     mut char_events: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
     mut backspace_delay: Local<Option<Timer>>,
-    config: Res<ConsoleConfig>,
+    _config: Res<ConsoleConfig>,
     time: Res<Time>,
     mut query: Query<&mut PromptNode>,
 ) {

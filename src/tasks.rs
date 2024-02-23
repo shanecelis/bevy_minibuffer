@@ -13,6 +13,14 @@ impl<T: Send + 'static> TaskSink<T> {
         Self(task)
     }
 }
+pub fn task_sink<T: Send + 'static>(
+    In(future): In<impl Future<Output = T> + Send + 'static>,
+    mut commands: Commands,
+) {
+    eprintln!("spawn task sink for type {:?}", std::any::type_name::<T>());
+    // commands.spawn(TaskSink::new(async move { future.await }));
+    commands.spawn(TaskSink::new(future));
+}
 
 pub fn poll_tasks(mut commands: Commands, mut tasks: Query<(Entity, &mut TaskSink<()>)>) {
     for (entity, mut task) in &mut tasks {
@@ -42,11 +50,3 @@ pub fn poll_event_tasks<T: Send + Event>(
     }
 }
 
-pub fn task_sink<T: Send + 'static>(
-    In(future): In<impl Future<Output = T> + Send + 'static>,
-    mut commands: Commands,
-) {
-    eprintln!("spawn task sink for type {:?}", std::any::type_name::<T>());
-    // commands.spawn(TaskSink::new(async move { future.await }));
-    commands.spawn(TaskSink::new(future));
-}

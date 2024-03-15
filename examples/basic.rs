@@ -57,7 +57,7 @@ fn main() {
         //     Act::new("ask_age", keyseq!(A A)),
         //     ask_age.pipe(task_sink),
         // )
-        .add_command(
+        .add_act(
             Act::unregistered()
                 .name("exec_command")
                 .hotkey(keyseq!(shift-;))
@@ -78,8 +78,14 @@ fn add_acts(world: &mut World) {
 }
 
 fn add_acts2(mut commands: Commands) {
+
     commands.spawn(Act::unregistered()
                    .name("ask_age")
                    .hotkey(keyseq!(A A)))
         .add(Register::new(ask_age.pipe(task_sink)));
+
+    commands.add_act(Act::unregistered()
+                   .name("ask_age2")
+                   .hotkey(keyseq!(B B)),
+                     ask_age.pipe(task_sink));
 }

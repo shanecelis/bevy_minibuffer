@@ -142,7 +142,7 @@ where
 // }
 
 pub trait AddAct {
-    fn add_command<Params>(
+    fn add_act<Params>(
         &mut self,
         cmd: impl Into<Act>,
         system: impl IntoSystem<(), (), Params> + 'static,
@@ -150,7 +150,7 @@ pub trait AddAct {
 }
 
 impl AddAct for App {
-    fn add_command<Params>(
+    fn add_act<Params>(
         &mut self,
         cmd: impl Into<Act>,
         system: impl IntoSystem<(), (), Params> + 'static,
@@ -179,6 +179,19 @@ impl AddAct for App {
         }
 
         // self.world.spawn(cmd.clone());
+        self
+    }
+}
+
+impl AddAct for Commands<'_, '_ >  {
+    fn add_act<Params>(
+        &mut self,
+        act: impl Into<Act>,
+        system: impl IntoSystem<(), (), Params> + 'static,
+    ) -> &mut Self {
+
+        self.spawn(act.into())
+                .add(Register::new(system));
         self
     }
 }

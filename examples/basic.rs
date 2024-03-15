@@ -49,16 +49,16 @@ fn main() {
         // .add_command("ask_name", ask_name.pipe(task_sink))
         .add_command(
             // Command::new("ask_name", Some(vec![KeyCode::Digit1])),
-            Command::new("ask_name", keyseq!(1)),
+            Act::new("ask_name", keyseq!(1)),
             ask_name.pipe(task_sink),
         )
         .add_command(
             // Command::new("ask_age", vec![KeyCode::KeyA, KeyCode::KeyA]),
-            Command::new("ask_age", keyseq!(A A)),
+            Act::new("ask_age", keyseq!(A A)),
             ask_age.pipe(task_sink),
         )
         .add_command(
-            Command::new(
+            Act::new(
                 "exec_command",
                 keyseq!(shift-;),
             )

@@ -51,4 +51,3 @@ pub use keyseq::{Modifiers, bevy::{pkey as key, pkeyseq as keyseq}};
 // we could have 192 bits/40 bits = 4.8 Keys for the same stack price.
 pub type KeySeq = Vec<Key>;
 pub type Key = (Modifiers, KeyCode);
-

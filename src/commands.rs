@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use bitflags::bitflags;
 use std::borrow::Cow;
 use std::future::Future;
-use trie_rs::{Trie, TrieBuilder};
 use bevy_input_sequence::*;
 
 use crate::hotkey::*;
@@ -15,52 +14,52 @@ pub struct RunCommandEvent(pub SystemId);
 impl Event for RunCommandEvent {}
 #[derive(Resource, Default)]
 pub struct CommandConfig {
-    pub(crate) commands: Vec<Command>,
+    pub(crate) commands: Vec<Act>,
 }
 
 bitflags! {
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
-    pub struct CommandFlags: u8 {
+    pub struct ActFlags: u8 {
         const Active       = 0b00000001;
         const AutoComplete = 0b00000010;
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Command {
+
+#[derive(Debug, Clone, Component)]
+pub struct Act {
     pub(crate) name: Cow<'static, str>,
     pub(crate) hotkey: Option<KeySeq>,
     pub system_id: Option<SystemId>,
-    pub flags: CommandFlags,
+    pub flags: ActFlags,
 }
 
-impl Command {
-
+impl Act {
     pub fn new<T>(name: impl Into<Cow<'static, str>>, hotkey: impl IntoIterator<Item = T>) -> Self
         where Key: From<T> {
-        Command {
+        Act {
             name: name.into(),
             hotkey: Some(hotkey.into_iter().map(|v| v.into()).collect()),
             system_id: None,
-            flags: CommandFlags::Active | CommandFlags::AutoComplete,
+            flags: ActFlags::Active | ActFlags::AutoComplete,
         }
     }
 
     pub fn autocomplete(mut self, yes: bool) -> Self {
-        self.flags.set(CommandFlags::AutoComplete, yes);
+        self.flags.set(ActFlags::AutoComplete, yes);
         self
     }
 }
 
-impl LookUp for Vec<Command> {
-    type Item = Command;
-    fn look_up(&self, input: &str) -> Result<Command, LookUpError> {
+impl LookUp for Vec<Act> {
+    type Item = Act;
+    fn look_up(&self, input: &str) -> Result<Act, LookUpError> {
         let mut matches = self
             .iter()
             .filter(|command| {
                 command
                     .flags
-                    .contains(CommandFlags::AutoComplete | CommandFlags::Active)
+                    .contains(ActFlags::AutoComplete | ActFlags::Active)
                     && command.name.starts_with(input)
             });
         // Collecting and matching is nice expressively. But manually iterating
@@ -85,32 +84,32 @@ impl LookUp for Vec<Command> {
     }
 }
 
-impl<T> From<T> for Command
+impl<T> From<T> for Act
 where
     T: Into<Cow<'static, str>>,
 {
     fn from(v: T) -> Self {
-        Command {
+        Act {
             name: v.into(),
             hotkey: None,
             system_id: None,
-            flags: CommandFlags::Active | CommandFlags::AutoComplete,
+            flags: ActFlags::Active | ActFlags::AutoComplete,
         }
     }
 }
 
-pub trait AddCommand {
+pub trait AddAct {
     fn add_command<Params>(
         &mut self,
-        cmd: impl Into<Command>,
+        cmd: impl Into<Act>,
         system: impl IntoSystem<(), (), Params> + 'static,
     ) -> &mut Self;
 }
 
-impl AddCommand for App {
+impl AddAct for App {
     fn add_command<Params>(
         &mut self,
-        cmd: impl Into<Command>,
+        cmd: impl Into<Act>,
         system: impl IntoSystem<(), (), Params> + 'static,
     ) -> &mut Self {
         // Register the system.
@@ -148,9 +147,10 @@ pub fn run_command_listener(mut events: EventReader<RunCommandEvent>, mut comman
 
 pub fn exec_command(
     mut prompt: Prompt,
-    config: Res<CommandConfig>,
+    query: Query<&Act>,
 ) -> impl Future<Output = Option<RunCommandEvent>> {
-    let commands = config.commands.clone();
+    // let commands = config.commands.clone();
+    let commands: Vec<Act> = query.iter().cloned().collect();
     async move {
         match prompt.read_crit(": ", &commands).await {
             Ok(command) =>
@@ -167,4 +167,3 @@ pub fn exec_command(
         }
     }
 }
-

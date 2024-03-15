@@ -54,15 +54,15 @@ fn main() {
         // .add_command("ask_name", ask_name.pipe(task_sink))
         .add_command(
             // Command::new("ask_name", Some(vec![KeyCode::Key1])),
-            Command::new("ask_name", keyseq!(1)),
+            Act::new("ask_name", keyseq!(1)),
             ask_name.pipe(task_sink),
         )
         .add_command(
-            Command::new("ask_age", keyseq!(A A)),
+            Act::new("ask_age", keyseq!(A A)),
             ask_age.pipe(task_sink),
         )
         .add_command(
-            Command::new("exec_command", keyseq!(shift-;)).autocomplete(false),
+            Act::new("exec_command", keyseq!(shift-;)).autocomplete(false),
             exec_command.pipe(task_sink),
         )
         .add_systems(Startup, setup)

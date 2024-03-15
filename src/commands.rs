@@ -12,10 +12,6 @@ use crate::prompt::*;
 #[derive(Clone)]
 pub struct RunCommandEvent(pub SystemId);
 impl Event for RunCommandEvent {}
-#[derive(Resource, Default)]
-pub struct CommandConfig {
-    pub(crate) commands: Vec<Act>,
-}
 
 bitflags! {
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
@@ -98,6 +94,12 @@ where
     }
 }
 
+impl bevy::ecs::system::Command for Act {
+    fn apply(self, world: &mut World) {
+
+    }
+}
+
 pub trait AddAct {
     fn add_command<Params>(
         &mut self,
@@ -123,16 +125,16 @@ impl AddAct for App {
         let system_id = self.world.register_system(system);
         cmd.system_id = Some(system_id);
 
-        if cmd.hotkey.is_some() {
-            self.world.spawn(KeySequence::new(RunCommandEvent(system_id), cmd.hotkey.as_ref().unwrap().clone()));
-        }
         // Add the command.
-        let mut config = self.world.resource_mut::<CommandConfig>();
-        if config.commands.iter().any(|i| i.name == cmd.name) {
-            let name = cmd.name;
-            warn!("nano command '{name}' already added; ignoring.");
-        } else {
-            config.commands.push(cmd);
+        // if config.commands.iter().any(|i| i.name == cmd.name) {
+        //     let name = cmd.name;
+        //     warn!("nano command '{name}' already added; ignoring.");
+        // } else {
+        //     config.commands.push(cmd);
+        // }
+        let mut spawn = self.world.spawn(cmd.clone());
+        if cmd.hotkey.is_some() {
+            spawn.insert(KeySequence::new(RunCommandEvent(system_id), cmd.hotkey.as_ref().unwrap().clone()));
         }
 
         self

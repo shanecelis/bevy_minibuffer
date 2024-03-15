@@ -25,7 +25,6 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .init_resource::<ConsoleConfig>()
-            .init_resource::<CommandConfig>()
             .add_systems(Startup,   spawn_layout)
             .add_systems(PreUpdate, run_command_listener)
             .add_systems(Update,    hide_prompt_maybe)

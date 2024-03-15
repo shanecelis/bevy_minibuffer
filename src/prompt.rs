@@ -86,7 +86,7 @@ impl PromptBuf {
     fn will_update(
         &self,
         char_events: &EventReader<ReceivedCharacter>,
-        keys: &Res<Input<KeyCode>>,
+        keys: &Res<ButtonInput<KeyCode>>,
         backspace: bool,
     ) -> bool {
         keys.just_pressed(KeyCode::Escape) || backspace || !char_events.is_empty()
@@ -95,14 +95,14 @@ impl PromptBuf {
     fn update(
         &mut self,
         char_events: &mut EventReader<ReceivedCharacter>,
-        keys: &Res<Input<KeyCode>>,
+        keys: &Res<ButtonInput<KeyCode>>,
         backspace: bool,
     ) -> Result<Update, NanoError> {
         if keys.just_pressed(KeyCode::Escape) {
             self.message = " Quit".into();
             return Err(NanoError::Cancelled);
         }
-        if keys.just_pressed(KeyCode::Return) {
+        if keys.just_pressed(KeyCode::Enter) {
             self.flags |= Requests::Submit;
             return Ok(Update::ReturnRaw);
         }
@@ -119,7 +119,7 @@ impl PromptBuf {
             self.input.extend(
                 char_events
                     .read()
-                    .map(|ev| ev.char)
+                    .flat_map(|ev| ev.char.chars())
                     .filter(|c| !c.is_ascii_control()),
             );
             self.message.clear();
@@ -331,20 +331,20 @@ impl Parse for i32 {
 // [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]
 pub fn prompt_input(
     mut char_events: EventReader<ReceivedCharacter>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut backspace_delay: Local<Option<Timer>>,
     _config: Res<ConsoleConfig>,
     time: Res<Time>,
     mut query: Query<&mut PromptNode>,
 ) {
-    let backspace: bool = if keys.just_pressed(KeyCode::Back) {
+    let backspace: bool = if keys.just_pressed(KeyCode::Backspace) {
         *backspace_delay = Some(Timer::new(
             Duration::from_millis(300),
             TimerMode::Once,
         ));
         true
     } else if let Some(ref mut timer) = *backspace_delay {
-        timer.tick(time.delta()).finished() && keys.pressed(KeyCode::Back)
+        timer.tick(time.delta()).finished() && keys.pressed(KeyCode::Backspace)
     } else {
         false
     };
@@ -464,7 +464,7 @@ pub fn message_update(
     // mut commands: Commands,
     // time: Res<Time>,
     asset_server: Res<AssetServer>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut show_prompt: ResMut<NextState<PromptState>>,
     mut show_completion: ResMut<NextState<CompletionState>>,
     mut redraw: EventWriter<RequestRedraw>,

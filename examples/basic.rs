@@ -48,21 +48,19 @@ fn main() {
         }))
         // .add_command("ask_name", ask_name.pipe(task_sink))
         .add_command(
-            // Command::new("ask_name", Some(vec![KeyCode::Key1])),
+            // Command::new("ask_name", Some(vec![KeyCode::Digit1])),
             Command::new("ask_name", keyseq!(1)),
             ask_name.pipe(task_sink),
         )
         .add_command(
-            // Command::new("ask_age", vec![KeyCode::A, KeyCode::A]),
+            // Command::new("ask_age", vec![KeyCode::KeyA, KeyCode::KeyA]),
             Command::new("ask_age", keyseq!(A A)),
             ask_age.pipe(task_sink),
         )
         .add_command(
             Command::new(
                 "exec_command",
-                keyseq!(:), // BUG: This doesn't work because pressing colon produces shift-Semicolon.
-                            // How do we deal with that?
-                            // vec![KeyCode::Colon]
+                keyseq!(shift-;),
             )
             .autocomplete(false),
             exec_command.pipe(task_sink),

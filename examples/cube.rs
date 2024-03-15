@@ -5,7 +5,7 @@ use bevy_nano_console::tasks::*;
 // use bevy_nano_console::ui::*;
 use bevy_nano_console::proc::*;
 use bevy_nano_console::*;
-use nano_macro::*;
+use bevy_input_sequence::*;
 use std::f32::consts::TAU;
 use std::future::Future;
 
@@ -58,11 +58,11 @@ fn main() {
             ask_name.pipe(task_sink),
         )
         .add_command(
-            Command::new("ask_age", vec![KeyCode::A, KeyCode::A]),
+            Command::new("ask_age", keyseq!(A A)),
             ask_age.pipe(task_sink),
         )
         .add_command(
-            Command::new("exec_command", keyseq!(:)).autocomplete(false),
+            Command::new("exec_command", keyseq!(shift-;)).autocomplete(false),
             exec_command.pipe(task_sink),
         )
         .add_systems(Startup, setup)
@@ -78,8 +78,8 @@ fn setup(
     // Spawn a cube to rotate.
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: materials.add(Color::WHITE.into()),
+            mesh: meshes.add(Mesh::from(Cuboid::new(1.0, 1.0, 1.0))),
+            material: materials.add(Color::WHITE),
             transform: Transform::from_translation(Vec3::ZERO),
             ..default()
         },

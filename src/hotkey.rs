@@ -5,7 +5,7 @@ pub use keyseq::{Modifiers, bevy::{pkey as key, pkeyseq as keyseq}};
 
 pub fn hotkey_input(
     mut run_command: EventWriter<RunCommandEvent>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut config: ResMut<CommandConfig>,
     mut last_keys: Local<Vec<Key>>,
 ) {

@@ -57,14 +57,13 @@ fn main() {
         //     Act::new("ask_age", keyseq!(A A)),
         //     ask_age.pipe(task_sink),
         // )
-        // .add_command(
-        //     Act::new(
-        //         "exec_command",
-        //         keyseq!(shift-;),
-        //     )
-        //     .autocomplete(false),
-        //     exec_command.pipe(task_sink),
-        // )
+        .add_command(
+            Act::unregistered()
+                .name("exec_command")
+                .hotkey(keyseq!(shift-;))
+                .autocomplete(false),
+            exec_command.pipe(task_sink),
+        )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)
         .add_systems(Startup, add_acts2)

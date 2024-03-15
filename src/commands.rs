@@ -4,7 +4,6 @@ use bitflags::bitflags;
 use std::borrow::Cow;
 use std::future::Future;
 use bevy_input_sequence::*;
-use std::marker::PhantomData;
 
 use crate::hotkey::*;
 use crate::proc::*;
@@ -25,7 +24,7 @@ bitflags! {
 
 #[derive(Debug, Clone, Component)]
 pub struct Act {
-    pub(crate) name: Cow<'static, str>,
+    pub(crate) name: Cow<'static, str>, // TODO: Make option.
     pub(crate) hotkey: Option<KeySeq>,
     pub system_id: Option<SystemId>,
     pub flags: ActFlags,
@@ -41,7 +40,8 @@ impl<S> Register<S> {
     }
 }
 
-impl<S> bevy::ecs::system::EntityCommand for Register<S> where S: System<In = (), Out = ()> + Send + 'static {
+impl<S> bevy::ecs::system::EntityCommand for Register<S>
+where S: System<In = (), Out = ()> + Send + 'static {
 
     fn apply(self, id: Entity, world: &mut World) {
         eprintln!("registering");
@@ -178,11 +178,13 @@ impl AddAct for App {
             spawn.insert(KeySequence::new(RunCommandEvent(system_id), cmd.hotkey.as_ref().unwrap().clone()));
         }
 
+        // self.world.spawn(cmd.clone());
         self
     }
 }
 
-pub(crate) fn detect_additions(query: Query<(Entity, &Act), Added<Act>>,
+pub(crate) fn detect_additions<E: Send + Sync + 'static>(query: Query<(Entity, &Act),
+                                                                      (Added<Act>, Without<KeySequence<E>>)>,
                     mut commands: Commands) {
     for (id, act) in &query {
         if let Some(ref keys) = act.hotkey {

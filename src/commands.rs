@@ -4,33 +4,18 @@ use bitflags::bitflags;
 use std::borrow::Cow;
 use std::future::Future;
 use trie_rs::{Trie, TrieBuilder};
+use bevy_input_sequence::*;
 
 use crate::hotkey::*;
 use crate::proc::*;
 use crate::prompt::*;
 
+#[derive(Clone)]
 pub struct RunCommandEvent(pub SystemId);
 impl Event for RunCommandEvent {}
 #[derive(Resource, Default)]
 pub struct CommandConfig {
     pub(crate) commands: Vec<Command>,
-    pub(crate) hotkeys: Option<Trie<Key>>,
-}
-
-impl CommandConfig {
-    pub fn hotkeys(&mut self) -> &Trie<Key> {
-        self.hotkeys.get_or_insert_with(|| {
-            let mut builder = TrieBuilder::new();
-            for hotkey in self
-                .commands
-                .iter()
-                .filter_map(|command| command.hotkey.as_ref())
-            {
-                builder.push(hotkey.clone());
-            }
-            builder.build()
-        })
-    }
 }
 
 bitflags! {
@@ -136,8 +121,12 @@ impl AddCommand for App {
                 cmd.name
             );
         }
-        cmd.system_id = Some(self.world.register_system(system));
+        let system_id = self.world.register_system(system);
+        cmd.system_id = Some(system_id);
 
+        if cmd.hotkey.is_some() {
+            self.world.spawn(KeySequence::new(RunCommandEvent(system_id), cmd.hotkey.as_ref().unwrap().clone()));
+        }
         // Add the command.
         let mut config = self.world.resource_mut::<CommandConfig>();
         if config.commands.iter().any(|i| i.name == cmd.name) {
@@ -146,10 +135,7 @@ impl AddCommand for App {
         } else {
             config.commands.push(cmd);
         }
-        if config.hotkeys.is_some() {
-            warn!("resetting hotkey trie.");
-            config.hotkeys = None
-        }
+
         self
     }
 }

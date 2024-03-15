@@ -6,6 +6,7 @@ pub mod proc;
 pub mod prompt;
 pub mod tasks;
 pub mod ui;
+use bevy_input_sequence::*;
 
 pub struct NanoPromptPlugin;
 #[rustfmt::skip]
@@ -20,7 +21,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
         use hotkey::*;
         use proc::*;
         use ui::*;
-        app.add_event::<RunCommandEvent>()
+        app.add_key_sequence_event::<RunCommandEvent>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .init_resource::<ConsoleConfig>()
@@ -35,7 +36,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .add_systems(Update,    poll_tasks)
             .add_systems(Update,    poll_event_tasks::<RunCommandEvent>)
             .add_systems(Update,    mouse_scroll)
-            .add_systems(Update,    hotkey_input)
+            // .add_systems(Update,    hotkey_input)
             .add_systems(OnEnter(PromptState::Visible),     show::<PromptContainer>)
             .add_systems( OnExit(PromptState::Visible),     hide_delayed::<PromptContainer>)
             .add_systems(OnEnter(CompletionState::Visible), show::<CompletionContainer>)

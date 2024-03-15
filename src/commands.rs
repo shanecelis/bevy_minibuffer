@@ -4,6 +4,7 @@ use bitflags::bitflags;
 use std::borrow::Cow;
 use std::future::Future;
 use bevy_input_sequence::*;
+use std::marker::PhantomData;
 
 use crate::hotkey::*;
 use crate::proc::*;
@@ -30,15 +31,56 @@ pub struct Act {
     pub flags: ActFlags,
 }
 
+pub struct Register<S,T>(S, PhantomData<T>)
+where S: IntoSystem<(), (), T> + 'static;
+
+impl<S,T> Register<S,T>
+where S: IntoSystem<(), (), T> + Send + 'static {
+    pub fn new(system: S) -> Self where S: IntoSystem<(), (), T> + 'static {
+        Self(system, PhantomData)
+    }
+}
+
+impl<S,T> bevy::ecs::system::EntityCommand for Register<S,T> where S: IntoSystem<(), (), T> + Send + 'static,
+T: Send + 'static {
+
+    fn apply(self, id: Entity, world: &mut World) {
+        eprintln!("registering");
+        let system_id = world.register_system(self.0);
+        let mut entity = world.get_entity_mut(id).unwrap();
+        let mut act = entity.get_mut::<Act>().unwrap();
+        act.system_id = Some(system_id);
+    }
+}
+
 impl Act {
-    pub fn new<T>(name: impl Into<Cow<'static, str>>, hotkey: impl IntoIterator<Item = T>) -> Self
-        where Key: From<T> {
+
+    pub fn unregistered() -> Self {
         Act {
-            name: name.into(),
-            hotkey: Some(hotkey.into_iter().map(|v| v.into()).collect()),
+            name: "".into(),
+            hotkey: None,
             system_id: None,
             flags: ActFlags::Active | ActFlags::AutoComplete,
         }
+    }
+    pub fn new(system_id: SystemId) -> Self {
+        Act {
+            name: "".into(),
+            hotkey: None,
+            system_id: Some(system_id),
+            flags: ActFlags::Active | ActFlags::AutoComplete,
+        }
+    }
+
+    pub fn name(mut self, name: impl Into<Cow<'static, str>>) -> Self {
+        self.name = name.into();
+        self
+    }
+
+    pub fn hotkey<T>(mut self, hotkey: impl IntoIterator<Item = T>) -> Self
+        where Key: From<T> {
+        self.hotkey = Some(hotkey.into_iter().map(|v| v.into()).collect());
+        self
     }
 
     pub fn autocomplete(mut self, yes: bool) -> Self {
@@ -94,11 +136,11 @@ where
     }
 }
 
-impl bevy::ecs::system::Command for Act {
-    fn apply(self, world: &mut World) {
+// impl bevy::ecs::system::Command for Act {
+//     fn apply(self, world: &mut World) {
 
-    }
-}
+//     }
+// }
 
 pub trait AddAct {
     fn add_command<Params>(
@@ -141,6 +183,16 @@ impl AddAct for App {
     }
 }
 
+pub(crate) fn detect_additions(query: Query<(Entity, &Act), Added<Act>>,
+                    mut commands: Commands) {
+    for (id, act) in &query {
+        if let Some(ref keys) = act.hotkey {
+            eprintln!("add key");
+            commands.entity(id).insert(KeySequence::new(RunCommandEvent(act.system_id.unwrap()), keys.clone()));
+        }
+    }
+}
+
 pub fn run_command_listener(mut events: EventReader<RunCommandEvent>, mut commands: Commands) {
     for e in events.read() {
         commands.run_system(e.0);
@@ -151,7 +203,6 @@ pub fn exec_command(
     mut prompt: Prompt,
     query: Query<&Act>,
 ) -> impl Future<Output = Option<RunCommandEvent>> {
-    // let commands = config.commands.clone();
     let commands: Vec<Act> = query.iter().cloned().collect();
     async move {
         match prompt.read_crit(": ", &commands).await {

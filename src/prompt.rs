@@ -1,3 +1,4 @@
+#![allow(async_fn_in_trait)]
 use bitflags::bitflags;
 use std::borrow::Cow;
 use std::fmt::Debug;

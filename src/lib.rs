@@ -18,7 +18,6 @@ impl bevy::app::Plugin for NanoPromptPlugin {
         use commands::*;
         use prompt::*;
         use tasks::*;
-        use hotkey::*;
         use proc::*;
         use ui::*;
         app.add_key_sequence_event::<RunCommandEvent>()
@@ -33,6 +32,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .add_systems(Update,    prompt_output.after(prompt_input))
             .add_systems(Update,    message_update)
             .add_systems(Update,    poll_tasks)
+            .add_systems(Update,    detect_additions)
             .add_systems(Update,    poll_event_tasks::<RunCommandEvent>)
             .add_systems(Update,    mouse_scroll)
             // .add_systems(Update,    hotkey_input)

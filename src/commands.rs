@@ -31,18 +31,17 @@ pub struct Act {
     pub flags: ActFlags,
 }
 
-pub struct Register<S,T>(S, PhantomData<T>)
-where S: IntoSystem<(), (), T> + 'static;
+pub struct Register<S>(S);
 
-impl<S,T> Register<S,T>
-where S: IntoSystem<(), (), T> + Send + 'static {
-    pub fn new(system: S) -> Self where S: IntoSystem<(), (), T> + 'static {
-        Self(system, PhantomData)
+impl<S> Register<S> {
+    pub fn new<Into, Param>(system: Into) -> Self
+        where Into: IntoSystem<(), (), Param, System = S> + 'static,
+    {
+        Self(IntoSystem::into_system(system))
     }
 }
 
-impl<S,T> bevy::ecs::system::EntityCommand for Register<S,T> where S: IntoSystem<(), (), T> + Send + 'static,
-T: Send + 'static {
+impl<S> bevy::ecs::system::EntityCommand for Register<S> where S: System<In = (), Out = ()> + Send + 'static {
 
     fn apply(self, id: Entity, world: &mut World) {
         eprintln!("registering");

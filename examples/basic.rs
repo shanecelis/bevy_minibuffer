@@ -67,6 +67,7 @@ fn main() {
         // )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)
+        .add_systems(Startup, add_acts2)
         .run();
 }
 

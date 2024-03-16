@@ -154,7 +154,7 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                     background_color: BackgroundColor(Color::BLACK),
                     ..Default::default()
                 })
-                // .insert(PromptContainer {})
+                .insert(PromptContainer {})
                 .with_children(|builder| {
                     builder
                         .spawn(TextBundle::from_sections([

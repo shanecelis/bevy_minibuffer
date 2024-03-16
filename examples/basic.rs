@@ -5,8 +5,11 @@ use bevy_nano_console::proc::*;
 use bevy_nano_console::prompt::*;
 use bevy_nano_console::tasks::*;
 use bevy_nano_console::*;
+use bevy_nano_console::ui::*;
 use keyseq::bevy::pkeyseq as keyseq;
 use std::future::Future;
+use asky::prelude::*;
+use asky::bevy::*;
 
 fn ask_name<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
     async move {
@@ -30,6 +33,19 @@ fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
     }
 }
 
+fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptNode>>) -> impl Future<Output = ()> {
+    let id: Entity = query.single();
+    async move {
+        asky.clear(id);
+        if let Ok(age) = asky.prompt(Number::<u8>::new("What's your age? "), id).await {
+            asky.clear(id);
+            asky.prompt(Message::new(format!("You are {age} years old.")), id);
+        } else {
+            eprintln!("Got err in ask age");
+        }
+    }
+}
+
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
@@ -46,23 +62,23 @@ fn main() {
             }),
             ..Default::default()
         }))
-        // .add_command("ask_name", ask_name.pipe(task_sink))
+        // .add_command("ask_name", ask_name.pipe(future_sink))
         // .add_command(
         //     // Command::new("ask_name", Some(vec![KeyCode::Digit1])),
         //     Act::new("ask_name", keyseq!(1)),
-        //     ask_name.pipe(task_sink),
+        //     ask_name.pipe(future_sink),
         // )
         // .add_command(
         //     // Command::new("ask_age", vec![KeyCode::KeyA, KeyCode::KeyA]),
         //     Act::new("ask_age", keyseq!(A A)),
-        //     ask_age.pipe(task_sink),
+        //     ask_age.pipe(future_sink),
         // )
         .add_act(
             Act::unregistered()
                 .named("exec_command")
                 .hotkey(keyseq!(shift-;))
                 .autocomplete(false),
-            exec_command.pipe(task_sink),
+            exec_command.pipe(future_sink),
         )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)
@@ -71,7 +87,7 @@ fn main() {
 }
 
 fn add_acts(world: &mut World) {
-    let system_id = world.register_system(ask_name.pipe(task_sink));
+    let system_id = world.register_system(ask_name.pipe(future_sink));
     world.spawn(Act::new(system_id)
         .named("ask_name")
         .hotkey(keyseq!(1)));
@@ -82,11 +98,17 @@ fn add_acts2(mut commands: Commands) {
     commands.spawn(Act::unregistered()
                    .named("ask_age")
                    .hotkey(keyseq!(A A)))
-        .add(Register::new(ask_age.pipe(task_sink)));
+        .add(Register::new(ask_age.pipe(future_sink)));
 
     commands.add_act(Act::unregistered()
                      .named("ask_age2")
                      .hotkey(keyseq!(B B)),
 
-                     ask_age.pipe(task_sink));
+                     ask_age.pipe(future_sink));
+
+    commands.add_act(Act::unregistered()
+                     .named("asky_age")
+                     .hotkey(keyseq!(C C)),
+
+                     asky_age.pipe(future_sink));
 }

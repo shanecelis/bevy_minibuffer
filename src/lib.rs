@@ -7,6 +7,7 @@ pub mod prompt;
 pub mod tasks;
 pub mod ui;
 use bevy_input_sequence::*;
+use asky::bevy::AskyPlugin;
 
 pub struct NanoPromptPlugin;
 #[rustfmt::skip]
@@ -20,7 +21,8 @@ impl bevy::app::Plugin for NanoPromptPlugin {
         use tasks::*;
         use proc::*;
         use ui::*;
-        app.add_key_sequence_event::<RunCommandEvent>()
+        app.add_plugins(AskyPlugin)
+            .add_key_sequence_event::<RunCommandEvent>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .init_resource::<ConsoleConfig>()

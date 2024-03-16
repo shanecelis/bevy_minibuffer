@@ -33,7 +33,7 @@ fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
     }
 }
 
-fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptNode>>) -> impl Future<Output = ()> {
+fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptContainer>>) -> impl Future<Output = ()> {
     let id: Entity = query.single();
     async move {
         asky.clear(id);

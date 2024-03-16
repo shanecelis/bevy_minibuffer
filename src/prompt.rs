@@ -395,125 +395,125 @@ pub fn prompt_input(
     }
 }
 
-pub fn state_update(prompt_provider: ResMut<ConsoleConfig>, mut query: Query<&mut PromptNode>) {
-    let mut console_state = prompt_provider.state.lock().unwrap();
-    let mut node = query.single_mut();
+// pub fn state_update(prompt_provider: ResMut<ConsoleConfig>, mut query: Query<&mut PromptNode>) {
+//     let mut console_state = prompt_provider.state.lock().unwrap();
+//     let mut node = query.single_mut();
 
-    if !console_state.unprocessed.is_empty() {
-        if let Some(x) = node.0.take() {
-            console_state.asleep.push(x);
-        }
-        let mut unprocessed = vec![];
-        std::mem::swap(&mut console_state.unprocessed, &mut unprocessed);
-        console_state.asleep.extend(unprocessed.drain(0..));
-        node.0 = console_state.asleep.pop();
-        // eprintln!("node.0 set 1 {:?}", node.0);
-    } else if node.0.is_none() && !console_state.asleep.is_empty() {
-        node.0 = console_state.asleep.pop();
-        // eprintln!("node.0 set 2 {:?}", node.0);
-    }
-}
+//     if !console_state.unprocessed.is_empty() {
+//         if let Some(x) = node.0.take() {
+//             console_state.asleep.push(x);
+//         }
+//         let mut unprocessed = vec![];
+//         std::mem::swap(&mut console_state.unprocessed, &mut unprocessed);
+//         console_state.asleep.extend(unprocessed.drain(0..));
+//         node.0 = console_state.asleep.pop();
+//         // eprintln!("node.0 set 1 {:?}", node.0);
+//     } else if node.0.is_none() && !console_state.asleep.is_empty() {
+//         node.0 = console_state.asleep.pop();
+//         // eprintln!("node.0 set 2 {:?}", node.0);
+//     }
+// }
 
-pub fn prompt_output(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut show_prompt: ResMut<NextState<PromptState>>,
-    mut show_completion: ResMut<NextState<CompletionState>>,
-    mut redraw: EventWriter<RequestRedraw>,
-    mut query: Query<(&mut Text, &mut PromptNode), Changed<PromptNode>>,
-    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
-) {
-    if let Ok((mut text, mut node)) = query.get_single_mut() {
-        let (completion_node, children) = completion.single();
-        let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(Vec::new);
-        let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-        let mut text_prompt = TextPrompt {
-            text: &mut text,
-            completion: completion_node,
-            children: &children,
-            font
-        };
+// pub fn prompt_output(
+//     mut commands: Commands,
+//     asset_server: Res<AssetServer>,
+//     mut show_prompt: ResMut<NextState<PromptState>>,
+//     mut show_completion: ResMut<NextState<CompletionState>>,
+//     mut redraw: EventWriter<RequestRedraw>,
+//     mut query: Query<(&mut Text, &mut PromptNode), Changed<PromptNode>>,
+//     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
+// ) {
+//     if let Ok((mut text, mut node)) = query.get_single_mut() {
+//         let (completion_node, children) = completion.single();
+//         let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(Vec::new);
+//         let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+//         let mut text_prompt = TextPrompt {
+//             text: &mut text,
+//             completion: completion_node,
+//             children: &children,
+//             font
+//         };
 
-        match &mut node.0 {
-            // Some(Proc(ProcContent::Prompt(read_prompt), x @ ProcState::Uninit)) => {
-            Some(Proc(ProcContent::Prompt(read_prompt), x)) => {
-                // eprintln!("setting prompt");
-                text_prompt.buf_write(&read_prompt.prompt, &mut commands);
-                show_prompt.set(PromptState::Visible);
-                show_completion.set(if !read_prompt.prompt.completion.is_empty() {
-                    CompletionState::Visible
-                } else {
-                    CompletionState::Invisible
-                });
-                redraw.send(RequestRedraw);
-                *x = ProcState::Active;
-            }
-            None => {
-                // eprintln!("setting prompt invisible");
-                show_prompt.set(PromptState::Invisible);
-                show_completion.set(CompletionState::Invisible);
-                redraw.send(RequestRedraw);
-            }
-            _ => {}
-        };
-    } else {
-        // eprintln!("quick return");
-    }
-}
+//         match &mut node.0 {
+//             // Some(Proc(ProcContent::Prompt(read_prompt), x @ ProcState::Uninit)) => {
+//             Some(Proc(ProcContent::Prompt(read_prompt), x)) => {
+//                 // eprintln!("setting prompt");
+//                 text_prompt.buf_write(&read_prompt.prompt, &mut commands);
+//                 show_prompt.set(PromptState::Visible);
+//                 show_completion.set(if !read_prompt.prompt.completion.is_empty() {
+//                     CompletionState::Visible
+//                 } else {
+//                     CompletionState::Invisible
+//                 });
+//                 redraw.send(RequestRedraw);
+//                 *x = ProcState::Active;
+//             }
+//             None => {
+//                 // eprintln!("setting prompt invisible");
+//                 show_prompt.set(PromptState::Invisible);
+//                 show_completion.set(CompletionState::Invisible);
+//                 redraw.send(RequestRedraw);
+//             }
+//             _ => {}
+//         };
+//     } else {
+//         // eprintln!("quick return");
+//     }
+// }
 
-pub fn message_update(
-    // mut commands: Commands,
-    // time: Res<Time>,
-    asset_server: Res<AssetServer>,
-    keys: Res<ButtonInput<KeyCode>>,
-    mut show_prompt: ResMut<NextState<PromptState>>,
-    mut show_completion: ResMut<NextState<CompletionState>>,
-    mut redraw: EventWriter<RequestRedraw>,
-    mut query: Query<(&mut Text, &mut PromptNode)>,
-    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
-) {
-    let (_text, node) = query.single();
-    let mutate = node
-        .0
-        .as_ref()
-        .map(|proc| proc.1 == ProcState::Uninit)
-        .unwrap_or(false)
-        || keys.get_just_pressed().len() > 0;
+// pub fn message_update(
+//     // mut commands: Commands,
+//     // time: Res<Time>,
+//     asset_server: Res<AssetServer>,
+//     keys: Res<ButtonInput<KeyCode>>,
+//     mut show_prompt: ResMut<NextState<PromptState>>,
+//     mut show_completion: ResMut<NextState<CompletionState>>,
+//     mut redraw: EventWriter<RequestRedraw>,
+//     mut query: Query<(&mut Text, &mut PromptNode)>,
+//     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
+// ) {
+//     let (_text, node) = query.single();
+//     let mutate = node
+//         .0
+//         .as_ref()
+//         .map(|proc| proc.1 == ProcState::Uninit)
+//         .unwrap_or(false)
+//         || keys.get_just_pressed().len() > 0;
 
-    if mutate {
-        let (mut text, mut node) = query.single_mut();
-        let (completion_node, children) = completion.single();
-        let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(Vec::new);
-        let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-        let mut text_prompt = TextPrompt {
-            text: &mut text,
-            completion: completion_node,
-            children: &children,
-            font
-        };
+//     if mutate {
+//         let (mut text, mut node) = query.single_mut();
+//         let (completion_node, children) = completion.single();
+//         let children: Vec<Entity> = children.map(|c| c.to_vec()).unwrap_or_else(Vec::new);
+//         let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+//         let mut text_prompt = TextPrompt {
+//             text: &mut text,
+//             completion: completion_node,
+//             children: &children,
+//             font
+//         };
 
-        match &mut node.0 {
-            Some(Proc(ProcContent::Message(_msg), ProcState::Active)) => {
-                if keys.get_just_pressed().len() > 0 {
-                    // Remove ourselves.
-                    node.0 = None;
-                    eprintln!("removing message");
-                }
-            }
-            Some(Proc(ProcContent::Message(msg), x @ ProcState::Uninit)) => {
-                eprintln!("setting message");
-                *text_prompt.prompt_get_mut() = msg.to_string();
-                text_prompt.input_get_mut().clear();
-                text_prompt.message_get_mut().clear();
-                show_prompt.set(PromptState::Visible);
-                show_completion.set(CompletionState::Invisible);
-                redraw.send(RequestRedraw);
-                *x = ProcState::Active;
-            }
-            _ => {}
-        }
-    }
-}
+//         match &mut node.0 {
+//             Some(Proc(ProcContent::Message(_msg), ProcState::Active)) => {
+//                 if keys.get_just_pressed().len() > 0 {
+//                     // Remove ourselves.
+//                     node.0 = None;
+//                     eprintln!("removing message");
+//                 }
+//             }
+//             Some(Proc(ProcContent::Message(msg), x @ ProcState::Uninit)) => {
+//                 eprintln!("setting message");
+//                 *text_prompt.prompt_get_mut() = msg.to_string();
+//                 text_prompt.input_get_mut().clear();
+//                 text_prompt.message_get_mut().clear();
+//                 show_prompt.set(PromptState::Visible);
+//                 show_completion.set(CompletionState::Invisible);
+//                 redraw.send(RequestRedraw);
+//                 *x = ProcState::Active;
+//             }
+//             _ => {}
+//         }
+//     }
+// }
 
 pub fn show<T: Component>(
     mut redraw: EventWriter<RequestRedraw>,

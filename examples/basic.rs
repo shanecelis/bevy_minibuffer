@@ -59,7 +59,7 @@ fn main() {
         // )
         .add_act(
             Act::unregistered()
-                .name("exec_command")
+                .named("exec_command")
                 .hotkey(keyseq!(shift-;))
                 .autocomplete(false),
             exec_command.pipe(task_sink),
@@ -73,19 +73,20 @@ fn main() {
 fn add_acts(world: &mut World) {
     let system_id = world.register_system(ask_name.pipe(task_sink));
     world.spawn(Act::new(system_id)
-        .name("ask_name")
+        .named("ask_name")
         .hotkey(keyseq!(1)));
 }
 
 fn add_acts2(mut commands: Commands) {
 
     commands.spawn(Act::unregistered()
-                   .name("ask_age")
+                   .named("ask_age")
                    .hotkey(keyseq!(A A)))
         .add(Register::new(ask_age.pipe(task_sink)));
 
     commands.add_act(Act::unregistered()
-                   .name("ask_age2")
-                   .hotkey(keyseq!(B B)),
+                     .named("ask_age2")
+                     .hotkey(keyseq!(B B)),
+
                      ask_age.pipe(task_sink));
 }

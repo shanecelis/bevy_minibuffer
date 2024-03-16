@@ -9,9 +9,8 @@ use crate::hotkey::*;
 use crate::proc::*;
 use crate::prompt::*;
 
-#[derive(Clone)]
+#[derive(Clone, Event)]
 pub struct RunCommandEvent(pub SystemId);
-impl Event for RunCommandEvent {}
 
 bitflags! {
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
@@ -21,15 +20,15 @@ bitflags! {
     }
 }
 
-
 #[derive(Debug, Clone, Component)]
 pub struct Act {
-    pub(crate) name: Cow<'static, str>, // TODO: Make option.
+    pub(crate) name: Option<Cow<'static, str>>,
     pub(crate) hotkey: Option<KeySeq>,
     pub system_id: Option<SystemId>,
     pub flags: ActFlags,
 }
 
+/// Register a system to an act.
 pub struct Register<S>(S);
 
 impl<S> Register<S> {
@@ -48,15 +47,21 @@ where S: System<In = (), Out = ()> + Send + 'static {
         let system_id = world.register_system(self.0);
         let mut entity = world.get_entity_mut(id).unwrap();
         let mut act = entity.get_mut::<Act>().unwrap();
-        act.system_id = Some(system_id);
+        if act.system_id.is_some() {
+            panic!("System already registered to act {:?}.", act);
+        } else {
+            act.system_id = Some(system_id);
+        }
     }
 }
 
+// TODO: Do we need a builder?
 impl Act {
+    const ANONYMOUS: Cow<'static, str> = Cow::Borrowed("*anonymous*");
 
     pub fn unregistered() -> Self {
         Act {
-            name: "".into(),
+            name: None,
             hotkey: None,
             system_id: None,
             flags: ActFlags::Active | ActFlags::AutoComplete,
@@ -64,16 +69,20 @@ impl Act {
     }
     pub fn new(system_id: SystemId) -> Self {
         Act {
-            name: "".into(),
+            name: None,
             hotkey: None,
             system_id: Some(system_id),
             flags: ActFlags::Active | ActFlags::AutoComplete,
         }
     }
 
-    pub fn name(mut self, name: impl Into<Cow<'static, str>>) -> Self {
-        self.name = name.into();
+    pub fn named(mut self, name: impl Into<Cow<'static, str>>) -> Self {
+        self.name = Some(name.into());
         self
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_ref().unwrap_or(&Self::ANONYMOUS)
     }
 
     pub fn hotkey<T>(mut self, hotkey: impl IntoIterator<Item = T>) -> Self
@@ -97,22 +106,22 @@ impl LookUp for Vec<Act> {
                 command
                     .flags
                     .contains(ActFlags::AutoComplete | ActFlags::Active)
-                    && command.name.starts_with(input)
+                    && command.name.as_ref().map(|name| name.starts_with(input)).unwrap_or(false)
             });
         // Collecting and matching is nice expressively. But manually iterating
         // avoids that allocation.
         if let Some(first) = matches.next() {
             if let Some(second) = matches.next() {
-                let mut result = vec![first.name.to_string(), second.name.to_string()];
+                let mut result = vec![first.name().to_string(), second.name().to_string()];
                 for item in matches {
-                    result.push(item.name.to_string());
+                    result.push(item.name().to_string());
                 }
                 Err(LookUpError::Incomplete(result))
             } else {
-                if input == first.name {
+                if input == first.name() {
                     Ok(first.clone())
                 } else {
-                    Err(LookUpError::Incomplete(vec![first.name.to_string()]))
+                    Err(LookUpError::Incomplete(vec![first.name().to_string()]))
                 }
             }
         } else {
@@ -127,7 +136,7 @@ where
 {
     fn from(v: T) -> Self {
         Act {
-            name: v.into(),
+            name: Some(v.into()),
             hotkey: None,
             system_id: None,
             flags: ActFlags::Active | ActFlags::AutoComplete,
@@ -160,7 +169,7 @@ impl AddAct for App {
         if cmd.system_id.is_some() {
             panic!(
                 "nano command '{}' already has a system_id; was it added before?",
-                cmd.name
+                cmd.name()
             );
         }
         let system_id = self.world.register_system(system);
@@ -196,9 +205,10 @@ impl AddAct for Commands<'_, '_ >  {
     }
 }
 
-pub(crate) fn detect_additions<E: Send + Sync + 'static>(query: Query<(Entity, &Act),
-                                                                      (Added<Act>, Without<KeySequence<E>>)>,
-                    mut commands: Commands) {
+pub(crate) fn detect_additions<E>(query: Query<(Entity, &Act),
+                                               (Added<Act>, Without<KeySequence<E>>)>,
+                                  mut commands: Commands)
+where E: Send + Sync + 'static {
     for (id, act) in &query {
         if let Some(ref keys) = act.hotkey {
             eprintln!("add key");

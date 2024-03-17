@@ -7,7 +7,7 @@ pub mod prompt;
 pub mod tasks;
 pub mod ui;
 use bevy_input_sequence::*;
-use asky::bevy::AskyPlugin;
+use asky::bevy::{AskyPlugin, AskyPrompt};
 
 pub struct NanoPromptPlugin;
 #[rustfmt::skip]
@@ -28,7 +28,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .init_resource::<ConsoleConfig>()
             .add_systems(Startup,   spawn_layout)
             .add_systems(PreUpdate, run_command_listener)
-            // .add_systems(Update,    hide_prompt_maybe)
+            .add_systems(Update,    hide_prompt_maybe)
             // .add_systems(Update,    state_update)
             // .add_systems(Update,    prompt_input.after(state_update))
             // .add_systems(Update,    prompt_output.after(prompt_input))
@@ -37,10 +37,10 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .add_systems(Update,    detect_additions::<RunCommandEvent>)
             .add_systems(Update,    poll_event_tasks::<RunCommandEvent>)
             // .add_systems(Update,    mouse_scroll)
-            // .add_systems(OnEnter(PromptState::Visible),     show::<PromptContainer>)
-            // .add_systems( OnExit(PromptState::Visible),     hide_delayed::<PromptContainer>)
-            // .add_systems(OnEnter(CompletionState::Visible), show::<CompletionContainer>)
-            // .add_systems( OnExit(CompletionState::Visible), hide::<CompletionContainer>)
+            .add_systems(OnEnter(AskyPrompt::Active),     show::<PromptContainer>)
+            .add_systems( OnExit(AskyPrompt::Active),     hide_delayed::<PromptContainer>)
+            .add_systems(OnEnter(CompletionState::Visible), show::<CompletionContainer>)
+            .add_systems( OnExit(CompletionState::Visible), hide::<CompletionContainer>)
             ;
     }
 }

@@ -40,7 +40,7 @@ impl<T: Into<CowStr>> From<T> for Proc {
 #[derive(Debug, Resource, Clone)]
 pub struct ConsoleConfig {
     pub(crate) state: Arc<Mutex<ConsoleState>>,
-    pub hide_delay: u64,
+    pub hide_delay: Option<u64>,
 }
 
 #[derive(Debug)]
@@ -66,7 +66,7 @@ impl Default for ConsoleConfig {
     fn default() -> Self {
         Self {
             state: Arc::new(Mutex::new(ConsoleState::new())),
-            hide_delay: 2000, /* milliseconds */
+            hide_delay: Some(2000), /* milliseconds */
         }
     }
 }
@@ -92,7 +92,6 @@ unsafe impl SystemParam for Prompt {
         _change_tick: Tick,
     ) -> Self::Item<'w, 's> {
         Prompt::new(state.clone())
-        // state.new_prompt()
     }
 }
 

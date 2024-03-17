@@ -36,9 +36,9 @@ fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
 fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptContainer>>) -> impl Future<Output = ()> {
     let id: Entity = query.single();
     async move {
-        asky.clear(id);
+        let _ = asky.clear(id).await;
         if let Ok(age) = asky.prompt(Number::<u8>::new("What's your age? "), id).await {
-            asky.clear(id);
+            let _ = asky.clear(id).await;
             asky.prompt(Message::new(format!("You are {age} years old.")), id);
         } else {
             eprintln!("Got err in ask age");

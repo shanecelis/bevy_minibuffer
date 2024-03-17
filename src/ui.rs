@@ -14,6 +14,8 @@ const PADDING: Val = Val::Px(3.);
 const LEFT_PADDING: Val = Val::Px(6.);
 
 #[derive(Component)]
+struct MinibufferNode;
+#[derive(Component)]
 pub struct PromptContainer;
 #[derive(Component)]
 pub struct PromptNode(pub Option<Proc>);
@@ -70,74 +72,74 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
             },
             ..Default::default()
         })
-        // .insert(PromptContainer {})
+        .insert(MinibufferNode {})
         .with_children(|builder| {
             builder
                 .spawn(NodeBundle {
+                    visibility: Visibility::Hidden,
                     style: Style {
                         flex_direction: FlexDirection::Row,
                         ..default()
                     },
                     ..default()
                 })
-                ;
-                // .with_children(|builder| {
-                //     // List with hidden overflow
-                //     builder
-                //         .spawn(NodeBundle {
-                //             style: Style {
-                //                 flex_direction: FlexDirection::Column,
-                //                 align_self: AlignSelf::FlexEnd,
-                //                 // height: Val::Percent(50.),
-                //                 min_width: Val::Percent(25.),
-                //                 overflow: Overflow::clip_y(),
-                //                 ..default()
-                //             },
-                //             background_color: Color::rgb(0.10, 0.10, 0.10).into(),
-                //             ..default()
-                //         })
-                //         .insert(CompletionContainer {})
-                //         .with_children(|builder| {
-                //             builder
-                //                 .spawn((
-                //                     NodeBundle {
-                //                         style: Style {
-                //                             flex_direction: FlexDirection::Column,
-                //                             align_items: AlignItems::FlexStart,
-                //                             flex_grow: 0.,
-                //                             padding: UiRect {
-                //                                 top: PADDING,
-                //                                 left: LEFT_PADDING,
-                //                                 right: PADDING * 2.,
-                //                                 bottom: PADDING,
-                //                             },
-                //                             margin: UiRect {
-                //                                 bottom: PADDING,
-                //                                 ..default()
-                //                             },
-                //                             ..default()
-                //                         },
-                //                         background_color: BackgroundColor(Color::BLACK),
-                //                         ..default()
-                //                     },
-                //                     ScrollingList::default(),
-                //                     // CompletionList(vec![]),
-                //                     AccessibilityNode(NodeBuilder::new(Role::List)),
-                //                 ))
-                //                 .with_children(|parent| {
-                //                     // List items
-                //                     for i in 0..30 {
-                //                         parent.spawn(completion_item(
-                //                             format!("Item {i}"),
-                //                             Color::WHITE,
-                //                             font.clone(),
-                //                         ));
-                //                     }
-                //                 });
+                .with_children(|builder| {
+                    // List with hidden overflow
+                    builder
+                        .spawn(NodeBundle {
+                            style: Style {
+                                flex_direction: FlexDirection::Column,
+                                align_self: AlignSelf::FlexEnd,
+                                // height: Val::Percent(50.),
+                                min_width: Val::Percent(25.),
+                                overflow: Overflow::clip_y(),
+                                ..default()
+                            },
+                            background_color: Color::rgb(0.10, 0.10, 0.10).into(),
+                            ..default()
+                        })
+                        .insert(CompletionContainer {})
+                        .with_children(|builder| {
+                            builder
+                                .spawn((
+                                    NodeBundle {
+                                        style: Style {
+                                            flex_direction: FlexDirection::Column,
+                                            align_items: AlignItems::FlexStart,
+                                            flex_grow: 0.,
+                                            padding: UiRect {
+                                                top: PADDING,
+                                                left: LEFT_PADDING,
+                                                right: PADDING * 2.,
+                                                bottom: PADDING,
+                                            },
+                                            margin: UiRect {
+                                                bottom: PADDING,
+                                                ..default()
+                                            },
+                                            ..default()
+                                        },
+                                        background_color: BackgroundColor(Color::BLACK),
+                                        ..default()
+                                    },
+                                    ScrollingList::default(),
+                                    // CompletionList(vec![]),
+                                    AccessibilityNode(NodeBuilder::new(Role::List)),
+                                ))
+                                .with_children(|parent| {
+                                    // List items
+                                    for i in 0..30 {
+                                        parent.spawn(completion_item(
+                                            format!("Item {i}"),
+                                            Color::WHITE,
+                                            font.clone(),
+                                        ));
+                                    }
+                                });
 
-                //             builder.spawn(NodeBundle::default());
-                //         });
-                // });
+                            builder.spawn(NodeBundle::default());
+                        });
+                });
             builder
                 .spawn(NodeBundle {
                     // visibility: Visibility::Hidden,

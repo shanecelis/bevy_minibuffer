@@ -9,11 +9,28 @@ use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
 
 use promise_out::{pair::Producer, Promise};
+use asky::bevy::AskyPrompt;
 
 use crate::proc::*;
 use crate::ui::*;
 
 pub type CowStr = Cow<'static, str>;
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum PromptState {
+    #[default]
+    // Uninit,
+    Invisible,
+    Visible,
+}
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum CompletionState {
+    // Uninit,
+    #[default]
+    Invisible,
+    Visible,
+}
 
 #[derive(Debug)]
 pub enum NanoError {
@@ -205,22 +222,6 @@ pub trait NanoPrompt {
             buf.flags = Requests::empty();
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum PromptState {
-    #[default]
-    // Uninit,
-    Invisible,
-    Visible,
-}
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
-pub enum CompletionState {
-    // Uninit,
-    Invisible,
-    #[default]
-    Visible,
 }
 
 impl NanoPrompt for Prompt {
@@ -533,16 +534,27 @@ pub struct HideTime {
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<ConsoleConfig>,
-    mut query: Query<(Entity, Option<&mut HideTime>), With<T>>,
+    mut query: Query<(Entity, &mut Visibility, Option<&mut HideTime>), With<T>>,
 ) {
-    if let Ok((id, hide_time_maybe)) = query.get_single_mut() {
-        match hide_time_maybe {
-            Some(mut hide_time) => { hide_time.timer = Timer::new(Duration::from_millis(config.hide_delay),
-                                                              TimerMode::Once); }
+    for (id, mut visibility, hide_time_maybe) in query.iter_mut() {
+        match config.hide_delay {
+            Some(hide_delay) => {
+                match hide_time_maybe {
+                    Some(mut hide_time) => {
+                        hide_time
+                            .timer = Timer::new(Duration::from_millis(hide_delay),
+                                                TimerMode::Once);
+                    }
+                    None => {
+                        commands.entity(id).insert(HideTime {
+                            timer: Timer::new(Duration::from_millis(hide_delay),
+                                            TimerMode::Once),
+                        });
+                    }
+                }
+            }
             None => {
-                commands.entity(id).insert(HideTime {
-                    timer: Timer::new(Duration::from_millis(config.hide_delay), TimerMode::Once),
-                });
+                *visibility = Visibility::Hidden;
             }
         }
     }
@@ -550,8 +562,9 @@ pub fn hide_delayed<T: Component>(
 
 pub fn hide_prompt_maybe(
     mut commands: Commands,
+    // mut tasks: Query<(Entity, &mut TaskSink<T>)>,
     time: Res<Time>,
-    state: Res<State<PromptState>>,
+    state: Res<State<AskyPrompt>>,
     mut redraw: EventWriter<RequestRedraw>,
     mut query: Query<(Entity, &mut Visibility, &mut HideTime)>,
 ) {
@@ -560,7 +573,7 @@ pub fn hide_prompt_maybe(
         redraw.send(RequestRedraw); // Force ticks to happen when a timer is present.
         hide.timer.tick(time.delta());
         if hide.timer.finished() {
-            if *state == PromptState::Invisible {
+            if *state == AskyPrompt::Inactive {
                 eprintln!("hiding after delay.");
                 *visibility = Visibility::Hidden;
             }

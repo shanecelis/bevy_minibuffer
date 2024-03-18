@@ -1,6 +1,5 @@
 use asky::{style::{Style, Section, Flags}, utils::renderer::Renderer};
 use std::io;
-use text_style::Color;
 use text_style::AnsiColor::*;
 use bevy::ecs::system::Resource;
 // use text_style::{self, Color, Style, StyledString};
@@ -23,7 +22,7 @@ impl Style for MinibufferStyle {
     fn begin(&self, r: &mut dyn Renderer, section: Section) -> io::Result<()> {
         use Section::*;
         match section {
-            Query(answered) => {
+            Query(_answered) => {
                 // if answered {
                 //     // r.set_foreground(Green.dark())?;
                 //     // write!(r, "{}", if self.ascii { "[x]" } else { "■" })?;
@@ -191,7 +190,7 @@ impl Style for MinibufferStyle {
     fn end(&self, r: &mut dyn Renderer, section: Section) -> io::Result<()> {
         use Section::*;
         match section {
-            Query(answered) => {
+            Query(_answered) => {
                 write!(r, " ")?;
                 // if answered {
                 //     write!(r, " ")?;

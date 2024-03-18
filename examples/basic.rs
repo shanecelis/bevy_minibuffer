@@ -1,11 +1,9 @@
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_nano_console::commands::*;
-use bevy_nano_console::tasks::*;
 use bevy_nano_console::*;
 use bevy_nano_console::ui::*;
 use bevy_nano_console::style::*;
-use bevy_nano_console::Minibuffer;
 use keyseq::bevy::pkeyseq as keyseq;
 use std::{time::Duration, future::Future};
 use asky::prelude::*;
@@ -43,19 +41,27 @@ fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptContainer>>) -> impl
             let _ = asky.prompt(Message::new(format!("You are {age} years old.")), id).await;
         } else {
             let _ = asky.clear(id).await;
-            let _ = asky.prompt(Message::new(format!("error: I can only handle u8s for age..")), id).await;
+            let _ = asky.prompt(Message::new("error: I can only handle u8s for age.."), id).await;
         }
     }
 }
 
-fn mb_age(mut asky: Minibuffer) -> impl Future<Output = ()> {
-    async move {
-        if let Ok(age) = asky.prompt(Number::<u8>::new("What's your age? ")).await {
-            let _ = asky.delay(Duration::from_secs(2)).await;
-            let _ = asky.prompt(Message::new(format!("You are {age} years old."))).await;
-        } else {
-            let _ = asky.prompt(Message::new(format!("error: I can only handle u8s for age.."))).await;
-        }
+// fn mb_age(mut asky: Minibuffer) -> impl Future<Output = ()> {
+//     async move {
+//         if let Ok(age) = asky.prompt(Number::<u8>::new("What's your age? ")).await {
+//             let _ = asky.delay(Duration::from_secs(2)).await;
+//             let _ = asky.prompt(Message::new(format!("You are {age} years old."))).await;
+//         } else {
+//             let _ = asky.prompt(Message::new("error: I can only handle u8s for age..")).await;
+//         }
+//     }
+// }
+async fn mb_age(mut asky: Minibuffer) {
+    if let Ok(age) = asky.prompt(Number::<u8>::new("What's your age? ")).await {
+        let _ = asky.delay(Duration::from_secs(2)).await;
+        let _ = asky.prompt(Message::new(format!("You are {age} years old."))).await;
+    } else {
+        let _ = asky.prompt(Message::new("error: I can only handle u8s for age..")).await;
     }
 }
 

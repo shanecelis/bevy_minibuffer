@@ -1,18 +1,15 @@
 #![allow(async_fn_in_trait)]
-use bitflags::bitflags;
 use std::borrow::Cow;
 use std::fmt::Debug;
 
-use bevy::ecs::{component::Tick, prelude::Commands, system::{SystemParam, SystemMeta, SystemState}, world::unsafe_world_cell::UnsafeWorldCell};
+use bevy::ecs::{component::Tick, system::{SystemParam, SystemMeta, SystemState}, world::unsafe_world_cell::UnsafeWorldCell};
 use bevy::prelude::*;
 use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
 
-use promise_out::{pair::Producer, Promise};
-use asky::{Typeable, Valuable, Error, bevy::{Asky, KeyEvent, AskyPrompt, AskyParamConfig}, style::Style};
+use asky::{Typeable, Valuable, Error, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style};
 
 use std::future::Future;
-// use futures_lite::future;
 use crate::MinibufferStyle;
 
 use crate::ui::*;
@@ -41,6 +38,8 @@ pub enum NanoError {
     Message(CowStr),
 }
 
+
+#[derive(Debug)]
 #[allow(dead_code)]
 pub enum LookUpError {
     Message(Cow<'static, str>),
@@ -80,12 +79,10 @@ impl<T: AsRef<str>> LookUp for &[T] {
                     result.push(item.to_string());
                 }
                 Err(LookUpError::Incomplete(result))
+            } else if input == first {
+                Ok(first.to_string())
             } else {
-                if input == first {
-                    Ok(first.to_string())
-                } else {
-                    Err(LookUpError::Incomplete(vec![first.to_string()]))
-                }
+                Err(LookUpError::Incomplete(vec![first.to_string()]))
             }
         } else {
             Err(LookUpError::Message(" no matches".into()))
@@ -221,35 +218,6 @@ pub fn hide<T: Component>(mut query: Query<&mut Visibility, With<T>>) {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::prompt::LookUpError;
-    use crate::prompt::Parse;
-
-    #[derive(Debug)]
-    struct TomDickHarry(String);
-
-    impl Parse for TomDickHarry {
-        fn parse(input: &str) -> Result<Self, LookUpError> {
-            match input {
-                "Tom" => Ok(TomDickHarry(input.into())),
-                "Dick" => Ok(TomDickHarry(input.into())),
-                "Harry" => Ok(TomDickHarry(input.into())),
-                _ => Err(LookUpError::Incomplete(vec![
-                    "Tom".into(),
-                    "Dick".into(),
-                    "Harry".into(),
-                ])),
-            }
-        }
-    }
-
-    // #[allow(unused_must_use)]
-    // #[test]
-    // fn test_option_default() {
-    //     let a: Option<PromptCel> = default();
-    // }
-}
 
 pub struct Minibuffer {
     asky: Asky,
@@ -261,18 +229,19 @@ unsafe impl SystemParam for Minibuffer {
     type State = (Asky, Entity, Option<MinibufferStyle>);
     type Item<'w, 's> = Minibuffer;
 
-    fn init_state(mut world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
+    #[allow(clippy::type_complexity)]
+    fn init_state(world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
         let mut state: SystemState<(
             Asky,
             Query<Entity, With<PromptContainer>>,
             Option<Res<MinibufferStyle>>,
-        )> = SystemState::new(&mut world);
-        let (asky, query, res) = state.get_mut(&mut world);
+        )> = SystemState::new(world);
+        let (asky, query, res) = state.get_mut(world);
         // let asky_param_config = world
         //     .get_resource_mut::<AskyParamConfig>()
         //     .expect("No AskyParamConfig setup.")
         //     .clone();
-        (asky, query.single(), res.map(|x| x.clone()))
+        (asky, query.single(), res.map(|x| *x))
     }
 
     #[inline]
@@ -297,22 +266,27 @@ impl Minibuffer {
         prompt: T
     ) -> impl Future<Output = Result<T::Output, Error>> + '_ {
         self.prompt_styled(prompt, self.style)
-        // async move {
-        //     let _ = self.asky.clear(self.dest).await;
-        //     self.asky.prompt_styled(prompt, self.dest, self.style.clone()).await
-        // }
     }
 
-    pub fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static, S>(
+    // pub fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static, S>(
+    //     &mut self,
+    //     prompt: T,
+    //     style: S
+    // ) -> impl Future<Output = Result<T::Output, Error>> + '_
+    // where S: Style + Send + Sync + 'static {
+    //     async move {
+    //         let _ = self.asky.clear(self.dest).await;
+    //         self.asky.prompt_styled(prompt, self.dest, style).await
+    //     }
+    // }
+    pub async fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static, S>(
         &mut self,
         prompt: T,
         style: S
-    ) -> impl Future<Output = Result<T::Output, Error>> + '_
+    ) -> Result<T::Output, Error>
     where S: Style + Send + Sync + 'static {
-        async move {
-            let _ = self.asky.clear(self.dest).await;
-            self.asky.prompt_styled(prompt, self.dest, style).await
-        }
+        let _ = self.asky.clear(self.dest).await;
+        self.asky.prompt_styled(prompt, self.dest, style).await
     }
 
     pub fn clear(&mut self) -> impl Future<Output = Result<(), Error>> {
@@ -321,5 +295,35 @@ impl Minibuffer {
 
     pub fn delay(&mut self, duration: Duration) -> impl Future<Output = Result<(), Error>> {
         self.asky.delay(duration)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::prompt::LookUpError;
+    use crate::prompt::Parse;
+
+    #[derive(Debug)]
+    struct TomDickHarry(String);
+
+    impl Parse for TomDickHarry {
+        fn parse(input: &str) -> Result<Self, LookUpError> {
+            match input {
+                "Tom" => Ok(TomDickHarry(input.into())),
+                "Dick" => Ok(TomDickHarry(input.into())),
+                "Harry" => Ok(TomDickHarry(input.into())),
+                _ => Err(LookUpError::Incomplete(vec![
+                    "Tom".into(),
+                    "Dick".into(),
+                    "Harry".into(),
+                ])),
+            }
+        }
+    }
+
+    #[test]
+    fn test_tom_dick_parse() {
+        let a = TomDickHarry::parse("Tom").unwrap();
+        assert_eq!(a.0, "Tom");
     }
 }

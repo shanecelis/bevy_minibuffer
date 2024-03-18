@@ -4,12 +4,11 @@ use bitflags::bitflags;
 use std::borrow::Cow;
 use std::future::Future;
 use bevy_input_sequence::*;
-use asky::{Text, Message, bevy::Asky, Printable};
+use asky::{Text, Message, bevy::Asky};
 use crate::ui::PromptContainer;
 
 use crate::hotkey::*;
 use crate::prompt::*;
-use crate::style::MinibufferStyle;
 
 #[derive(Clone, Event)]
 pub struct RunCommandEvent(pub SystemId);
@@ -119,12 +118,10 @@ impl LookUp for Vec<Act> {
                     result.push(item.name().to_string());
                 }
                 Err(LookUpError::Incomplete(result))
+            } else if input == first.name() {
+                Ok(first.clone())
             } else {
-                if input == first.name() {
-                    Ok(first.clone())
-                } else {
-                    Err(LookUpError::Incomplete(vec![first.name().to_string()]))
-                }
+                Err(LookUpError::Incomplete(vec![first.name().to_string()]))
             }
         } else {
             Err(LookUpError::Message(" no matches".into()))
@@ -207,6 +204,7 @@ impl AddAct for Commands<'_, '_ >  {
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub(crate) fn detect_additions<E>(query: Query<(Entity, &Act),
                                                (Added<Act>, Without<KeySequence<E>>)>,
                                   mut commands: Commands)
@@ -265,7 +263,7 @@ pub fn exec_command(
                         .system_id
                         .expect("No system_id for command; was it registered?")))
                 } else {
-                    let _ = asky.clear(id);
+                    let _ = asky.clear(id).await;
                     asky.prompt(Message::new(format!("No such command: {input}")), id);
                     None
                 }

@@ -1,7 +1,5 @@
 use bevy::ecs::prelude::*;
-use bevy::tasks::{AsyncComputeTaskPool, Task};
 use futures_lite::future;
-use std::future::Future;
 
 use asky::bevy::TaskSink;
 

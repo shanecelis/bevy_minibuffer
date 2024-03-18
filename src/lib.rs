@@ -16,7 +16,6 @@ pub struct NanoPromptPlugin;
 impl bevy::app::Plugin for NanoPromptPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         use bevy::app::*;
-        use bevy::prelude::*;
         use bevy::ecs::schedule::{OnEnter, OnExit};
         use commands::*;
         use prompt::*;

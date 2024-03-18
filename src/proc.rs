@@ -37,11 +37,6 @@ impl<T: Into<CowStr>> From<T> for Proc {
     }
 }
 
-#[derive(Debug, Resource, Clone)]
-pub struct ConsoleConfig {
-    pub(crate) state: Arc<Mutex<ConsoleState>>,
-    pub hide_delay: Option<u64>,
-}
 
 #[derive(Debug)]
 pub struct ConsoleState {
@@ -59,15 +54,6 @@ impl ConsoleState {
 
     pub fn push(&mut self, proc: Proc) {
         self.unprocessed.push(proc);
-    }
-}
-
-impl Default for ConsoleConfig {
-    fn default() -> Self {
-        Self {
-            state: Arc::new(Mutex::new(ConsoleState::new())),
-            hide_delay: Some(2000), /* milliseconds */
-        }
     }
 }
 

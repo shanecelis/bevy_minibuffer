@@ -1,4 +1,3 @@
-use crate::proc::*;
 use crate::prompt::*;
 use bevy::{
     a11y::{
@@ -17,8 +16,8 @@ const LEFT_PADDING: Val = Val::Px(6.);
 struct MinibufferNode;
 #[derive(Component)]
 pub struct PromptContainer;
-#[derive(Component)]
-pub struct PromptNode(pub Option<Proc>);
+// #[derive(Component)]
+// pub struct PromptNode(pub Option<Proc>);
 #[derive(Component)]
 pub struct StatusNode;
 #[derive(Component)]
@@ -195,7 +194,8 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                             //     },
                             // ),
                         ]))
-                        .insert(PromptNode(None));
+                        // .insert(PromptNode(None));
+                        ;
                 });
         });
 }
@@ -224,81 +224,81 @@ pub fn mouse_scroll(
     }
 }
 
-pub struct TextPrompt<'a> {
-    pub text: &'a mut Text,
-    pub completion: Entity,
-    pub children: &'a [Entity],
-    pub font: Handle<Font>,
-}
+// pub struct TextPrompt<'a> {
+//     pub text: &'a mut Text,
+//     pub completion: Entity,
+//     pub children: &'a [Entity],
+//     pub font: Handle<Font>,
+// }
 
-#[allow(dead_code)]
-impl<'a> TextPrompt<'a> {
-    pub fn prompt_get_mut(&mut self) -> &mut String {
-        &mut self.text.sections[0].value
-    }
-    pub fn prompt_get(&self) -> &str {
-        &self.text.sections[0].value
-    }
-    pub fn input_get_mut(&mut self) -> &mut String {
-        &mut self.text.sections[1].value
-    }
-    pub fn input_get(&self) -> &str {
-        &self.text.sections[1].value
-    }
-    pub fn message_get_mut(&mut self) -> &mut String {
-        &mut self.text.sections[2].value
-    }
-    pub fn message_get(&self) -> &str {
-        &self.text.sections[2].value
-    }
+// #[allow(dead_code)]
+// impl<'a> TextPrompt<'a> {
+//     pub fn prompt_get_mut(&mut self) -> &mut String {
+//         &mut self.text.sections[0].value
+//     }
+//     pub fn prompt_get(&self) -> &str {
+//         &self.text.sections[0].value
+//     }
+//     pub fn input_get_mut(&mut self) -> &mut String {
+//         &mut self.text.sections[1].value
+//     }
+//     pub fn input_get(&self) -> &str {
+//         &self.text.sections[1].value
+//     }
+//     pub fn message_get_mut(&mut self) -> &mut String {
+//         &mut self.text.sections[2].value
+//     }
+//     pub fn message_get(&self) -> &str {
+//         &self.text.sections[2].value
+//     }
 
-    pub fn completion_set(&mut self, labels: Vec<String>, commands: &mut Commands) {
-        let new_children = labels
-            .into_iter()
-            .map(|label| {
-                commands
-                    .spawn(completion_item(label, Color::WHITE, self.font.clone()))
-                    .id()
-            })
-            .collect::<Vec<Entity>>();
-        commands
-            .entity(self.completion)
-            .replace_children(&new_children);
-        for child in self.children.iter() {
-            commands.entity(*child).despawn();
-        }
-    }
+//     pub fn completion_set(&mut self, labels: Vec<String>, commands: &mut Commands) {
+//         let new_children = labels
+//             .into_iter()
+//             .map(|label| {
+//                 commands
+//                     .spawn(completion_item(label, Color::WHITE, self.font.clone()))
+//                     .id()
+//             })
+//             .collect::<Vec<Entity>>();
+//         commands
+//             .entity(self.completion)
+//             .replace_children(&new_children);
+//         for child in self.children.iter() {
+//             commands.entity(*child).despawn();
+//         }
+//     }
 
-    fn buf_read(&self, buf: &mut PromptBuf) {
-        buf.prompt.clone_from(&self.text.sections[0].value);
-        buf.input.clone_from(&self.text.sections[1].value);
-        buf.message.clone_from(&self.text.sections[2].value);
-    }
-    pub fn buf_write(&mut self, buf: &PromptBuf, commands: &mut Commands) {
-        self.text.sections[0].value.clone_from(&buf.prompt);
-        self.text.sections[1].value.clone_from(&buf.input);
-        self.text.sections[2].value.clone_from(&buf.message);
-        let new_children = (*buf.completion)
-            .iter()
-            .map(|label| {
-                commands
-                    .spawn(completion_item(
-                        label.into(),
-                        Color::WHITE,
-                        self.font.clone(),
-                    ))
-                    .id()
-            })
-            .collect::<Vec<Entity>>();
+//     fn buf_read(&self, buf: &mut PromptBuf) {
+//         buf.prompt.clone_from(&self.text.sections[0].value);
+//         buf.input.clone_from(&self.text.sections[1].value);
+//         buf.message.clone_from(&self.text.sections[2].value);
+//     }
+//     pub fn buf_write(&mut self, buf: &PromptBuf, commands: &mut Commands) {
+//         self.text.sections[0].value.clone_from(&buf.prompt);
+//         self.text.sections[1].value.clone_from(&buf.input);
+//         self.text.sections[2].value.clone_from(&buf.message);
+//         let new_children = (*buf.completion)
+//             .iter()
+//             .map(|label| {
+//                 commands
+//                     .spawn(completion_item(
+//                         label.into(),
+//                         Color::WHITE,
+//                         self.font.clone(),
+//                     ))
+//                     .id()
+//             })
+//             .collect::<Vec<Entity>>();
 
-        commands
-            .entity(self.completion)
-            .replace_children(&new_children);
-        for child in self.children.iter() {
-            commands.entity(*child).despawn();
-        }
-    }
-}
+//         commands
+//             .entity(self.completion)
+//             .replace_children(&new_children);
+//         for child in self.children.iter() {
+//             commands.entity(*child).despawn();
+//         }
+//     }
+// }
 
 // impl<'a, 'w, 's> NanoPrompt for TextPrompt<'a, 'w, 's> {
 //     async fn read_raw(&mut self) -> Result<PromptBuf, NanoError> {

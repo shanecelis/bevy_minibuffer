@@ -11,7 +11,6 @@ use bevy::window::RequestRedraw;
 use promise_out::{pair::Producer, Promise};
 use asky::bevy::AskyPrompt;
 
-use crate::proc::*;
 use crate::ui::*;
 
 pub type CowStr = Cow<'static, str>;
@@ -38,205 +37,205 @@ pub enum NanoError {
     Message(CowStr),
 }
 
-#[derive(Debug)]
-pub(crate) struct ReadPrompt {
-    pub(crate) prompt: PromptBuf,
-    pub(crate) promise: Producer<PromptBuf, NanoError>,
-}
+// #[derive(Debug)]
+// pub(crate) struct ReadPrompt {
+//     pub(crate) prompt: PromptBuf,
+//     pub(crate) promise: Producer<PromptBuf, NanoError>,
+// }
 
-bitflags! {
-    #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
-    pub struct Requests: u8 {
-        const Submit       = 0b00000001;
-        const AutoComplete = 0b00000010;
-    }
-}
+// bitflags! {
+//     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
+//     pub struct Requests: u8 {
+//         const Submit       = 0b00000001;
+//         const AutoComplete = 0b00000010;
+//     }
+// }
 
-// TODO: Switch to cows or options.
-#[derive(Clone, Default, Debug)]
-pub struct PromptBuf {
-    pub prompt: String,
-    pub input: String,
-    pub message: String,
-    pub completion: Vec<String>,
-    pub flags: Requests,
-}
+// // TODO: Switch to cows or options.
+// #[derive(Clone, Default, Debug)]
+// pub struct PromptBuf {
+//     pub prompt: String,
+//     pub input: String,
+//     pub message: String,
+//     pub completion: Vec<String>,
+//     pub flags: Requests,
+// }
 
-impl<T> From<T> for PromptBuf
-where
-    T: Into<String>,
-{
-    fn from(value: T) -> Self {
-        PromptBuf {
-            prompt: value.into(),
-            input: "".into(),
-            message: "".into(),
-            completion: Vec::new(),
-            flags: Requests::empty(),
-        }
-    }
-}
+// impl<T> From<T> for PromptBuf
+// where
+//     T: Into<String>,
+// {
+//     fn from(value: T) -> Self {
+//         PromptBuf {
+//             prompt: value.into(),
+//             input: "".into(),
+//             message: "".into(),
+//             completion: Vec::new(),
+//             flags: Requests::empty(),
+//         }
+//     }
+// }
 
-fn longest_common_prefix(strings: &Vec<String>) -> String {
-    if strings.is_empty() {
-        return String::new();
-    }
+// fn longest_common_prefix(strings: &Vec<String>) -> String {
+//     if strings.is_empty() {
+//         return String::new();
+//     }
 
-    let first_string = &strings[0];
+//     let first_string = &strings[0];
 
-    for (i, char) in first_string.chars().enumerate() {
-        for string in strings.iter().skip(1) {
-            if i >= string.len() || char != string.chars().nth(i).unwrap() {
-                return first_string[..i].to_string();
-            }
-        }
-    }
+//     for (i, char) in first_string.chars().enumerate() {
+//         for string in strings.iter().skip(1) {
+//             if i >= string.len() || char != string.chars().nth(i).unwrap() {
+//                 return first_string[..i].to_string();
+//             }
+//         }
+//     }
 
-    first_string.to_string()
-}
+//     first_string.to_string()
+// }
 
-enum Update {
-    ReturnRaw,
-    Continue,
-}
+// enum Update {
+//     ReturnRaw,
+//     Continue,
+// }
 
-impl PromptBuf {
-    fn will_update(
-        &self,
-        char_events: &EventReader<ReceivedCharacter>,
-        keys: &Res<ButtonInput<KeyCode>>,
-        backspace: bool,
-    ) -> bool {
-        keys.just_pressed(KeyCode::Escape) || backspace || !char_events.is_empty()
-    }
+// impl PromptBuf {
+//     fn will_update(
+//         &self,
+//         char_events: &EventReader<ReceivedCharacter>,
+//         keys: &Res<ButtonInput<KeyCode>>,
+//         backspace: bool,
+//     ) -> bool {
+//         keys.just_pressed(KeyCode::Escape) || backspace || !char_events.is_empty()
+//     }
 
-    fn update(
-        &mut self,
-        char_events: &mut EventReader<ReceivedCharacter>,
-        keys: &Res<ButtonInput<KeyCode>>,
-        backspace: bool,
-    ) -> Result<Update, NanoError> {
-        if keys.just_pressed(KeyCode::Escape) {
-            self.message = " Quit".into();
-            return Err(NanoError::Cancelled);
-        }
-        if keys.just_pressed(KeyCode::Enter) {
-            self.flags |= Requests::Submit;
-            return Ok(Update::ReturnRaw);
-        }
-        if keys.just_pressed(KeyCode::Tab) {
-            self.flags |= Requests::AutoComplete;
-            return Ok(Update::ReturnRaw);
-        }
-        if backspace {
-            let _ = self.input.pop();
-            self.message.clear();
-            return Ok(Update::Continue);
-        }
-        if !char_events.is_empty() {
-            self.input.extend(
-                char_events
-                    .read()
-                    .flat_map(|ev| ev.char.chars())
-                    .filter(|c| !c.is_ascii_control()),
-            );
-            self.message.clear();
-        }
-        Ok(Update::Continue)
-    }
-}
+//     fn update(
+//         &mut self,
+//         char_events: &mut EventReader<ReceivedCharacter>,
+//         keys: &Res<ButtonInput<KeyCode>>,
+//         backspace: bool,
+//     ) -> Result<Update, NanoError> {
+//         if keys.just_pressed(KeyCode::Escape) {
+//             self.message = " Quit".into();
+//             return Err(NanoError::Cancelled);
+//         }
+//         if keys.just_pressed(KeyCode::Enter) {
+//             self.flags |= Requests::Submit;
+//             return Ok(Update::ReturnRaw);
+//         }
+//         if keys.just_pressed(KeyCode::Tab) {
+//             self.flags |= Requests::AutoComplete;
+//             return Ok(Update::ReturnRaw);
+//         }
+//         if backspace {
+//             let _ = self.input.pop();
+//             self.message.clear();
+//             return Ok(Update::Continue);
+//         }
+//         if !char_events.is_empty() {
+//             self.input.extend(
+//                 char_events
+//                     .read()
+//                     .flat_map(|ev| ev.char.chars())
+//                     .filter(|c| !c.is_ascii_control()),
+//             );
+//             self.message.clear();
+//         }
+//         Ok(Update::Continue)
+//     }
+// }
 
-pub trait NanoPrompt {
-    async fn read_raw(&mut self, prompt: PromptBuf) -> Result<PromptBuf, NanoError>;
+// pub trait NanoPrompt {
+//     async fn read_raw(&mut self, prompt: PromptBuf) -> Result<PromptBuf, NanoError>;
 
-    async fn read<T: Parse>(&mut self, prompt: impl Into<PromptBuf>) -> Result<T, NanoError> {
-        let mut buf = prompt.into();
-        loop {
-            match self.read_raw(buf.clone()).await {
-                Ok(mut new_buf) => match T::parse(&new_buf.input) {
-                    Ok(v) => {
-                        if new_buf.flags.contains(Requests::Submit) {
-                            return Ok(v);
-                        } else {
-                            buf = new_buf
-                        }
-                    }
-                    Err(LookUpError::Message(m)) => {
-                        new_buf.message = m.to_string();
-                        buf = new_buf;
-                    }
-                    Err(LookUpError::Incomplete(v)) => {
-                        if new_buf.flags.contains(Requests::AutoComplete) {
-                            new_buf.completion.clone_from_slice(&v[..]);
-                        }
-                        buf = new_buf;
-                    }
-                    Err(LookUpError::NanoError(e)) => return Err(e),
-                },
-                Err(e) => return Err(e),
-            }
-            buf.flags = Requests::empty();
-        }
-    }
+//     async fn read<T: Parse>(&mut self, prompt: impl Into<PromptBuf>) -> Result<T, NanoError> {
+//         let mut buf = prompt.into();
+//         loop {
+//             match self.read_raw(buf.clone()).await {
+//                 Ok(mut new_buf) => match T::parse(&new_buf.input) {
+//                     Ok(v) => {
+//                         if new_buf.flags.contains(Requests::Submit) {
+//                             return Ok(v);
+//                         } else {
+//                             buf = new_buf
+//                         }
+//                     }
+//                     Err(LookUpError::Message(m)) => {
+//                         new_buf.message = m.to_string();
+//                         buf = new_buf;
+//                     }
+//                     Err(LookUpError::Incomplete(v)) => {
+//                         if new_buf.flags.contains(Requests::AutoComplete) {
+//                             new_buf.completion.clone_from_slice(&v[..]);
+//                         }
+//                         buf = new_buf;
+//                     }
+//                     Err(LookUpError::NanoError(e)) => return Err(e),
+//                 },
+//                 Err(e) => return Err(e),
+//             }
+//             buf.flags = Requests::empty();
+//         }
+//     }
 
-    async fn read_crit<T>(
-        &mut self,
-        prompt: impl Into<PromptBuf>,
-        look_up: &impl LookUp<Item = T>,
-    ) -> Result<T, NanoError> {
-        let mut buf = prompt.into();
-        loop {
-            match self.read_raw(buf.clone()).await {
-                Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
-                    Ok(v) => {
-                        if new_buf.flags.contains(Requests::Submit) {
-                            return Ok(v);
-                        } else {
-                            buf = new_buf
-                        }
-                    }
-                    Err(LookUpError::Message(m)) => {
-                        new_buf.completion.clear();
-                        new_buf.message = m.to_string();
-                        buf = new_buf;
-                    }
-                    Err(LookUpError::Incomplete(v)) => {
-                        if new_buf.flags.contains(Requests::AutoComplete) {
-                            new_buf.completion.clear();
-                            new_buf.completion.extend_from_slice(&v[..]);
+//     async fn read_crit<T>(
+//         &mut self,
+//         prompt: impl Into<PromptBuf>,
+//         look_up: &impl LookUp<Item = T>,
+//     ) -> Result<T, NanoError> {
+//         let mut buf = prompt.into();
+//         loop {
+//             match self.read_raw(buf.clone()).await {
+//                 Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
+//                     Ok(v) => {
+//                         if new_buf.flags.contains(Requests::Submit) {
+//                             return Ok(v);
+//                         } else {
+//                             buf = new_buf
+//                         }
+//                     }
+//                     Err(LookUpError::Message(m)) => {
+//                         new_buf.completion.clear();
+//                         new_buf.message = m.to_string();
+//                         buf = new_buf;
+//                     }
+//                     Err(LookUpError::Incomplete(v)) => {
+//                         if new_buf.flags.contains(Requests::AutoComplete) {
+//                             new_buf.completion.clear();
+//                             new_buf.completion.extend_from_slice(&v[..]);
 
-                            if !new_buf.completion.is_empty() {
-                                let prefix = longest_common_prefix(&new_buf.completion);
-                                if prefix.len() > new_buf.input.len() {
-                                    new_buf.input = prefix;
-                                }
-                                new_buf.message.clear();
-                            }
-                        }
-                        buf = new_buf;
-                    }
-                    Err(LookUpError::NanoError(e)) => return Err(e),
-                },
-                Err(e) => return Err(e),
-            }
-            buf.flags = Requests::empty();
-        }
-    }
-}
+//                             if !new_buf.completion.is_empty() {
+//                                 let prefix = longest_common_prefix(&new_buf.completion);
+//                                 if prefix.len() > new_buf.input.len() {
+//                                     new_buf.input = prefix;
+//                                 }
+//                                 new_buf.message.clear();
+//                             }
+//                         }
+//                         buf = new_buf;
+//                     }
+//                     Err(LookUpError::NanoError(e)) => return Err(e),
+//                 },
+//                 Err(e) => return Err(e),
+//             }
+//             buf.flags = Requests::empty();
+//         }
+//     }
+// }
 
-impl NanoPrompt for Prompt {
-    async fn read_raw(&mut self, buf: PromptBuf) -> Result<PromptBuf, NanoError> {
-        let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
-        self.config.state.lock().unwrap().push(Proc(
-            ProcContent::Prompt(ReadPrompt {
-                prompt: buf,
-                promise,
-            }),
-            ProcState::Uninit,
-        ));
-        waiter.await
-    }
-}
+// impl NanoPrompt for Prompt {
+//     async fn read_raw(&mut self, buf: PromptBuf) -> Result<PromptBuf, NanoError> {
+//         let (promise, waiter) = Producer::<PromptBuf, NanoError>::new();
+//         self.config.state.lock().unwrap().push(Proc(
+//             ProcContent::Prompt(ReadPrompt {
+//                 prompt: buf,
+//                 promise,
+//             }),
+//             ProcState::Uninit,
+//         ));
+//         waiter.await
+//     }
+// }
 
 #[allow(dead_code)]
 pub enum LookUpError {
@@ -331,70 +330,70 @@ impl Parse for i32 {
 }
 
 // [[https://bevy-cheatbook.github.io/programming/local.html][Local Resources - Unofficial Bevy Cheat Book]]
-pub fn prompt_input(
-    mut char_events: EventReader<ReceivedCharacter>,
-    keys: Res<ButtonInput<KeyCode>>,
-    mut backspace_delay: Local<Option<Timer>>,
-    _config: Res<ConsoleConfig>,
-    time: Res<Time>,
-    mut query: Query<&mut PromptNode>,
-) {
-    let backspace: bool = if keys.just_pressed(KeyCode::Backspace) {
-        *backspace_delay = Some(Timer::new(
-            Duration::from_millis(300),
-            TimerMode::Once,
-        ));
-        true
-    } else if let Some(ref mut timer) = *backspace_delay {
-        timer.tick(time.delta()).finished() && keys.pressed(KeyCode::Backspace)
-    } else {
-        false
-    };
-    let node = query.single();
-    let mut mutate = false;
+// pub fn prompt_input(
+//     mut char_events: EventReader<ReceivedCharacter>,
+//     keys: Res<ButtonInput<KeyCode>>,
+//     mut backspace_delay: Local<Option<Timer>>,
+//     _config: Res<ConsoleConfig>,
+//     time: Res<Time>,
+//     mut query: Query<&mut PromptNode>,
+// ) {
+//     let backspace: bool = if keys.just_pressed(KeyCode::Backspace) {
+//         *backspace_delay = Some(Timer::new(
+//             Duration::from_millis(300),
+//             TimerMode::Once,
+//         ));
+//         true
+//     } else if let Some(ref mut timer) = *backspace_delay {
+//         timer.tick(time.delta()).finished() && keys.pressed(KeyCode::Backspace)
+//     } else {
+//         false
+//     };
+//     let node = query.single();
+//     let mut mutate = false;
 
-    // We want to be careful about when we trigger mutation.
-    if let Some(Proc(ProcContent::Prompt(read_prompt), ProcState::Active)) = &node.0 {
-        mutate = read_prompt
-            .prompt
-            .will_update(&char_events, &keys, backspace);
-    }
-    if mutate {
-        let mut node = query.single_mut();
-        let mut proc = node.0.take();
-        if let Some(Proc(ProcContent::Prompt(mut read_prompt), ProcState::Active)) = proc {
-            match read_prompt
-                .prompt
-                .update(&mut char_events, &keys, backspace)
-            {
-                Ok(update) => {
-                    match update {
-                        Update::ReturnRaw => {
-                            // This returns to the raw_read
-                            // dbg!(&read_prompt.prompt.input);
-                            read_prompt.promise.resolve(read_prompt.prompt);
-                            // eprintln!("leaving 1");
-                            return;
-                        }
-                        Update::Continue => {}
-                    }
-                }
-                Err(e) => match e {
-                    NanoError::Message(msg) => read_prompt.prompt.message = msg.to_string(),
-                    NanoError::Cancelled => {
-                        // XXX: This does not work. Would like to show "Quit" or some message when cancelled.
-                        node.0 = Some(Proc(ProcContent::Message(format!("{:?}", e).into()), ProcState::Active));
-                        read_prompt.promise.reject(e);
-                        eprintln!("leaving 2");
-                        return;
-                    }
-                }
-            }
-            proc = Some(Proc(ProcContent::Prompt(read_prompt), ProcState::Active));
-        }
-        node.0 = proc;
-    }
-}
+//     // We want to be careful about when we trigger mutation.
+//     if let Some(Proc(ProcContent::Prompt(read_prompt), ProcState::Active)) = &node.0 {
+//         mutate = read_prompt
+//             .prompt
+//             .will_update(&char_events, &keys, backspace);
+//     }
+//     if mutate {
+//         let mut node = query.single_mut();
+//         let mut proc = node.0.take();
+//         if let Some(Proc(ProcContent::Prompt(mut read_prompt), ProcState::Active)) = proc {
+//             match read_prompt
+//                 .prompt
+//                 .update(&mut char_events, &keys, backspace)
+//             {
+//                 Ok(update) => {
+//                     match update {
+//                         Update::ReturnRaw => {
+//                             // This returns to the raw_read
+//                             // dbg!(&read_prompt.prompt.input);
+//                             read_prompt.promise.resolve(read_prompt.prompt);
+//                             // eprintln!("leaving 1");
+//                             return;
+//                         }
+//                         Update::Continue => {}
+//                     }
+//                 }
+//                 Err(e) => match e {
+//                     NanoError::Message(msg) => read_prompt.prompt.message = msg.to_string(),
+//                     NanoError::Cancelled => {
+//                         // XXX: This does not work. Would like to show "Quit" or some message when cancelled.
+//                         node.0 = Some(Proc(ProcContent::Message(format!("{:?}", e).into()), ProcState::Active));
+//                         read_prompt.promise.reject(e);
+//                         eprintln!("leaving 2");
+//                         return;
+//                     }
+//                 }
+//             }
+//             proc = Some(Proc(ProcContent::Prompt(read_prompt), ProcState::Active));
+//         }
+//         node.0 = proc;
+//     }
+// }
 
 // pub fn state_update(prompt_provider: ResMut<ConsoleConfig>, mut query: Query<&mut PromptNode>) {
 //     let mut console_state = prompt_provider.state.lock().unwrap();
@@ -529,6 +528,21 @@ pub fn show<T: Component>(
 #[derive(Component)]
 pub struct HideTime {
     pub timer: Timer,
+}
+
+#[derive(Debug, Resource, Clone)]
+pub struct ConsoleConfig {
+    // pub(crate) state: Arc<Mutex<ConsoleState>>,
+    pub hide_delay: Option<u64>,
+}
+
+impl Default for ConsoleConfig {
+    fn default() -> Self {
+        Self {
+            // state: Arc::new(Mutex::new(ConsoleState::new())),
+            hide_delay: Some(2000), /* milliseconds */
+        }
+    }
 }
 
 pub fn hide_delayed<T: Component>(

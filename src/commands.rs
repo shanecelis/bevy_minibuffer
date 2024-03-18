@@ -4,10 +4,12 @@ use bitflags::bitflags;
 use std::borrow::Cow;
 use std::future::Future;
 use bevy_input_sequence::*;
+use asky::{Text, Message, bevy::Asky, Printable};
+use crate::ui::PromptContainer;
 
 use crate::hotkey::*;
-use crate::proc::*;
 use crate::prompt::*;
+use crate::style::MinibufferStyle;
 
 #[derive(Clone, Event)]
 pub struct RunCommandEvent(pub SystemId);
@@ -223,20 +225,51 @@ pub fn run_command_listener(mut events: EventReader<RunCommandEvent>, mut comman
     }
 }
 
+// pub fn exec_command(
+//     mut prompt: Prompt,
+//     query: Query<&Act>,
+// ) -> impl Future<Output = Option<RunCommandEvent>> {
+//     let commands: Vec<Act> = query.iter().cloned().collect();
+//     async move {
+//         match prompt.read_crit(": ", &commands).await {
+//             Ok(command) =>
+//                 // We can't keep an EventWriter in our closure so we return it from
+//                 // our task.
+//                 Some(RunCommandEvent(
+//                     command
+//                         .system_id
+//                         .expect("No system_id for command; was it registered?"))),
+//             Err(e) => {
+//                 eprintln!("Got err in exec_command: {:?}", e);
+//                 None
+//             }
+//         }
+//     }
+// }
 pub fn exec_command(
-    mut prompt: Prompt,
-    query: Query<&Act>,
+    mut asky: Asky,
+    acts: Query<&Act>,
+    query: Query<Entity, With<PromptContainer>>
 ) -> impl Future<Output = Option<RunCommandEvent>> {
-    let commands: Vec<Act> = query.iter().cloned().collect();
+    let commands: Vec<Act> = acts.iter().cloned().collect();
+    let id: Entity = query.single();
     async move {
-        match prompt.read_crit(": ", &commands).await {
-            Ok(command) =>
+        let _ = asky.clear(id);
+        match asky.prompt(Text::new(":"), id).await {
+            Ok(input) => {
+                if let Some(command) = commands.iter().find(|x| x.name() == input) {
                 // We can't keep an EventWriter in our closure so we return it from
                 // our task.
                 Some(RunCommandEvent(
                     command
                         .system_id
-                        .expect("No system_id for command; was it registered?"))),
+                        .expect("No system_id for command; was it registered?")))
+                } else {
+                    let _ = asky.clear(id);
+                    asky.prompt(Message::new(format!("No such command: {input}")), id);
+                    None
+                }
+            }
             Err(e) => {
                 eprintln!("Got err in exec_command: {:?}", e);
                 None

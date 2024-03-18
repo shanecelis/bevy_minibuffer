@@ -1,47 +1,48 @@
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_nano_console::commands::*;
-use bevy_nano_console::proc::*;
-use bevy_nano_console::prompt::*;
 use bevy_nano_console::tasks::*;
 use bevy_nano_console::*;
 use bevy_nano_console::ui::*;
+use bevy_nano_console::style::*;
 use keyseq::bevy::pkeyseq as keyseq;
-use std::future::Future;
+use std::{time::Duration, future::Future};
 use asky::prelude::*;
 use asky::bevy::*;
 
-fn ask_name<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
-    async move {
-        if let Ok(first_name) = prompt.read::<String>("What's your first name? ").await {
-            if let Ok(last_name) = prompt.read::<String>("What's your last name? ").await {
-                prompt.message(format!("Hello, {first_name} {last_name}!"));
-            }
-        } else {
-            eprintln!("Got err in ask name");
-        }
-    }
-}
+// fn ask_name<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
+//     async move {
+//         if let Ok(first_name) = prompt.read::<String>("What's your first name? ").await {
+//             if let Ok(last_name) = prompt.read::<String>("What's your last name? ").await {
+//                 prompt.message(format!("Hello, {first_name} {last_name}!"));
+//             }
+//         } else {
+//             eprintln!("Got err in ask name");
+//         }
+//     }
+// }
 
-fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
-    async move {
-        if let Ok(age) = prompt.read::<i32>("What's your age? ").await {
-            prompt.message(format!("You are {age} years old."));
-        } else {
-            eprintln!("Got err in ask age");
-        }
-    }
-}
+// fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
+//     async move {
+//         if let Ok(age) = prompt.read::<i32>("What's your age? ").await {
+//             prompt.message(format!("You are {age} years old."));
+//         } else {
+//             eprintln!("Got err in ask age");
+//         }
+//     }
+// }
 
 fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptContainer>>) -> impl Future<Output = ()> {
     let id: Entity = query.single();
     async move {
         let _ = asky.clear(id).await;
-        if let Ok(age) = asky.prompt(Number::<u8>::new("What's your age? "), id).await {
+        if let Ok(age) = asky.prompt_styled(Number::<u8>::new("What's your age? "), id, MinibufferStyle::default()).await {
+            let _ = asky.delay(Duration::from_secs(2)).await;
             let _ = asky.clear(id).await;
-            asky.prompt(Message::new(format!("You are {age} years old.")), id);
+            let _ = asky.prompt(Message::new(format!("You are {age} years old.")), id).await;
         } else {
-            eprintln!("Got err in ask age");
+            let _ = asky.clear(id).await;
+            let _ = asky.prompt(Message::new(format!("error: I can only handle u8s for age..")), id).await;
         }
     }
 }
@@ -87,24 +88,24 @@ fn main() {
 }
 
 fn add_acts(world: &mut World) {
-    let system_id = world.register_system(ask_name.pipe(future_sink));
-    world.spawn(Act::new(system_id)
-        .named("ask_name")
-        .hotkey(keyseq!(1)));
+    // let system_id = world.register_system(ask_name.pipe(future_sink));
+    // world.spawn(Act::new(system_id)
+    //     .named("ask_name")
+    //     .hotkey(keyseq!(1)));
 }
 
 fn add_acts2(mut commands: Commands) {
 
-    commands.spawn(Act::unregistered()
-                   .named("ask_age")
-                   .hotkey(keyseq!(A A)))
-        .add(Register::new(ask_age.pipe(future_sink)));
+    // commands.spawn(Act::unregistered()
+    //                .named("ask_age")
+    //                .hotkey(keyseq!(A A)))
+    //     .add(Register::new(ask_age.pipe(future_sink)));
 
-    commands.add_act(Act::unregistered()
-                     .named("ask_age2")
-                     .hotkey(keyseq!(B B)),
+    // commands.add_act(Act::unregistered()
+    //                  .named("ask_age2")
+    //                  .hotkey(keyseq!(B B)),
 
-                     ask_age.pipe(future_sink));
+    //                  ask_age.pipe(future_sink));
 
     commands.add_act(Act::unregistered()
                      .named("asky_age")

@@ -5,6 +5,7 @@ use bevy_nano_console::tasks::*;
 use bevy_nano_console::*;
 use bevy_nano_console::ui::*;
 use bevy_nano_console::style::*;
+use bevy_nano_console::Minibuffer;
 use keyseq::bevy::pkeyseq as keyseq;
 use std::{time::Duration, future::Future};
 use asky::prelude::*;
@@ -43,6 +44,17 @@ fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptContainer>>) -> impl
         } else {
             let _ = asky.clear(id).await;
             let _ = asky.prompt(Message::new(format!("error: I can only handle u8s for age..")), id).await;
+        }
+    }
+}
+
+fn mb_age(mut asky: Minibuffer) -> impl Future<Output = ()> {
+    async move {
+        if let Ok(age) = asky.prompt(Number::<u8>::new("What's your age? ")).await {
+            let _ = asky.delay(Duration::from_secs(2)).await;
+            let _ = asky.prompt(Message::new(format!("You are {age} years old."))).await;
+        } else {
+            let _ = asky.prompt(Message::new(format!("error: I can only handle u8s for age.."))).await;
         }
     }
 }
@@ -112,4 +124,10 @@ fn add_acts2(mut commands: Commands) {
                      .hotkey(keyseq!(C C)),
 
                      asky_age.pipe(future_sink));
+
+    commands.add_act(Act::unregistered()
+                     .named("mb_age")
+                     .hotkey(keyseq!(D D)),
+
+                     mb_age.pipe(future_sink));
 }

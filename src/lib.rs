@@ -2,7 +2,6 @@
 #![allow(incomplete_features)]
 pub mod commands;
 pub mod hotkey;
-// pub mod proc;
 pub mod prompt;
 pub mod tasks;
 pub mod ui;
@@ -10,6 +9,7 @@ pub mod style;
 use style::MinibufferStyle;
 use bevy_input_sequence::*;
 use asky::bevy::{AskyPlugin, AskyPrompt};
+pub use prompt::Minibuffer;
 
 pub struct NanoPromptPlugin;
 #[rustfmt::skip]

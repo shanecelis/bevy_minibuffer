@@ -202,7 +202,7 @@ impl AddAct for Commands<'_, '_ >  {
     ) -> &mut Self {
 
         self.spawn(act.into())
-                .add(Register::new(system));
+            .add(Register::new(system));
         self
     }
 }
@@ -254,7 +254,7 @@ pub fn exec_command(
     let commands: Vec<Act> = acts.iter().cloned().collect();
     let id: Entity = query.single();
     async move {
-        let _ = asky.clear(id);
+        let _ = asky.clear(id).await;
         match asky.prompt(Text::new(":"), id).await {
             Ok(input) => {
                 if let Some(command) = commands.iter().find(|x| x.name() == input) {

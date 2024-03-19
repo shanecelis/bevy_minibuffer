@@ -7,19 +7,17 @@ use bevy_nano_console::style::*;
 use keyseq::bevy::pkeyseq as keyseq;
 use std::{time::Duration, future::Future};
 use asky::prelude::*;
-use asky::bevy::*;
+use asky::bevy::{Asky};
 
-// fn ask_name<'a>(mut prompt: Prompt) -> impl Future<Output = ()> {
-//     async move {
-//         if let Ok(first_name) = prompt.read::<String>("What's your first name? ").await {
-//             if let Ok(last_name) = prompt.read::<String>("What's your last name? ").await {
-//                 prompt.message(format!("Hello, {first_name} {last_name}!"));
-//             }
-//         } else {
-//             eprintln!("Got err in ask name");
-//         }
-//     }
-// }
+async fn ask_name<'a>(mut asky: Minibuffer) {
+    if let Ok(first_name) = asky.prompt(asky::Text::new("What's your first name? ")).await {
+        if let Ok(last_name) = asky.prompt(asky::Text::new("What's your last name? ")).await {
+            let _ = asky.prompt(Message::new(format!("Hello, {first_name} {last_name}!"))).await;
+            return;
+        }
+    }
+    let _ = asky.prompt(Message::new("Got err in ask name")).await;
+}
 
 // fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
 //     async move {
@@ -81,7 +79,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        // .add_command("ask_name", ask_name.pipe(future_sink))
+        .add_act(Act::unregistered().named("ask_name"), ask_name.pipe(future_sink))
         // .add_command(
         //     // Command::new("ask_name", Some(vec![KeyCode::Digit1])),
         //     Act::new("ask_name", keyseq!(1)),
@@ -97,7 +95,8 @@ fn main() {
                 .named("exec_command")
                 .hotkey(keyseq!(shift-;))
                 .autocomplete(false),
-            exec_command.pipe(future_sink),
+            // exec_command.pipe(future_sink),
+            exec_command,
         )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)

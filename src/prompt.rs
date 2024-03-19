@@ -268,6 +268,28 @@ impl Minibuffer {
         self.prompt_styled(prompt, self.style)
     }
 
+    pub fn read<L: LookUp + Send + Sync + 'static>(
+        &mut self,
+        prompt: String,
+        lookup: L
+    ) -> impl Future<Output = Result<<asky::Text<'_> as Valuable>::Output, Error>> + '_ {
+        use crate::prompt::LookUpError::*;
+        let mut text = asky::Text::new(prompt);
+        text
+            .validate(move |input|
+                      match lookup.look_up(input) {
+                          Ok(_) => Ok(()),
+                          Err(e) => match e {
+                              Message(s) => Err(s),
+                              Incomplete(v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
+                              NanoError(e) => Err(format!("Error: {:?}", e).into()),
+                          },
+                      });
+        self.prompt_styled(text, self.style)
+        // match self.prompt_styled(text, self.style).await {
+        //     Ok(validated) -> lookup
+    }
+
     // pub fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static, S>(
     //     &mut self,
     //     prompt: T,

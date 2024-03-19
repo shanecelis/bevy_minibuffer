@@ -11,7 +11,6 @@ pub fn poll_event_tasks<T: Send + Event>(
 ) {
     for (entity, mut task) in &mut tasks {
         if let Some(maybe) = future::block_on(future::poll_once(&mut task.0)) {
-            eprintln!("Got event poll task");
             if let Some(event) = maybe {
                 run_command.send(event);
             }

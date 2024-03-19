@@ -4,14 +4,13 @@ use bitflags::bitflags;
 use std::borrow::Cow;
 use std::future::Future;
 use bevy_input_sequence::*;
-use asky::{Text, Message, bevy::Asky};
-use crate::ui::PromptContainer;
+use asky::{Message, bevy::TaskSink};
 
 use crate::hotkey::*;
 use crate::prompt::*;
 
 #[derive(Clone, Event)]
-pub struct RunCommandEvent(pub SystemId);
+pub struct StartActEvent<I = (), O = ()>(pub SystemId<I, O>); // Or SystemId<I,O>
 
 bitflags! {
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]

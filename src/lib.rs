@@ -9,6 +9,7 @@ pub mod style;
 use style::MinibufferStyle;
 use bevy_input_sequence::*;
 use asky::bevy::{AskyPlugin, AskyPrompt};
+use bevy::ecs::schedule::common_conditions::in_state;
 pub use prompt::Minibuffer;
 
 pub struct NanoPromptPlugin;
@@ -23,7 +24,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
         use ui::*;
         app
             .add_plugins(AskyPlugin)
-            .add_key_sequence_event::<RunCommandEvent>()
+            .add_key_sequence_event_run_if::<StartActEvent, _>(in_state(AskyPrompt::Inactive))
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .init_resource::<ConsoleConfig>()

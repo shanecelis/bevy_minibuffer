@@ -260,6 +260,27 @@ unsafe impl SystemParam for Minibuffer {
     }
 }
 
+#[derive(Deref, DerefMut)]
+pub struct AutoComplete<T>(T);
+
+impl<T> Valuable for AutoComplete<T> where T: Valuable {
+    type Output = T::Output;
+    fn value(&self) -> Result<Self::Output, Error> {
+        self.0.value()
+    }
+}
+
+impl<T> Typeable<KeyEvent> for AutoComplete<T> where T: Typeable<KeyEvent> {
+    fn handle_key(&mut self, key: &KeyEvent) -> bool {
+        self.0.handle_key(key)
+    }
+
+    fn will_handle_key(&self, key: &KeyEvent) -> bool {
+        self.0.will_handle_key(key)
+    }
+
+}
+
 impl Minibuffer {
     pub fn prompt<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static>(
         &mut self,
@@ -274,7 +295,7 @@ impl Minibuffer {
         lookup: L
     ) -> impl Future<Output = Result<<asky::Text<'_> as Valuable>::Output, Error>> + '_ {
         use crate::prompt::LookUpError::*;
-        let mut text = asky::Text::new(prompt);
+        let mut text = AutoComplete(asky::Text::new(prompt));
         text
             .validate(move |input|
                       match lookup.look_up(input) {

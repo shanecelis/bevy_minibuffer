@@ -222,27 +222,6 @@ pub fn run_command_listener(mut events: EventReader<StartActEvent>, mut commands
     }
 }
 
-// pub fn exec_command(
-//     mut prompt: Prompt,
-//     query: Query<&Act>,
-// ) -> impl Future<Output = Option<StartActEvent>> {
-//     let commands: Vec<Act> = query.iter().cloned().collect();
-//     async move {
-//         match prompt.read_crit(": ", &commands).await {
-//             Ok(command) =>
-//                 // We can't keep an EventWriter in our closure so we return it from
-//                 // our task.
-//                 Some(StartActEvent(
-//                     command
-//                         .system_id
-//                         .expect("No system_id for command; was it registered?"))),
-//             Err(e) => {
-//                 eprintln!("Got err in exec_command: {:?}", e);
-//                 None
-//             }
-//         }
-//     }
-// }
 pub fn exec_command(
     mut asky: Minibuffer,
     acts: Query<&Act>,

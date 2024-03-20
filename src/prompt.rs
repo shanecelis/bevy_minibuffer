@@ -1,15 +1,18 @@
 #![allow(async_fn_in_trait)]
 use std::borrow::Cow;
-use std::fmt::Debug;
+use std::fmt::{Display, Debug};
 
 use bevy::ecs::{component::Tick, system::{SystemParam, SystemMeta, SystemState}, world::unsafe_world_cell::UnsafeWorldCell};
 use bevy::prelude::*;
 use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
 
-use asky::{Typeable, Valuable, Error, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style};
+use asky::{Printable, Typeable, Valuable, Error, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style, utils::renderer::Renderer};
 
+use std::io;
 use std::future::Future;
+
+use bevy_crossbeam_event::CrossbeamEventSender;
 use crate::MinibufferStyle;
 
 use crate::ui::*;
@@ -223,10 +226,11 @@ pub struct Minibuffer {
     asky: Asky,
     dest: Entity,
     style: MinibufferStyle,
+    channel: CrossbeamEventSender<LookUpEvent>,
 }
 
 unsafe impl SystemParam for Minibuffer {
-    type State = (Asky, Entity, Option<MinibufferStyle>);
+    type State = (Asky, Entity, Option<MinibufferStyle>, CrossbeamEventSender<LookUpEvent>);
     type Item<'w, 's> = Minibuffer;
 
     #[allow(clippy::type_complexity)]
@@ -235,13 +239,14 @@ unsafe impl SystemParam for Minibuffer {
             Asky,
             Query<Entity, With<PromptContainer>>,
             Option<Res<MinibufferStyle>>,
+            Res<CrossbeamEventSender<LookUpEvent>>,
         )> = SystemState::new(world);
-        let (asky, query, res) = state.get_mut(world);
+        let (asky, query, res, channel) = state.get_mut(world);
         // let asky_param_config = world
         //     .get_resource_mut::<AskyParamConfig>()
         //     .expect("No AskyParamConfig setup.")
         //     .clone();
-        (asky, query.single(), res.map(|x| *x))
+        (asky, query.single(), res.map(|x| *x), channel.clone())
     }
 
     #[inline]
@@ -256,29 +261,71 @@ unsafe impl SystemParam for Minibuffer {
             asky: state.0,
             dest: state.1,
             style: state.2.unwrap_or_default(),
+            channel: state.3,
         }
     }
 }
 
-#[derive(Deref, DerefMut)]
-pub struct AutoComplete<T>(T);
+#[derive(Clone, Event)]
+pub enum LookUpEvent {
+    Hide,
+    Completions(Vec<String>)
+}
 
-impl<T> Valuable for AutoComplete<T> where T: Valuable {
+// #[derive(Deref, DerefMut)]
+pub struct AutoComplete<T, L>{
+    inner: T,
+    look_up: L,
+    channel: CrossbeamEventSender<LookUpEvent>
+}
+
+impl<T,L> Valuable for AutoComplete<T,L> where T: Valuable {
     type Output = T::Output;
     fn value(&self) -> Result<Self::Output, Error> {
-        self.0.value()
+        self.inner.value()
     }
 }
 
-impl<T> Typeable<KeyEvent> for AutoComplete<T> where T: Typeable<KeyEvent> {
+impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
+    T: Typeable<KeyEvent> + Valuable,
+    L: LookUp,
+    <T as Valuable>::Output: AsRef<str>,
+// L::Item: Display
+{
     fn handle_key(&mut self, key: &KeyEvent) -> bool {
-        self.0.handle_key(key)
+        self.inner.handle_key(key)
     }
 
     fn will_handle_key(&self, key: &KeyEvent) -> bool {
-        self.0.will_handle_key(key)
+        use crate::prompt::LookUpError::*;
+        for code in &key.codes {
+            match code {
+                KeyCode::Tab => {
+                    eprintln!("tab");
+                      match self.inner.value() {
+                          Ok(input) => match self.look_up.look_up(input.as_ref()) {
+                              Ok(the_match) => self.channel.send(LookUpEvent::Hide),
+                              Err(e) => match e {
+                                  Message(s) => (), // Err(s),
+                                  Incomplete(v) => self.channel.send(LookUpEvent::Completions(v)), //.into_iter().map(|x| format!("{}", x)).collect())),
+                                  NanoError(e) => (), //Err(format!("Error: {:?}", e).into()),
+                              },
+                          }
+                          Err(_) => ()
+                      }
+                }
+                _ => ()
+            }
+        }
+        self.inner.will_handle_key(key)
     }
+}
 
+impl<T,L> Printable for AutoComplete<T,L> where T: Printable {
+    fn draw_with_style<R: Renderer>(&self, renderer: &mut R, style: &dyn Style)
+        -> io::Result<()> {
+        self.inner.draw_with_style(renderer, style)
+    }
 }
 
 impl Minibuffer {
@@ -293,33 +340,27 @@ impl Minibuffer {
         &mut self,
         prompt: String,
         lookup: L
-    ) -> impl Future<Output = Result<<asky::Text<'_> as Valuable>::Output, Error>> + '_ {
+    ) -> impl Future<Output = Result<<asky::Text<'_> as Valuable>::Output, Error>> + '_ where
+        L::Item: Display
+    {
+
         use crate::prompt::LookUpError::*;
-        let mut text = AutoComplete(asky::Text::new(prompt));
-        text
-            .validate(move |input|
-                      match lookup.look_up(input) {
-                          Ok(_) => Ok(()),
-                          Err(e) => match e {
-                              Message(s) => Err(s),
-                              Incomplete(v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
-                              NanoError(e) => Err(format!("Error: {:?}", e).into()),
-                          },
-                      });
+        let mut text = AutoComplete { inner: asky::Text::new(prompt),
+                                      look_up: lookup,
+                                      channel: self.channel.clone() };
+        // text
+        //     .validate(move |input|
+        //               match lookup.look_up(input) {
+        //                   Ok(_) => Ok(()),
+        //                   Err(e) => match e {
+        //                       Message(s) => Err(s),
+        //                       Incomplete(v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
+        //                       NanoError(e) => Err(format!("Error: {:?}", e).into()),
+        //                   },
+        //               });
         self.prompt_styled(text, self.style)
     }
 
-    // pub fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static, S>(
-    //     &mut self,
-    //     prompt: T,
-    //     style: S
-    // ) -> impl Future<Output = Result<T::Output, Error>> + '_
-    // where S: Style + Send + Sync + 'static {
-    //     async move {
-    //         let _ = self.asky.clear(self.dest).await;
-    //         self.asky.prompt_styled(prompt, self.dest, style).await
-    //     }
-    // }
     pub async fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static, S>(
         &mut self,
         prompt: T,

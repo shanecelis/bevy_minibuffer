@@ -14,3 +14,4 @@ bevy-input-sequence = "0.3.0"
 keyseq = { version = "0.2.2", features = [ "bevy" ] }
 asky = { version = "0.1.1", path = "../asky", default-features = false, features = ["bevy"] }
 text-style = { path = "../text-style-rs", features = [ "crossterm", "bevy" ] }
+bevy_crossbeam_event = "0.5.0"

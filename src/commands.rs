@@ -5,6 +5,7 @@ use std::borrow::Cow;
 use std::future::Future;
 use bevy_input_sequence::*;
 use asky::Message;
+use std::fmt::{self, Display};
 
 use crate::hotkey::*;
 use crate::prompt::*;
@@ -94,6 +95,18 @@ impl Act {
     pub fn autocomplete(mut self, yes: bool) -> Self {
         self.flags.set(ActFlags::AutoComplete, yes);
         self
+    }
+}
+
+impl Display for Act {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
+impl AsRef<str> for Act {
+    fn as_ref(&self) -> &str {
+        self.name()
     }
 }
 

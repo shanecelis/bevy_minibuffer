@@ -7,7 +7,7 @@ use bevy_nano_console::style::*;
 use keyseq::bevy::pkeyseq as keyseq;
 use std::{time::Duration, future::Future};
 use asky::prelude::*;
-use asky::bevy::{Asky};
+use asky::bevy::{Asky, future_sink};
 
 async fn ask_name<'a>(mut asky: Minibuffer) {
     if let Ok(first_name) = asky.prompt(asky::Text::new("What's your first name? ")).await {
@@ -79,7 +79,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_act(Act::unregistered().named("ask_name"), ask_name.pipe(future_sink))
+        .add_act(Act::unregistered().named("ask_nam"), ask_name.pipe(future_sink))
         // .add_command(
         //     // Command::new("ask_name", Some(vec![KeyCode::Digit1])),
         //     Act::new("ask_name", keyseq!(1)),
@@ -95,8 +95,7 @@ fn main() {
                 .named("exec_command")
                 .hotkey(keyseq!(shift-;))
                 .autocomplete(false),
-            // exec_command.pipe(future_sink),
-            exec_command,
+            exec_command.pipe(future_sink),
         )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)
@@ -105,10 +104,10 @@ fn main() {
 }
 
 fn add_acts(world: &mut World) {
-    // let system_id = world.register_system(ask_name.pipe(future_sink));
-    // world.spawn(Act::new(system_id)
-    //     .named("ask_name")
-    //     .hotkey(keyseq!(1)));
+    let system_id = world.register_system(ask_name.pipe(future_sink));
+    world.spawn(Act::new(system_id)
+        .named("ask_name2")
+        .hotkey(keyseq!(1)));
 }
 
 fn add_acts2(mut commands: Commands) {

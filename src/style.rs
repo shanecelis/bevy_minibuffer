@@ -149,6 +149,7 @@ impl Style for MinibufferStyle {
                 r.set_foreground(Blue.dark())?;
             }
             Validator(valid) => {
+                write!(r, "  ")?;
                 r.set_foreground(if valid { Blue.dark() } else { Red.dark() })?;
             }
             Placeholder => {

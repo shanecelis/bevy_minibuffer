@@ -203,7 +203,7 @@ pub fn hide_prompt_maybe(
         hide.timer.tick(time.delta());
         if hide.timer.finished() {
             if *state == AskyPrompt::Inactive {
-                eprintln!("hiding after delay.");
+                // eprintln!("hiding after delay.");
                 *visibility = Visibility::Hidden;
             }
             commands.entity(id).remove::<HideTime>();
@@ -286,8 +286,6 @@ impl Minibuffer {
                           },
                       });
         self.prompt_styled(text, self.style)
-        // match self.prompt_styled(text, self.style).await {
-        //     Ok(validated) -> lookup
     }
 
     // pub fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static, S>(

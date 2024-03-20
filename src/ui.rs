@@ -96,7 +96,7 @@ pub fn spawn_layout(mut commands: Commands, asset_server: Res<AssetServer>) {
                             background_color: Color::rgb(0.10, 0.10, 0.10).into(),
                             ..default()
                         })
-                        .insert(CompletionContainer {})
+                        .insert(CompletionContainer)
                         .with_children(|builder| {
                             builder
                                 .spawn((

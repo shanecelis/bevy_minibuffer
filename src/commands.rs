@@ -4,13 +4,13 @@ use bitflags::bitflags;
 use std::borrow::Cow;
 use std::future::Future;
 use bevy_input_sequence::*;
-use asky::{Message, bevy::TaskSink};
+use asky::Message;
 
 use crate::hotkey::*;
 use crate::prompt::*;
 
 #[derive(Clone, Event)]
-pub struct StartActEvent<I = (), O = ()>(pub SystemId<I, O>); // Or SystemId<I,O>
+pub struct StartActEvent(pub SystemId); // Or SystemId<I,O>
 
 bitflags! {
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
@@ -111,19 +111,19 @@ impl LookUp for Vec<Act> {
         // Collecting and matching is nice expressively. But manually iterating
         // avoids that allocation.
         if let Some(first) = matches.next() {
-            if let Some(second) = matches.next() {
+            if input == first.name() {
+                Ok(first.clone())
+            } else if let Some(second) = matches.next() {
                 let mut result = vec![first.name().to_string(), second.name().to_string()];
                 for item in matches {
                     result.push(item.name().to_string());
                 }
                 Err(LookUpError::Incomplete(result))
-            } else if input == first.name() {
-                Ok(first.clone())
             } else {
                 Err(LookUpError::Incomplete(vec![first.name().to_string()]))
             }
         } else {
-            Err(LookUpError::Message(" no matches".into()))
+            Err(LookUpError::Message("no matches".into()))
         }
     }
 }
@@ -182,7 +182,7 @@ impl AddAct for App {
         // }
         let mut spawn = self.world.spawn(cmd.clone());
         if cmd.hotkey.is_some() {
-            spawn.insert(KeySequence::new(RunCommandEvent(system_id), cmd.hotkey.as_ref().unwrap().clone()));
+            spawn.insert(KeySequence::new(StartActEvent(system_id), cmd.hotkey.as_ref().unwrap().clone()));
         }
 
         // self.world.spawn(cmd.clone());
@@ -211,12 +211,12 @@ where E: Send + Sync + 'static {
     for (id, act) in &query {
         if let Some(ref keys) = act.hotkey {
             eprintln!("add key");
-            commands.entity(id).insert(KeySequence::new(RunCommandEvent(act.system_id.unwrap()), keys.clone()));
+            commands.entity(id).insert(KeySequence::new(StartActEvent(act.system_id.unwrap()), keys.clone()));
         }
     }
 }
 
-pub fn run_command_listener(mut events: EventReader<RunCommandEvent>, mut commands: Commands) {
+pub fn run_command_listener(mut events: EventReader<StartActEvent>, mut commands: Commands) {
     for e in events.read() {
         commands.run_system(e.0);
     }
@@ -225,14 +225,14 @@ pub fn run_command_listener(mut events: EventReader<RunCommandEvent>, mut comman
 // pub fn exec_command(
 //     mut prompt: Prompt,
 //     query: Query<&Act>,
-// ) -> impl Future<Output = Option<RunCommandEvent>> {
+// ) -> impl Future<Output = Option<StartActEvent>> {
 //     let commands: Vec<Act> = query.iter().cloned().collect();
 //     async move {
 //         match prompt.read_crit(": ", &commands).await {
 //             Ok(command) =>
 //                 // We can't keep an EventWriter in our closure so we return it from
 //                 // our task.
-//                 Some(RunCommandEvent(
+//                 Some(StartActEvent(
 //                     command
 //                         .system_id
 //                         .expect("No system_id for command; was it registered?"))),
@@ -244,31 +244,31 @@ pub fn run_command_listener(mut events: EventReader<RunCommandEvent>, mut comman
 //     }
 // }
 pub fn exec_command(
-    mut asky: Asky,
+    mut asky: Minibuffer,
     acts: Query<&Act>,
-    query: Query<Entity, With<PromptContainer>>
-) -> impl Future<Output = Option<RunCommandEvent>> {
-    let commands: Vec<Act> = acts.iter().cloned().collect();
-    let id: Entity = query.single();
+) -> impl Future<Output = Option<StartActEvent>> {
+    let acts: Vec<Act> = acts.iter().cloned().collect();
     async move {
-        let _ = asky.clear(id).await;
-        match asky.prompt(Text::new(":"), id).await {
+        // match asky.prompt(asky::Text::new(":")).await {
+        match asky.read(":".to_string(), acts.clone()).await { // TODO: Get rid of clone.
             Ok(input) => {
-                if let Some(command) = commands.iter().find(|x| x.name() == input) {
-                // We can't keep an EventWriter in our closure so we return it from
-                // our task.
-                Some(RunCommandEvent(
-                    command
-                        .system_id
-                        .expect("No system_id for command; was it registered?")))
+                if let Some(act) = acts.iter().find(|x| x.name() == input) {
+                    // We can't keep an EventWriter in our closure so we return it from
+                    // our task.
+                    match act.system_id {
+                        Some(system_id) => Some(StartActEvent(system_id)),
+                        None => {
+                            let _ = asky.prompt(Message::new(format!("Error: No system_id for act {:?}; was it registered?", input))).await;
+                            None
+                        }
+                    }
                 } else {
-                    let _ = asky.clear(id).await;
-                    asky.prompt(Message::new(format!("No such command: {input}")), id);
+                    let _ = asky.prompt(Message::new(format!("No such command: {input}"))).await;
                     None
                 }
             }
             Err(e) => {
-                eprintln!("Got err in exec_command: {:?}", e);
+                let _ = asky.prompt(Message::new(format!("Error: {:?}", e))).await;
                 None
             }
         }

@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
 
-use asky::{Printable, Typeable, Valuable, Error, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style, utils::renderer::Renderer};
+use asky::{Printable, Typeable, Valuable, Error, SetValue, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style, utils::renderer::Renderer};
 
 use std::io;
 use std::future::Future;
@@ -24,6 +24,7 @@ pub enum PromptState {
     #[default]
     // Uninit,
     Invisible,
+    Finished,
     Visible,
 }
 
@@ -151,7 +152,7 @@ pub struct HideTime {
 #[derive(Debug, Resource, Clone)]
 pub struct ConsoleConfig {
     // pub(crate) state: Arc<Mutex<ConsoleState>>,
-    pub hide_delay: Option<u64>,
+    pub hide_delay: Option<u64>, // milliseconds
 }
 
 impl Default for ConsoleConfig {
@@ -198,16 +199,21 @@ pub fn hide_prompt_maybe(
     time: Res<Time>,
     state: Res<State<AskyPrompt>>,
     mut redraw: EventWriter<RequestRedraw>,
-    mut query: Query<(Entity, &mut Visibility, &mut HideTime)>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
+    mut next_completion_state: ResMut<NextState<CompletionState>>,
+    mut query: Query<(Entity, &mut HideTime)>,
 ) {
-    for (id, mut visibility, mut hide) in query.iter_mut() {
+    for (id, mut hide) in query.iter_mut() {
         // eprintln!("checking hide {:?}", time.delta());
         redraw.send(RequestRedraw); // Force ticks to happen when a timer is present.
         hide.timer.tick(time.delta());
         if hide.timer.finished() {
             if *state == AskyPrompt::Inactive {
+
+                next_prompt_state.set(PromptState::Invisible);
+                next_completion_state.set(CompletionState::Invisible);
                 // eprintln!("hiding after delay.");
-                *visibility = Visibility::Hidden;
+                // *visibility = Visibility::Hidden;
             }
             commands.entity(id).remove::<HideTime>();
         }
@@ -220,7 +226,6 @@ pub fn hide<T: Component>(mut query: Query<&mut Visibility, With<T>>) {
         *visibility = Visibility::Hidden;
     }
 }
-
 
 pub struct Minibuffer {
     asky: Asky,
@@ -287,18 +292,19 @@ impl<T,L> Valuable for AutoComplete<T,L> where T: Valuable {
 }
 
 impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
-    T: Typeable<KeyEvent> + Valuable,
+    T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
     L: LookUp,
     <T as Valuable>::Output: AsRef<str>,
-    T: AsMut<String>
 // L::Item: Display
 {
     fn handle_key(&mut self, key: &KeyEvent) -> bool {
         use crate::prompt::LookUpError::*;
+        let mut hide = true;
         for code in &key.codes {
             match code {
                 KeyCode::Tab => {
                     eprintln!("tab");
+                    hide = false;
                       match self.inner.value() {
                           Ok(input) => match self.look_up.look_up(input.as_ref()) {
                               Ok(the_match) => self.channel.send(LookUpEvent::Hide),
@@ -306,8 +312,8 @@ impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
                                   Message(s) => (), // Err(s),
                                   Incomplete(v) => {
                                       if v.len() == 1 {
-                                          let mut text = self.inner.as_mut();
-                                          *text = v.into_iter().next().unwrap()
+                                          let new_input = v.into_iter().next().unwrap();
+                                          let _ = self.inner.set_value(new_input);
                                       } else {
                                           self.channel.send(LookUpEvent::Completions(v))
                                       }
@@ -321,11 +327,13 @@ impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
                 _ => ()
             }
         }
+        if hide {
+            self.channel.send(LookUpEvent::Hide);
+        }
         self.inner.handle_key(key)
     }
 
     fn will_handle_key(&self, key: &KeyEvent) -> bool {
-
         for code in &key.codes {
             match code {
                 KeyCode::Tab => return true,
@@ -464,12 +472,10 @@ fn completion_set(completion: Entity,
 
 
 pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
-    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
-
-    mut next_completion_state: ResMut<NextState<CompletionState>>,
+                                   completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
+                                   mut next_completion_state: ResMut<NextState<CompletionState>>,
                                    asset_server: Res<AssetServer>,
-
-    mut redraw: EventWriter<RequestRedraw>,
+                                   mut redraw: EventWriter<RequestRedraw>,
                                    mut commands: Commands,
 ) {
     for e in look_up_events.read() {
@@ -486,8 +492,20 @@ pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
                 redraw.send(RequestRedraw);
             },
             LookUpEvent::Hide => {
-
+                next_completion_state.set(CompletionState::Invisible);
+                redraw.send(RequestRedraw);
             }
+        }
+    }
+}
+
+pub fn listen_prompt_active(mut transitions: EventReader<StateTransitionEvent<AskyPrompt>>,
+                            mut next_prompt_state: ResMut<NextState<PromptState>>,
+) {
+    for transition in transitions.read() {
+        match transition.after {
+            AskyPrompt::Active => next_prompt_state.set(PromptState::Visible),
+            AskyPrompt::Inactive => next_prompt_state.set(PromptState::Finished),
         }
     }
 }

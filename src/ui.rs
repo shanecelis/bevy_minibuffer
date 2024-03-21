@@ -251,22 +251,6 @@ pub fn mouse_scroll(
 //         &self.text.sections[2].value
 //     }
 
-//     pub fn completion_set(&mut self, labels: Vec<String>, commands: &mut Commands) {
-//         let new_children = labels
-//             .into_iter()
-//             .map(|label| {
-//                 commands
-//                     .spawn(completion_item(label, Color::WHITE, self.font.clone()))
-//                     .id()
-//             })
-//             .collect::<Vec<Entity>>();
-//         commands
-//             .entity(self.completion)
-//             .replace_children(&new_children);
-//         for child in self.children.iter() {
-//             commands.entity(*child).despawn();
-//         }
-//     }
 
 //     fn buf_read(&self, buf: &mut PromptBuf) {
 //         buf.prompt.clone_from(&self.text.sections[0].value);

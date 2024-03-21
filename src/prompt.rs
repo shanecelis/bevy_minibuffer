@@ -266,7 +266,7 @@ unsafe impl SystemParam for Minibuffer {
     }
 }
 
-#[derive(Clone, Event)]
+#[derive(Debug, Clone, Event)]
 pub enum LookUpEvent {
     Hide,
     Completions(Vec<String>)
@@ -290,13 +290,10 @@ impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
     T: Typeable<KeyEvent> + Valuable,
     L: LookUp,
     <T as Valuable>::Output: AsRef<str>,
+    T: AsMut<String>
 // L::Item: Display
 {
     fn handle_key(&mut self, key: &KeyEvent) -> bool {
-        self.inner.handle_key(key)
-    }
-
-    fn will_handle_key(&self, key: &KeyEvent) -> bool {
         use crate::prompt::LookUpError::*;
         for code in &key.codes {
             match code {
@@ -307,13 +304,31 @@ impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
                               Ok(the_match) => self.channel.send(LookUpEvent::Hide),
                               Err(e) => match e {
                                   Message(s) => (), // Err(s),
-                                  Incomplete(v) => self.channel.send(LookUpEvent::Completions(v)), //.into_iter().map(|x| format!("{}", x)).collect())),
+                                  Incomplete(v) => {
+                                      if v.len() == 1 {
+                                          let mut text = self.inner.as_mut();
+                                          *text = v.into_iter().next().unwrap()
+                                      } else {
+                                          self.channel.send(LookUpEvent::Completions(v))
+                                      }
+                                  },
                                   NanoError(e) => (), //Err(format!("Error: {:?}", e).into()),
                               },
                           }
                           Err(_) => ()
                       }
                 }
+                _ => ()
+            }
+        }
+        self.inner.handle_key(key)
+    }
+
+    fn will_handle_key(&self, key: &KeyEvent) -> bool {
+
+        for code in &key.codes {
+            match code {
+                KeyCode::Tab => return true,
                 _ => ()
             }
         }
@@ -377,6 +392,103 @@ impl Minibuffer {
 
     pub fn delay(&mut self, duration: Duration) -> impl Future<Output = Result<(), Error>> {
         self.asky.delay(duration)
+    }
+}
+
+// async fn read_crit<T>(
+//     &mut self,
+//     prompt: impl Into<PromptBuf>,
+//     look_up: &impl LookUp<Item = T>,
+// ) -> Result<T, NanoError> {
+//     let mut buf = prompt.into();
+//     loop {
+//         match self.read_raw(buf.clone()).await {
+//             Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
+//                 Ok(v) => {
+//                     if new_buf.flags.contains(Requests::Submit) {
+//                         return Ok(v);
+//                     } else {
+//                         buf = new_buf
+//                     }
+//                 }
+//                 Err(LookUpError::Message(m)) => {
+//                     new_buf.completion.clear();
+//                     new_buf.message = m.to_string();
+//                     buf = new_buf;
+//                 }
+//                 Err(LookUpError::Incomplete(v)) => {
+//                     if new_buf.flags.contains(Requests::AutoComplete) {
+//                         new_buf.completion.clear();
+//                         new_buf.completion.extend_from_slice(&v[..]);
+
+//                         if !new_buf.completion.is_empty() {
+//                             let prefix = longest_common_prefix(&new_buf.completion);
+//                             if prefix.len() > new_buf.input.len() {
+//                                 new_buf.input = prefix;
+//                             }
+//                             new_buf.message.clear();
+//                         }
+//                     }
+//                     buf = new_buf;
+//                 }
+//                 Err(LookUpError::NanoError(e)) => return Err(e),
+//             },
+//             Err(e) => return Err(e),
+//         }
+//         buf.flags = Requests::empty();
+//     }
+// }
+
+fn completion_set(completion: Entity,
+                  children: Option<&Children>,
+                  labels: Vec<String>,
+                  font: Handle<Font>,
+                  commands: &mut Commands) {
+    let new_children = labels
+        .into_iter()
+        .map(|label| {
+            commands
+                .spawn(completion_item(label, Color::WHITE, font.clone()))
+                .id()
+        })
+        .collect::<Vec<Entity>>();
+    commands
+        .entity(completion)
+        .replace_children(&new_children);
+    if let Some(children) = children {
+        for child in children.iter() {
+            commands.entity(*child).despawn();
+        }
+    }
+}
+
+
+pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
+    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
+
+    mut next_completion_state: ResMut<NextState<CompletionState>>,
+                                   asset_server: Res<AssetServer>,
+
+    mut redraw: EventWriter<RequestRedraw>,
+                                   mut commands: Commands,
+) {
+    for e in look_up_events.read() {
+        info!("look up event: {e:?}");
+        match e {
+            LookUpEvent::Completions(v) => {
+                let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+                let (completion_node, children) = completion.single();
+                completion_set(completion_node, children,
+                               v.clone(),
+                               font,
+                               &mut commands);
+                next_completion_state.set(CompletionState::Visible);
+                redraw.send(RequestRedraw);
+            },
+            LookUpEvent::Hide => {
+
+            }
+        }
     }
 }
 

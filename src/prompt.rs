@@ -14,6 +14,7 @@ use std::future::Future;
 
 use bevy_crossbeam_event::CrossbeamEventSender;
 use crate::MinibufferStyle;
+use trie_rs::{iter::KeysExt, map::{Trie, TrieBuilder}};
 
 use crate::ui::*;
 
@@ -42,13 +43,47 @@ pub enum NanoError {
     Message(CowStr),
 }
 
-
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum LookUpError {
     Message(Cow<'static, str>),
     NanoError(NanoError),
     Incomplete(Vec<String>),
+}
+
+pub trait LookUp: Sized {
+    type Item;
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError>;
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        None
+    }
+}
+
+impl<'a, V> LookUp for &'a Trie<u8, V> {
+    type Item = &'a V;
+
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
+        let matches: Vec<String> = self.predictive_search(input).keys().collect();
+        match matches.len() {
+            0 => Err(LookUpError::Message("no matches".into())),
+            1 =>
+                if matches[0] == input {
+                    Ok(self.exact_match(input).unwrap())
+                } else {
+                    Err(LookUpError::Incomplete(matches))
+                },
+            n => Err(LookUpError::Incomplete(matches))
+        }
+    }
+
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        let s: String = Trie::<u8, V>::longest_prefix(&self, input);
+        if s.is_empty() {
+            None
+        } else {
+            Some(s)
+        }
+    }
 }
 
 /// Handles arrays of &str, String, Cow<'_, str>. Does it all.
@@ -94,10 +129,6 @@ impl<T: AsRef<str>> LookUp for &[T] {
     }
 }
 
-pub trait LookUp: Sized {
-    type Item;
-    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError>;
-}
 
 impl<T> LookUp for T
 where

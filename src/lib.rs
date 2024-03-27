@@ -12,6 +12,7 @@ use asky::bevy::{AskyPlugin, AskyPrompt};
 use bevy::ecs::schedule::common_conditions::in_state;
 pub use prompt::Minibuffer;
 use bevy_crossbeam_event::CrossbeamEventApp;
+use trie_rs::map::Trie;
 
 pub struct NanoPromptPlugin;
 #[rustfmt::skip]
@@ -30,7 +31,8 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .init_state::<CompletionState>()
             .init_resource::<ConsoleConfig>()
             .add_crossbeam_event::<LookUpEvent>()
-            .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text, Vec<Act>>>)
+            // .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text, Vec<Act>>>)
+            .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text, Trie<u8, Act>>>)
             .add_systems(PostUpdate, handle_look_up_event)
             .add_systems(Startup,   spawn_layout)
             .add_systems(PreUpdate, run_command_listener)

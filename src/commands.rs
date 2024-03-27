@@ -6,6 +6,7 @@ use std::future::Future;
 use bevy_input_sequence::*;
 use asky::Message;
 use std::fmt::{self, Display};
+use trie_rs::map::{Trie, TrieBuilder};
 
 use crate::hotkey::*;
 use crate::prompt::*;
@@ -112,7 +113,8 @@ impl AsRef<str> for Act {
 
 impl LookUp for Vec<Act> {
     type Item = Act;
-    fn look_up(&self, input: &str) -> Result<Act, LookUpError> {
+    fn look_up(&self, input: impl AsRef<str>) -> Result<Act, LookUpError> {
+        let input = input.as_ref();
         let mut matches = self
             .iter()
             .filter(|command| {
@@ -239,25 +241,31 @@ pub fn exec_command(
     mut asky: Minibuffer,
     acts: Query<&Act>,
 ) -> impl Future<Output = Option<StartActEvent>> {
-    let acts: Vec<Act> = acts.iter().cloned().collect();
+    // let acts: Vec<Act> = acts.iter().cloned().collect();
+    let mut builder = TrieBuilder::new();
+    for act in acts.iter() {
+        builder.push(act.name(), act.clone());
+    }
+    // let acts: Trie<u8, Act> = acts.iter().cloned().map(|a| (a.name(), a)).collect();
+    let acts: Trie<u8, Act> = builder.build();
     async move {
         // match asky.prompt(asky::Text::new(":")).await {
-        match asky.read(":".to_string(), acts.clone()).await { // TODO: Get rid of clone.
-            Ok(input) => {
-                if let Some(act) = acts.iter().find(|x| x.name() == input) {
-                    // We can't keep an EventWriter in our closure so we return it from
-                    // our task.
-                    match act.system_id {
-                        Some(system_id) => Some(StartActEvent(system_id)),
-                        None => {
-                            let _ = asky.prompt(Message::new(format!("Error: No system_id for act {:?}; was it registered?", input))).await;
-                            None
-                        }
+        match asky.read(":".to_string(), acts).await { // TODO: Get rid of clone.
+            Ok(act) => {
+                // if let Some(act) = acts.iter().find(|x| x.name() == input) {
+                //     // We can't keep an EventWriter in our closure so we return it from
+                //     // our task.
+                match act.system_id {
+                    Some(system_id) => Some(StartActEvent(system_id)),
+                    None => {
+                        let _ = asky.prompt(Message::new(format!("Error: No system_id for act {:?}; was it registered?", act))).await;
+                        None
                     }
-                } else {
-                    let _ = asky.prompt(Message::new(format!("No such command: {input}"))).await;
-                    None
                 }
+                // } else {
+                //     let _ = asky.prompt(Message::new(format!("No such command: {input}"))).await;
+                //     None
+                // }
             }
             Err(e) => {
                 let _ = asky.prompt(Message::new(format!("Error: {:?}", e))).await;

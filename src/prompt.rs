@@ -53,10 +53,8 @@ pub enum LookUpError {
 
 pub trait LookUp {
     type Item: Send;
-    fn look_up(&self, input: impl AsRef<str>) -> Result<Self::Item, LookUpError>;
-    fn longest_prefix(&self, input: impl AsRef<str>) -> Option<String> {
-        None
-    }
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError>;
+    fn longest_prefix(&self, input: &str) -> Option<String>;
 }
 
 // impl<'a, V: Send + Sync> LookUp for &'a map::Trie<u8, V> {
@@ -83,7 +81,7 @@ pub trait LookUp {
 impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
     type Item = V;
 
-    fn look_up(&self, input: impl AsRef<str>) -> Result<Self::Item, LookUpError> {
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
         let input = input.as_ref();
         let matches: Vec<String> = self.predictive_search(input).keys().collect();
         match matches.len() {
@@ -98,8 +96,8 @@ impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
         }
     }
 
-    fn longest_prefix(&self, input: impl AsRef<str>) -> Option<String> {
-        map::Trie::<u8, V>::longest_prefix(&self, input.as_ref())
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        map::Trie::<u8, V>::longest_prefix(&self, input)
     }
 }
 
@@ -117,19 +115,19 @@ impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
 impl LookUp for trie_rs::Trie<u8> {
     type Item = ();
 
-    fn look_up(&self, input: impl AsRef<str>) -> Result<Self::Item, LookUpError> {
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
         self.0.look_up(input)
     }
 
-    fn longest_prefix(&self, input: impl AsRef<str>) -> Option<String> {
-        self.0.longest_prefix(input.as_ref())
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        self.0.longest_prefix(input)
     }
 }
 
 /// Handles arrays of &str, String, Cow<'_, str>. Does it all.
 impl<T: AsRef<str>> LookUp for &[T] {
     type Item = String;
-    fn look_up(&self, input: impl AsRef<str>) -> Result<Self::Item, LookUpError> {
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
         // Collecting and matching is nice expressively. But manually iterating
         // avoids that allocation.
 
@@ -146,7 +144,6 @@ impl<T: AsRef<str>> LookUp for &[T] {
         //     [] => Err(LookUpError::Message(" no matches".into())),
         // }
 
-        let input = input.as_ref();
         let mut matches = self
             .iter()
             .map(|word| word.as_ref())
@@ -168,6 +165,11 @@ impl<T: AsRef<str>> LookUp for &[T] {
             Err(LookUpError::Message(" no matches".into()))
         }
     }
+
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        todo!();
+    }
+
 }
 
 
@@ -349,13 +351,18 @@ pub enum LookUpEvent {
     Completions(Vec<String>)
 }
 
-// #[derive(Deref, DerefMut)]
 pub struct AutoComplete<T, L>
 where L: LookUp, L::Item: Send {
     inner: T,
     look_up: L,
-    channel: CrossbeamEventSender<LookUpEvent>
+    channel: CrossbeamEventSender<LookUpEvent>,
+    show_completions: bool
 }
+// pub struct AutoComplete<T> {
+//     inner: T,
+//     look_up: Box<dyn LookUp<Item = String>>,
+//     channel: CrossbeamEventSender<LookUpEvent>
+// }
 
 impl<T,L> AutoComplete<T,L> where
     T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
@@ -367,6 +374,7 @@ impl<T,L> AutoComplete<T,L> where
             inner,
             look_up,
             channel,
+            show_completions: false,
         }
     }
 }
@@ -374,7 +382,7 @@ impl<T,L> AutoComplete<T,L> where
 impl<T,L> Valuable for AutoComplete<T,L> where T: Valuable, T::Output: AsRef<str>, L: LookUp, L::Item: Send {
     type Output = L::Item;
     fn value(&self) -> Result<Self::Output, Error> {
-        Ok(self.look_up.look_up(self.inner.value().unwrap()).unwrap())
+        Ok(self.look_up.look_up(self.inner.value().unwrap().as_ref()).unwrap())
     }
 }
 
@@ -386,42 +394,54 @@ impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
 {
     fn handle_key(&mut self, key: &KeyEvent) -> bool {
         use crate::prompt::LookUpError::*;
-        let mut hide = true;
+        // let mut hide = true;
         for code in &key.codes {
             match code {
                 KeyCode::Tab => {
-                    eprintln!("tab");
-                    hide = false;
+                    self.show_completions = true;
+
                     match self.inner.value() {
                         // What value does the input have?
                         Ok(input) => match self.look_up.look_up(input.as_ref()) {
-                            Ok(the_match) => self.channel.send(LookUpEvent::Hide),
                             Err(e) => match e {
                                 Message(s) => (), // Err(s),
                                 Incomplete(v) => {
-                                    eprintln!("HERE {:?}", input.as_ref());
                                     if let Some(new_input) = self.look_up.longest_prefix(input.as_ref()) {
-                                        eprintln!("HITHER");
-
                                         let _ = self.inner.set_value(new_input);
-                                    } else {
-                                        eprintln!("Thither");
                                     }
-                                    self.channel.send(LookUpEvent::Completions(v))
                                 },
                                 NanoError(e) => (), //Err(format!("Error: {:?}", e).into()),
                             },
+                            _ => (),
                         }
                         Err(_) => ()
                     }
+                    // hide = false;
                 }
                 _ => ()
             }
         }
-        if hide {
-            self.channel.send(LookUpEvent::Hide);
+        // if hide {
+        //     self.channel.send(LookUpEvent::Hide);
+        // }
+        let result = self.inner.handle_key(key);
+        if self.show_completions {
+            match self.inner.value() {
+                // What value does the input have?
+                Ok(input) => match self.look_up.look_up(input.as_ref()) {
+                    Ok(the_match) => self.channel.send(LookUpEvent::Hide),
+                    Err(e) => match e {
+                        Message(s) => (), // Err(s),
+                        Incomplete(v) => {
+                            self.channel.send(LookUpEvent::Completions(v))
+                        },
+                        NanoError(e) => (), //Err(format!("Error: {:?}", e).into()),
+                    },
+                }
+                Err(_) => ()
+            }
         }
-        self.inner.handle_key(key)
+        result
     }
 
     fn will_handle_key(&self, key: &KeyEvent) -> bool {

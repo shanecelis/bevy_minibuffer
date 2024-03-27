@@ -113,8 +113,7 @@ impl AsRef<str> for Act {
 
 impl LookUp for Vec<Act> {
     type Item = Act;
-    fn look_up(&self, input: impl AsRef<str>) -> Result<Act, LookUpError> {
-        let input = input.as_ref();
+    fn look_up(&self, input: &str) -> Result<Act, LookUpError> {
         let mut matches = self
             .iter()
             .filter(|command| {
@@ -140,6 +139,10 @@ impl LookUp for Vec<Act> {
         } else {
             Err(LookUpError::Message("no matches".into()))
         }
+    }
+
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        None
     }
 }
 

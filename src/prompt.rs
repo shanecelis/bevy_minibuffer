@@ -53,9 +53,23 @@ pub enum LookUpError {
 
 pub trait LookUp {
     type Item: Send;
-    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError>;
+    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> where Self: Sized;
+    fn try_look_up(&self, input: &str) -> Result<(), LookUpError>;
     fn longest_prefix(&self, input: &str) -> Option<String>;
 }
+
+pub struct UntypedLookUp<T>(Box<dyn LookUp<Item = T>>);
+
+impl<T> LookUp for UntypedLookUp<T> {
+    type Item = ();
+    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
+        self.0.try_look_up(input)
+    }
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        self.0.longest_prefix(input)
+    }
+}
+
 
 // impl<'a, V: Send + Sync> LookUp for &'a map::Trie<u8, V> {
 //     type Item = &'a V;

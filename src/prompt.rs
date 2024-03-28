@@ -593,21 +593,30 @@ pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
                                    asset_server: Res<AssetServer>,
                                    mut redraw: EventWriter<RequestRedraw>,
                                    mut commands: Commands,
+                                   mut last_hash: Local<Option<u64>>,
 ) {
     for e in look_up_events.read() {
         info!("look up event: {e:?}");
         match e {
             LookUpEvent::Completions(v) => {
-                let font = asset_server.load("fonts/FiraSans-Bold.ttf");
-                let (completion_node, children) = completion.single();
-                completion_set(completion_node, children,
-                               v.clone(),
-                               font,
-                               &mut commands);
-                next_completion_state.set(CompletionState::Visible);
-                redraw.send(RequestRedraw);
+                let rnd_state = bevy::utils::RandomState::with_seed(0);
+                let hash = rnd_state.hash_one(v);
+                eprintln!("hash {hash}");
+                if last_hash.unwrap_or(0) != hash {
+                    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+                    let (completion_node, children) = completion.single();
+                    completion_set(completion_node, children,
+                                   v.clone(),
+                                   font,
+                                   &mut commands);
+                    next_completion_state.set(CompletionState::Visible);
+                    redraw.send(RequestRedraw);
+                }
+                *last_hash = Some(hash);
             },
             LookUpEvent::Hide => {
+                eprintln!("hide");
+                *last_hash = None;
                 next_completion_state.set(CompletionState::Invisible);
                 redraw.send(RequestRedraw);
             }

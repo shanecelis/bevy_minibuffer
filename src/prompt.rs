@@ -431,7 +431,10 @@ impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
                 Ok(input) => match self.look_up.look_up(input.as_ref()) {
                     Ok(the_match) => self.channel.send(LookUpEvent::Hide),
                     Err(e) => match e {
-                        Message(s) => (), // Err(s),
+                        Message(s) => {
+                            // TODO: message should go somewhere.
+                            self.channel.send(LookUpEvent::Hide);
+                        }// Err(s),
                         Incomplete(v) => {
                             self.channel.send(LookUpEvent::Completions(v))
                         },
@@ -480,19 +483,20 @@ impl Minibuffer {
     {
 
         use crate::prompt::LookUpError::*;
-        let mut text = AutoComplete::new(asky::Text::new(prompt),
-                                         lookup,
-                                         self.channel.clone());
-        // text
-        //     .validate(move |input|
-        //               match lookup.look_up(input) {
-        //                   Ok(_) => Ok(()),
-        //                   Err(e) => match e {
-        //                       Message(s) => Err(s),
-        //                       Incomplete(v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
-        //                       NanoError(e) => Err(format!("Error: {:?}", e).into()),
-        //                   },
-        //               });
+        let mut text = asky::Text::new(prompt);
+        text
+            .validate(move |input|
+                      match lookup.look_up(input) {
+                          Ok(_) => Ok(()),
+                          Err(e) => match e {
+                              Message(s) => Err(s),
+                              Incomplete(v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
+                              NanoError(e) => Err(format!("Error: {:?}", e).into()),
+                          },
+                      });
+        let text = AutoComplete::new(text,
+                                     lookup,
+                                     self.channel.clone());
         self.prompt_styled(text, self.style)
     }
 

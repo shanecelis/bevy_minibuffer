@@ -473,24 +473,27 @@ impl Minibuffer {
         self.prompt_styled(prompt, self.style)
     }
 
-    pub fn read<L: LookUp + Send + Sync + 'static>(
+    pub fn read<L>(
         &mut self,
         prompt: String,
         lookup: L
     // ) -> impl Future<Output = Result<<asky::Text<'_> as Valuable>::Output, Error>> + '_ where
     ) -> impl Future<Output = Result<L::Item, Error>> + '_ where
+        L: LookUp + Clone + Send + Sync + 'static,
         L::Item: Display
     {
 
         use crate::prompt::LookUpError::*;
         let mut text = asky::Text::new(prompt);
+        let l = lookup.clone();
         text
             .validate(move |input|
-                      match lookup.look_up(input) {
+                      match l.look_up(input) {
                           Ok(_) => Ok(()),
                           Err(e) => match e {
                               Message(s) => Err(s),
-                              Incomplete(v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
+                              // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
+                              Incomplete(_v) => Err("Incomplete".into()),
                               NanoError(e) => Err(format!("Error: {:?}", e).into()),
                           },
                       });
@@ -670,8 +673,9 @@ mod tests {
         use super::LookUp;
         let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
         assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");
-        // let lookup: &dyn LookUp<Item = &()> = &&trie;
-        // assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
-        // assert_eq!(lookup.longest_prefix("b"), None);
+        let lookup: &dyn LookUp<Item = ()> = &trie;
+        assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
+        assert_eq!(lookup.longest_prefix("b"), None);
+        let lookup: &dyn LookUp<Item = ()> = &trie;
     }
 }

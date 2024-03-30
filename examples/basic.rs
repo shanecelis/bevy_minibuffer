@@ -10,7 +10,7 @@ use asky::prelude::*;
 use asky::bevy::{Asky, future_sink};
 
 async fn ask_name<'a>(mut asky: Minibuffer) {
-    if let Ok(first_name) = asky.prompt(asky::Text::new("What's your first name? ")).await {
+    if let Ok(first_name) = asky.prompt(asky::Text::new("What's your \nfirst name? ")).await {
         if let Ok(last_name) = asky.prompt(asky::Text::new("What's your last name? ")).await {
             let _ = asky.prompt(Message::new(format!("Hello, {first_name} {last_name}!"))).await;
             return;
@@ -92,10 +92,16 @@ fn main() {
         // )
         .add_act(
             Act::unregistered()
-                .named("exec_command")
+                .named("exec_act")
                 .hotkey(keyseq!(shift-;))
-                .autocomplete(false),
-            exec_command.pipe(future_sink),
+                .in_exec_act(false),
+            exec_act.pipe(future_sink),
+        )
+        .add_act(
+            Act::unregistered()
+                .named("list_acts")
+                .hotkey(keyseq!(ctrl-H A)),
+            list_acts.pipe(future_sink),
         )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)

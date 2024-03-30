@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_input_sequence::KeyChord;
 
 pub use keyseq::{Modifiers, bevy::{pkey as key, pkeyseq as keyseq}};
 
@@ -8,4 +9,5 @@ pub use keyseq::{Modifiers, bevy::{pkey as key, pkeyseq as keyseq}};
 // bits. So instead of having a Vec on the stack and its contents on the heap,
 // we could have 192 bits/40 bits = 4.8 Keys for the same stack price.
 pub type KeySeq = Vec<Key>;
-pub type Key = (Modifiers, KeyCode);
+// pub type Key = (Modifiers, KeyCode);
+pub type Key = KeyChord;

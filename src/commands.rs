@@ -18,7 +18,7 @@ bitflags! {
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
     pub struct ActFlags: u8 {
         const Active       = 0b00000001;
-        const AutoComplete = 0b00000010;
+        const ExecAct      = 0b00000010;
     }
 }
 
@@ -28,6 +28,19 @@ pub struct Act {
     pub(crate) hotkey: Option<KeySeq>,
     pub system_id: Option<SystemId>,
     pub flags: ActFlags,
+}
+
+impl Display for Act {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())?;
+        if let Some(keyseq) = &self.hotkey {
+            write!(f, "\t")?;
+            for key in keyseq {
+                write!(f, "{} ", key)?;
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Register a system to an act.
@@ -66,7 +79,7 @@ impl Act {
             name: None,
             hotkey: None,
             system_id: None,
-            flags: ActFlags::Active | ActFlags::AutoComplete,
+            flags: ActFlags::Active | ActFlags::ExecAct,
         }
     }
     pub fn new(system_id: SystemId) -> Self {
@@ -74,7 +87,7 @@ impl Act {
             name: None,
             hotkey: None,
             system_id: Some(system_id),
-            flags: ActFlags::Active | ActFlags::AutoComplete,
+            flags: ActFlags::Active | ActFlags::ExecAct,
         }
     }
 
@@ -93,15 +106,9 @@ impl Act {
         self
     }
 
-    pub fn autocomplete(mut self, yes: bool) -> Self {
-        self.flags.set(ActFlags::AutoComplete, yes);
+    pub fn in_exec_act(mut self, yes: bool) -> Self {
+        self.flags.set(ActFlags::ExecAct, yes);
         self
-    }
-}
-
-impl Display for Act {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.name())
     }
 }
 
@@ -119,7 +126,7 @@ impl Resolve for Vec<Act> {
             .filter(|command| {
                 command
                     .flags
-                    .contains(ActFlags::AutoComplete | ActFlags::Active)
+                    .contains(ActFlags::ExecAct | ActFlags::Active)
                     && command.name.as_ref().map(|name| name.starts_with(input)).unwrap_or(false)
             });
         // Collecting and matching is nice expressively. But manually iterating
@@ -161,7 +168,7 @@ where
             name: Some(v.into()),
             hotkey: None,
             system_id: None,
-            flags: ActFlags::Active | ActFlags::AutoComplete,
+            flags: ActFlags::Active | ActFlags::ExecAct,
         }
     }
 }
@@ -246,7 +253,7 @@ pub fn run_command_listener(mut events: EventReader<StartActEvent>, mut commands
     }
 }
 
-pub fn exec_command(
+pub fn exec_act(
     mut asky: Minibuffer,
     acts: Query<&Act>,
 ) -> impl Future<Output = Option<StartActEvent>> {
@@ -289,3 +296,18 @@ pub fn exec_command(
         }
     }
 }
+
+pub fn list_acts(
+    mut asky: Minibuffer,
+    acts: Query<&Act>) -> impl Future<Output = ()> {
+    let msg = acts.iter().fold(String::new(), |acc, act| format!("{}{}\n", acc, act));
+    eprintln!("msg {}", msg);
+    async move {
+        let _ = asky.prompt(Message::new(msg)).await;
+    }
+}
+
+// pub fn show_keybindings(key_bindings: Query<KeySequence>) {
+
+
+// }

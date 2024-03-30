@@ -55,20 +55,23 @@ pub trait LookUp {
     type Item: Send;
     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> where Self: Sized;
     fn try_look_up(&self, input: &str) -> Result<(), LookUpError>;
+    // fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
+    //     self.look_up(input).map(|| ())
+    // }
     fn longest_prefix(&self, input: &str) -> Option<String>;
 }
 
-pub struct UntypedLookUp<T>(Box<dyn LookUp<Item = T>>);
+// pub struct UntypedLookUp<T>(Box<dyn LookUp<Item = T>>);
 
-impl<T> LookUp for UntypedLookUp<T> {
-    type Item = ();
-    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
-        self.0.try_look_up(input)
-    }
-    fn longest_prefix(&self, input: &str) -> Option<String> {
-        self.0.longest_prefix(input)
-    }
-}
+// impl<T> LookUp for UntypedLookUp<T> {
+//     type Item = ();
+//     fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
+//         self.0.try_look_up(input)
+//     }
+//     fn longest_prefix(&self, input: &str) -> Option<String> {
+//         self.0.longest_prefix(input)
+//     }
+// }
 
 
 // impl<'a, V: Send + Sync> LookUp for &'a map::Trie<u8, V> {
@@ -110,6 +113,10 @@ impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
         }
     }
 
+    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
+        self.look_up(input).map(|_| ())
+    }
+
     fn longest_prefix(&self, input: &str) -> Option<String> {
         map::Trie::<u8, V>::longest_prefix(&self, input)
     }
@@ -131,6 +138,10 @@ impl LookUp for trie_rs::Trie<u8> {
 
     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
         self.0.look_up(input)
+    }
+
+    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
+        self.look_up(input).map(|_| ())
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
@@ -178,6 +189,10 @@ impl<T: AsRef<str>> LookUp for &[T] {
         } else {
             Err(LookUpError::Message(" no matches".into()))
         }
+    }
+
+    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
+        self.look_up(input).map(|_| ())
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {

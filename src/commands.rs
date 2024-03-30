@@ -141,6 +141,10 @@ impl LookUp for Vec<Act> {
         }
     }
 
+    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
+        self.look_up(input).map(|_| ())
+    }
+
     fn longest_prefix(&self, input: &str) -> Option<String> {
         None
     }

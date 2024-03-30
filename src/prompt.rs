@@ -52,21 +52,23 @@ pub enum LookUpError {
 }
 
 pub trait LookUp {
-    type Item: Send;
-    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> where Self: Sized;
-    fn try_look_up(&self, input: &str) -> Result<(), LookUpError>;
-    // fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
-    //     self.look_up(input).map(|| ())
-    // }
+    // Object-safe
+    fn look_up(&self, input: &str) -> Result<(), LookUpError>;
     fn longest_prefix(&self, input: &str) -> Option<String>;
+}
+
+pub trait Resolve {
+    // Not object-safe
+    type Item: Send;
+    fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError>;
 }
 
 // pub struct UntypedLookUp<T>(Box<dyn LookUp<Item = T>>);
 
 // impl<T> LookUp for UntypedLookUp<T> {
 //     type Item = ();
-//     fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
-//         self.0.try_look_up(input)
+//     fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+//         self.0.look_up(input)
 //     }
 //     fn longest_prefix(&self, input: &str) -> Option<String> {
 //         self.0.longest_prefix(input)
@@ -95,26 +97,30 @@ pub trait LookUp {
 //         map::Trie::<u8, V>::longest_prefix(&self, input)
 //     }
 // }
-impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
+impl<V: Send + Sync + Clone> Resolve for map::Trie<u8, V> {
     type Item = V;
 
-    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
-        let input = input.as_ref();
+    fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError> {
+        if let Some(value) = self.exact_match(input) {
+            return Ok(value.clone());
+        }
         let matches: Vec<String> = self.predictive_search(input).keys().collect();
         match matches.len() {
             0 => Err(LookUpError::Message("no matches".into())),
-            1 =>
-                if matches[0] == input {
-                    Ok(self.exact_match(input).cloned().unwrap())
-                } else {
-                    Err(LookUpError::Incomplete(matches))
-                },
-            n => Err(LookUpError::Incomplete(matches))
+            // 1 =>
+            //     if matches[0] == input {
+            //         Ok(self.exact_match(input).cloned().unwrap())
+            //     } else {
+            //         Err(LookUpError::Incomplete(matches))
+            //     },
+            _ => Err(LookUpError::Incomplete(matches))
         }
     }
+}
 
-    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
-        self.look_up(input).map(|_| ())
+impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
+    fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+        self.resolve(input).map(|_| ())
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
@@ -133,15 +139,17 @@ impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
 //         self.0.longest_prefix(input)
 //     }
 // }
-impl LookUp for trie_rs::Trie<u8> {
+impl Resolve for trie_rs::Trie<u8> {
     type Item = ();
 
-    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
+    fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError> {
         self.0.look_up(input)
     }
+}
 
-    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
-        self.look_up(input).map(|_| ())
+impl LookUp for trie_rs::Trie<u8> {
+    fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+        self.resolve(input).map(|_| ())
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
@@ -150,9 +158,9 @@ impl LookUp for trie_rs::Trie<u8> {
 }
 
 /// Handles arrays of &str, String, Cow<'_, str>. Does it all.
-impl<T: AsRef<str>> LookUp for &[T] {
+impl<T: AsRef<str>> Resolve for &[T] {
     type Item = String;
-    fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
+    fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError> {
         // Collecting and matching is nice expressively. But manually iterating
         // avoids that allocation.
 
@@ -190,9 +198,11 @@ impl<T: AsRef<str>> LookUp for &[T] {
             Err(LookUpError::Message(" no matches".into()))
         }
     }
+}
 
-    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
-        self.look_up(input).map(|_| ())
+impl<T: AsRef<str>> LookUp for &[T] {
+    fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+        self.resolve(input).map(|_| ())
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
@@ -380,10 +390,9 @@ pub enum LookUpEvent {
     Completions(Vec<String>)
 }
 
-pub struct AutoComplete<T, L>
-where L: LookUp, L::Item: Send {
+pub struct AutoComplete<T> {
     inner: T,
-    look_up: L,
+    look_up: Box<dyn LookUp + Send + Sync>,
     channel: CrossbeamEventSender<LookUpEvent>,
     show_completions: bool
 }
@@ -393,31 +402,30 @@ where L: LookUp, L::Item: Send {
 //     channel: CrossbeamEventSender<LookUpEvent>
 // }
 
-impl<T,L> AutoComplete<T,L> where
+impl<T> AutoComplete<T> where
     T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
-    L: LookUp,
     <T as Valuable>::Output: AsRef<str>,
 {
-    fn new(inner: T, look_up: L, channel: CrossbeamEventSender<LookUpEvent>) -> Self {
+    fn new<L>(inner: T, look_up: L, channel: CrossbeamEventSender<LookUpEvent>) -> Self
+    where L: LookUp + Send + Sync + 'static {
         Self {
             inner,
-            look_up,
+            look_up: Box::new(look_up),
             channel,
             show_completions: false,
         }
     }
 }
 
-impl<T,L> Valuable for AutoComplete<T,L> where T: Valuable, T::Output: AsRef<str>, L: LookUp, L::Item: Send {
-    type Output = L::Item;
+impl<T> Valuable for AutoComplete<T> where T: Valuable {
+    type Output = T::Output;
     fn value(&self) -> Result<Self::Output, Error> {
-        Ok(self.look_up.look_up(self.inner.value().unwrap().as_ref()).unwrap())
+        self.inner.value()
     }
 }
 
-impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
+impl<T> Typeable<KeyEvent> for AutoComplete<T> where
     T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
-    L: LookUp,
     <T as Valuable>::Output: AsRef<str>,
 // L::Item: Display
 {
@@ -487,7 +495,7 @@ impl<T,L> Typeable<KeyEvent> for AutoComplete<T,L> where
     }
 }
 
-impl<T,L> Printable for AutoComplete<T,L> where T: Printable, L: LookUp {
+impl<T> Printable for AutoComplete<T> where T: Printable {
     fn draw_with_style<R: Renderer>(&self, renderer: &mut R, style: &dyn Style)
         -> io::Result<()> {
         self.inner.draw_with_style(renderer, style)
@@ -507,9 +515,8 @@ impl Minibuffer {
         prompt: String,
         lookup: L
     // ) -> impl Future<Output = Result<<asky::Text<'_> as Valuable>::Output, Error>> + '_ where
-    ) -> impl Future<Output = Result<L::Item, Error>> + '_ where
+    ) -> impl Future<Output = Result<String, Error>> + '_ where
         L: LookUp + Clone + Send + Sync + 'static,
-        L::Item: Display
     {
 
         use crate::prompt::LookUpError::*;
@@ -702,9 +709,9 @@ mod tests {
         use super::LookUp;
         let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
         assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");
-        let lookup: &dyn LookUp<Item = ()> = &trie;
+        let lookup: &dyn LookUp = &trie;
         assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
         assert_eq!(lookup.longest_prefix("b"), None);
-        let lookup: &dyn LookUp<Item = ()> = &trie;
+        let lookup: &dyn LookUp = &trie;
     }
 }

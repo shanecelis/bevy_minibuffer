@@ -32,7 +32,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .init_resource::<ConsoleConfig>()
             .add_crossbeam_event::<LookUpEvent>()
             // .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text, Vec<Act>>>)
-            .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text, Trie<u8, Act>>>)
+            .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text>>)
             .add_systems(PostUpdate, handle_look_up_event)
             .add_systems(Startup,   spawn_layout)
             .add_systems(PreUpdate, run_command_listener)

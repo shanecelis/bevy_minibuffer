@@ -111,9 +111,9 @@ impl AsRef<str> for Act {
     }
 }
 
-impl LookUp for Vec<Act> {
+impl Resolve for Vec<Act> {
     type Item = Act;
-    fn look_up(&self, input: &str) -> Result<Act, LookUpError> {
+    fn resolve(&self, input: &str) -> Result<Act, LookUpError> {
         let mut matches = self
             .iter()
             .filter(|command| {
@@ -140,9 +140,11 @@ impl LookUp for Vec<Act> {
             Err(LookUpError::Message("no matches".into()))
         }
     }
+}
 
-    fn try_look_up(&self, input: &str) -> Result<(), LookUpError> {
-        self.look_up(input).map(|_| ())
+impl LookUp for Vec<Act> {
+    fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+        self.resolve(input).map(|_| ())
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
@@ -257,17 +259,23 @@ pub fn exec_command(
     let acts: Trie<u8, Act> = builder.build();
     async move {
         // match asky.prompt(asky::Text::new(":")).await {
-        match asky.read(":".to_string(), acts).await { // TODO: Get rid of clone.
-            Ok(act) => {
-                // if let Some(act) = acts.iter().find(|x| x.name() == input) {
-                //     // We can't keep an EventWriter in our closure so we return it from
-                //     // our task.
-                match act.system_id {
-                    Some(system_id) => Some(StartActEvent(system_id)),
-                    None => {
-                        let _ = asky.prompt(Message::new(format!("Error: No system_id for act {:?}; was it registered?", act))).await;
-                        None
-                    }
+        match asky.read(":".to_string(), acts.clone()).await { // TODO: Get rid of clone.
+            Ok(act_name) => {
+                match acts.resolve(&act_name) {
+                    Ok(act) =>
+                        match act.system_id {
+                            Some(system_id) => Some(StartActEvent(system_id)),
+                            None => {
+                                let _ = asky.prompt(Message::new(format!("Error: No system_id for act {:?}; was it registered?", act))).await;
+                                None
+                            }
+                        }
+                    Err(e) =>
+                        {
+                            let _ = asky.prompt(Message::new(format!("Error: Could not resolve act named {:?}: {:?}", act_name, e))).await;
+                            None
+                        }
+
                 }
                 // } else {
                 //     let _ = asky.prompt(Message::new(format!("No such command: {input}"))).await;

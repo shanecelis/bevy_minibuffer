@@ -9,11 +9,10 @@ use asky::Message;
 use std::fmt::{self, Display};
 use trie_rs::map::{Trie, TrieBuilder};
 
-use crate::hotkey::*;
 use crate::prompt::*;
 
-#[derive(Clone, Event)]
-pub struct StartActEvent(pub SystemId); // Or SystemId<I,O>
+#[derive(Debug, Clone, Event)]
+pub struct StartActEvent(pub SystemId);
 
 bitflags! {
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
@@ -26,7 +25,7 @@ bitflags! {
 #[derive(Debug, Clone, Component)]
 pub struct Act {
     pub(crate) name: Option<Cow<'static, str>>,
-    pub(crate) hotkey: Option<KeySeq>,
+    pub(crate) hotkey: Option<Vec<KeyChord>>,
     pub system_id: Option<SystemId>,
     pub flags: ActFlags,
 }
@@ -45,6 +44,17 @@ impl Display for Act {
 }
 
 /// Register a system to an act.
+///
+/// ```compile
+/// fn setup_act(act: Act, mut commands: Commands) {
+///     commands.spawn(Act)
+///         .add(Register(my_action));
+/// }
+///
+/// fn my_action(query: Query<&Transform>) {
+///
+/// }
+/// ```
 pub struct Register<S>(S);
 
 impl<S> Register<S> {
@@ -102,7 +112,7 @@ impl Act {
     }
 
     pub fn hotkey<T>(mut self, hotkey: impl IntoIterator<Item = T>) -> Self
-        where Key: From<T> {
+        where KeyChord: From<T> {
         self.hotkey = Some(hotkey.into_iter().map(|v| v.into()).collect());
         self
     }

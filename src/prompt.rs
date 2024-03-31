@@ -14,6 +14,7 @@ use std::future::Future;
 
 use bevy_crossbeam_event::CrossbeamEventSender;
 use crate::MinibufferStyle;
+use crate::commands::StartActEvent;
 use trie_rs::{iter::KeysExt, map};
 
 use crate::ui::*;
@@ -351,11 +352,11 @@ pub struct Minibuffer {
     asky: Asky,
     dest: Entity,
     style: MinibufferStyle,
-    channel: CrossbeamEventSender<LookUpEvent>,
+    channel: CrossbeamEventSender<DispatchEvent>,
 }
 
 unsafe impl SystemParam for Minibuffer {
-    type State = (Asky, Entity, Option<MinibufferStyle>, CrossbeamEventSender<LookUpEvent>);
+    type State = (Asky, Entity, Option<MinibufferStyle>, CrossbeamEventSender<DispatchEvent>);
     type Item<'w, 's> = Minibuffer;
 
     #[allow(clippy::type_complexity)]
@@ -364,7 +365,7 @@ unsafe impl SystemParam for Minibuffer {
             Asky,
             Query<Entity, With<PromptContainer>>,
             Option<Res<MinibufferStyle>>,
-            Res<CrossbeamEventSender<LookUpEvent>>,
+            Res<CrossbeamEventSender<DispatchEvent>>,
         )> = SystemState::new(world);
         let (asky, query, res, channel) = state.get_mut(world);
         // let asky_param_config = world
@@ -397,23 +398,37 @@ pub enum LookUpEvent {
     Completions(Vec<String>)
 }
 
+#[derive(Debug, Clone, Event)]
+pub enum DispatchEvent {
+    LookUpEvent(LookUpEvent),
+    StartActEvent(StartActEvent),
+}
+
+impl From<LookUpEvent> for DispatchEvent {
+    fn from(e: LookUpEvent) -> Self {
+        Self::LookUpEvent(e)
+    }
+}
+impl From<StartActEvent> for DispatchEvent {
+    fn from(e: StartActEvent) -> Self {
+        Self::StartActEvent(e)
+    }
+}
+
+
+
 pub struct AutoComplete<T> {
     inner: T,
     look_up: Box<dyn LookUp + Send + Sync>,
-    channel: CrossbeamEventSender<LookUpEvent>,
+    channel: CrossbeamEventSender<DispatchEvent>,
     show_completions: bool
 }
-// pub struct AutoComplete<T> {
-//     inner: T,
-//     look_up: Box<dyn LookUp<Item = String>>,
-//     channel: CrossbeamEventSender<LookUpEvent>
-// }
 
 impl<T> AutoComplete<T> where
     T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
     <T as Valuable>::Output: AsRef<str>,
 {
-    fn new<L>(inner: T, look_up: L, channel: CrossbeamEventSender<LookUpEvent>) -> Self
+    fn new<L>(inner: T, look_up: L, channel: CrossbeamEventSender<DispatchEvent>) -> Self
     where L: LookUp + Send + Sync + 'static {
         Self {
             inner,
@@ -633,6 +648,19 @@ fn completion_set(completion: Entity,
 }
 
 
+pub(crate) fn handle_dispatch_event(
+    mut dispatch_events: EventReader<DispatchEvent>,
+    mut look_up_events: EventWriter<LookUpEvent>,
+    mut request_act_events: EventWriter<StartActEvent>,
+) {
+    use crate::prompt::DispatchEvent::*;
+    for e in dispatch_events.read() {
+        match e {
+            LookUpEvent(l) => { look_up_events.send(l.clone()); }
+            StartActEvent(s) => { request_act_events.send(s.clone()); }
+        }
+    }
+}
 pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
                                    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
                                    mut next_completion_state: ResMut<NextState<CompletionState>>,

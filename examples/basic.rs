@@ -103,7 +103,7 @@ fn main() {
                 .named("toggle_vis")
                 .hotkey(keyseq!('`'))
                 .in_exec_act(false),
-            toggle_visibility
+            toggle_visibility,
         )
         .add_act(
             Act::unregistered()

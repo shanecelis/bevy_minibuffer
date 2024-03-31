@@ -1,7 +1,6 @@
 // #![feature(return_position_impl_trait_in_trait)]
 #![allow(incomplete_features)]
 pub mod commands;
-pub mod hotkey;
 pub mod prompt;
 pub mod tasks;
 pub mod ui;
@@ -14,11 +13,13 @@ pub use prompt::Minibuffer;
 use bevy_crossbeam_event::CrossbeamEventApp;
 use trie_rs::map::Trie;
 
+pub use keyseq::{Modifiers, bevy::{pkey as key, pkeyseq as keyseq}};
+
 pub struct NanoPromptPlugin;
 #[rustfmt::skip]
 impl bevy::app::Plugin for NanoPromptPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-        use bevy::app::*;
+        use bevy::prelude::*;
         use bevy::ecs::schedule::{OnEnter, OnExit};
         use commands::*;
         use prompt::*;
@@ -30,9 +31,10 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .init_resource::<ConsoleConfig>()
-            .add_crossbeam_event::<LookUpEvent>()
+            .add_crossbeam_event::<DispatchEvent>()
+            .add_event::<LookUpEvent>()
             .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text>>)
-            .add_systems(PostUpdate, handle_look_up_event)
+            .add_systems(PostUpdate, (handle_dispatch_event, handle_look_up_event).chain())
             .add_systems(Startup,   spawn_layout)
             .add_systems(PreUpdate, run_command_listener)
             .add_systems(Update,    hide_prompt_maybe)

@@ -111,6 +111,13 @@ fn main() {
                 .hotkey(keyseq!(ctrl-H A)),
             list_acts.pipe(future_sink),
         )
+
+        .add_act(
+            Act::unregistered()
+                .named("list_key_bindings")
+                .hotkey(keyseq!(ctrl-H B)),
+            list_key_bindings::<StartActEvent>.pipe(future_sink),
+        )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)
         .add_systems(Startup, add_acts2)

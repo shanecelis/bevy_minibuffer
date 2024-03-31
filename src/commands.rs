@@ -6,13 +6,21 @@ use std::borrow::Cow;
 use std::future::Future;
 use bevy_input_sequence::*;
 use asky::Message;
-use std::fmt::{self, Display};
+use std::fmt::{self, Display, Debug};
 use trie_rs::map::{Trie, TrieBuilder};
 
 use crate::prompt::*;
 
-#[derive(Debug, Clone, Event)]
+#[derive(Clone, Event)]
 pub struct StartActEvent(pub SystemId);
+
+impl Debug for StartActEvent {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let rnd_state = bevy::utils::RandomState::with_seed(0);
+        let hash = rnd_state.hash_one(self.0);
+        write!(f, "StartActEvent({:04})", hash % 10000)
+    }
+}
 
 bitflags! {
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
@@ -268,12 +276,10 @@ pub fn exec_act(
     mut asky: Minibuffer,
     acts: Query<&Act>,
 ) -> impl Future<Output = Option<StartActEvent>> {
-    // let acts: Vec<Act> = acts.iter().cloned().collect();
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         builder.push(act.name(), act.clone());
     }
-    // let acts: Trie<u8, Act> = acts.iter().cloned().map(|a| (a.name(), a)).collect();
     let acts: Trie<u8, Act> = builder.build();
     async move {
         // match asky.prompt(asky::Text::new(":")).await {
@@ -308,6 +314,7 @@ pub fn exec_act(
     }
 }
 
+/// List acts currently operant.
 pub fn list_acts(
     mut asky: Minibuffer,
     acts: Query<&Act>) -> impl Future<Output = ()> {
@@ -316,16 +323,30 @@ pub fn list_acts(
     acts.sort_by_key(|a| a.name());
     let msg = acts.into_iter()
                   .fold(header, |acc, act| format!("{}{}\n", acc, act));
-    // eprintln!("msg {}", msg);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;
     }
 }
 
-// pub fn show_keybindings(key_bindings: Query<KeySequence>) {
-
-
-// }
+/// List key bindings for event `E`.
+pub fn list_key_bindings<E: Event + Debug>(
+    mut asky: Minibuffer,
+    key_bindings: Query<&KeySequence<E>>) -> impl Future<Output = ()> {
+    let header = format!("{:8}\t{}\n", "KEY BINDING", "EVENT");
+    let mut key_bindings: Vec<String> = key_bindings
+        .iter()
+        .map(|k| {
+            let binding = k.acts.iter().fold(String::new(), |acc, chord| format!("{} {}", acc, chord));
+            format!("{:8}\t{:?}\n", binding, k.event)
+        })
+        .collect();
+    key_bindings.sort();
+    let msg: String = key_bindings.into_iter()
+        .collect();
+    async move {
+        let _ = asky.prompt(Message::new(msg)).await;
+    }
+}
 
 pub fn toggle_visibility(
     mut redraw: EventWriter<RequestRedraw>,

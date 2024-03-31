@@ -64,40 +64,6 @@ pub trait Resolve {
     fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError>;
 }
 
-// pub struct UntypedLookUp<T>(Box<dyn LookUp<Item = T>>);
-
-// impl<T> LookUp for UntypedLookUp<T> {
-//     type Item = ();
-//     fn look_up(&self, input: &str) -> Result<(), LookUpError> {
-//         self.0.look_up(input)
-//     }
-//     fn longest_prefix(&self, input: &str) -> Option<String> {
-//         self.0.longest_prefix(input)
-//     }
-// }
-
-
-// impl<'a, V: Send + Sync> LookUp for &'a map::Trie<u8, V> {
-//     type Item = &'a V;
-
-//     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
-//         let matches: Vec<String> = self.predictive_search(input).keys().collect();
-//         match matches.len() {
-//             0 => Err(LookUpError::Message("no matches".into())),
-//             1 =>
-//                 if matches[0] == input {
-//                     Ok(self.exact_match(input).unwrap())
-//                 } else {
-//                     Err(LookUpError::Incomplete(matches))
-//                 },
-//             n => Err(LookUpError::Incomplete(matches))
-//         }
-//     }
-
-//     fn longest_prefix(&self, input: &str) -> Option<String> {
-//         map::Trie::<u8, V>::longest_prefix(&self, input)
-//     }
-// }
 impl<V: Send + Sync + Clone> Resolve for map::Trie<u8, V> {
     type Item = V;
 
@@ -129,17 +95,6 @@ impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
     }
 }
 
-// impl<'a> LookUp for &'a trie_rs::Trie<u8> {
-//     type Item = ();
-
-//     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
-//         self.0.look_up(input)
-//     }
-
-//     fn longest_prefix(&self, input: &str) -> Option<String> {
-//         self.0.longest_prefix(input)
-//     }
-// }
 impl Resolve for trie_rs::Trie<u8> {
     type Item = ();
 

@@ -1,5 +1,6 @@
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
+use bevy::window::RequestRedraw;
 use bitflags::bitflags;
 use std::borrow::Cow;
 use std::future::Future;
@@ -32,7 +33,7 @@ pub struct Act {
 
 impl Display for Act {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())?;
+        write!(f, "{:8}", self.name())?;
         if let Some(keyseq) = &self.hotkey {
             write!(f, "\t")?;
             for key in keyseq {
@@ -300,8 +301,12 @@ pub fn exec_act(
 pub fn list_acts(
     mut asky: Minibuffer,
     acts: Query<&Act>) -> impl Future<Output = ()> {
-    let msg = acts.iter().fold(String::new(), |acc, act| format!("{}{}\n", acc, act));
-    eprintln!("msg {}", msg);
+    let header = format!("{:8}\t{}\n", "NAME", "KEY BINDING");
+    let mut acts: Vec<&Act> = acts.iter().collect();
+    acts.sort_by_key(|a| a.name());
+    let msg = acts.into_iter()
+                  .fold(header, |acc, act| format!("{}{}\n", acc, act));
+    // eprintln!("msg {}", msg);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;
     }
@@ -311,3 +316,36 @@ pub fn list_acts(
 
 
 // }
+
+pub fn toggle_visibility(
+    mut redraw: EventWriter<RequestRedraw>,
+    prompt_state: Res<State<PromptState>>,
+    completion_state: Res<State<CompletionState>>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
+    mut next_completion_state: ResMut<NextState<CompletionState>>,
+) {
+    match (**prompt_state, **completion_state) {
+        (PromptState::Invisible, CompletionState::Invisible) => {
+            next_prompt_state.set(PromptState::Visible);
+            next_completion_state.set(CompletionState::Visible);
+            redraw.send(RequestRedraw);
+        }
+        (PromptState::Visible, CompletionState::Visible) => {
+            next_prompt_state.set(PromptState::Invisible);
+            next_completion_state.set(CompletionState::Invisible);
+            redraw.send(RequestRedraw);
+        }
+        (PromptState::Invisible, _) => {
+            next_completion_state.set(CompletionState::Invisible);
+            redraw.send(RequestRedraw);
+        }
+        (PromptState::Visible, _) => {
+            next_completion_state.set(CompletionState::Invisible);
+            redraw.send(RequestRedraw);
+        }
+        (PromptState::Finished, _) => {
+            next_completion_state.set(CompletionState::Invisible);
+            redraw.send(RequestRedraw);
+        }
+    }
+}

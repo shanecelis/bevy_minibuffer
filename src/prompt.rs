@@ -262,26 +262,30 @@ pub struct HideTime {
     pub timer: Timer,
 }
 
-#[derive(Debug, Resource, Clone)]
+#[derive(Debug, Resource, Clone, Default)]
 pub struct ConsoleConfig {
-    // pub(crate) state: Arc<Mutex<ConsoleState>>,
+    pub auto_hide: bool,
     pub hide_delay: Option<u64>, // milliseconds
+    pub style: TextStyle,
 }
 
-impl Default for ConsoleConfig {
-    fn default() -> Self {
-        Self {
-            // state: Arc::new(Mutex::new(ConsoleState::new())),
-            hide_delay: Some(2000), /* milliseconds */
-        }
-    }
-}
+// impl Default for ConsoleConfig {
+//     fn default() -> Self {
+//         Self {
+//             hide_delay: Some(2000), /* milliseconds */
+//         }
+//     }
+// }
 
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<ConsoleConfig>,
+    mut redraw: EventWriter<RequestRedraw>,
     mut query: Query<(Entity, &mut Visibility, Option<&mut HideTime>), With<T>>,
 ) {
+    if ! config.auto_hide {
+        return;
+    }
     for (id, mut visibility, hide_time_maybe) in query.iter_mut() {
         match config.hide_delay {
             Some(hide_delay) => {
@@ -301,6 +305,7 @@ pub fn hide_delayed<T: Component>(
             }
             None => {
                 *visibility = Visibility::Hidden;
+                redraw.send(RequestRedraw);
             }
         }
     }
@@ -334,9 +339,11 @@ pub fn hide_prompt_maybe(
 }
 
 #[allow(dead_code)]
-pub fn hide<T: Component>(mut query: Query<&mut Visibility, With<T>>) {
+pub fn hide<T: Component>(mut query: Query<&mut Visibility, With<T>>,
+                          mut redraw: EventWriter<RequestRedraw>) {
     if let Ok(mut visibility) = query.get_single_mut() {
         *visibility = Visibility::Hidden;
+        redraw.send(RequestRedraw);
     }
 }
 
@@ -605,13 +612,13 @@ impl Minibuffer {
 fn completion_set(completion: Entity,
                   children: Option<&Children>,
                   labels: Vec<String>,
-                  font: Handle<Font>,
+                  style: TextStyle,
                   commands: &mut Commands) {
     let new_children = labels
         .into_iter()
         .map(|label| {
             commands
-                .spawn(completion_item(label, Color::WHITE, font.clone()))
+                .spawn(completion_item(label, style.clone()))
                 .id()
         })
         .collect::<Vec<Entity>>();
@@ -633,7 +640,9 @@ pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
                                    mut redraw: EventWriter<RequestRedraw>,
                                    mut commands: Commands,
                                    mut last_hash: Local<Option<u64>>,
+                                   config: Res<ConsoleConfig>,
 ) {
+    let text_style = &config.style;
     for e in look_up_events.read() {
         info!("look up event: {e:?}");
         match e {
@@ -642,11 +651,11 @@ pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
                 let hash = rnd_state.hash_one(v);
                 eprintln!("hash {hash}");
                 if last_hash.unwrap_or(0) != hash {
-                    let font = asset_server.load("fonts/FiraSans-Bold.ttf");
+                    // let font = asset_server.load("fonts/FiraSans-Bold.ttf");
                     let (completion_node, children) = completion.single();
                     completion_set(completion_node, children,
                                    v.clone(),
-                                   font,
+                                   text_style.clone(),
                                    &mut commands);
                     next_completion_state.set(CompletionState::Visible);
                     redraw.send(RequestRedraw);
@@ -665,12 +674,15 @@ pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
 
 pub fn listen_prompt_active(mut transitions: EventReader<StateTransitionEvent<AskyPrompt>>,
                             mut next_prompt_state: ResMut<NextState<PromptState>>,
+                            mut redraw: EventWriter<RequestRedraw>,
 ) {
     for transition in transitions.read() {
+        eprintln!("transition.after {:?}", &transition.after);
         match transition.after {
             AskyPrompt::Active => next_prompt_state.set(PromptState::Visible),
             AskyPrompt::Inactive => next_prompt_state.set(PromptState::Finished),
         }
+        redraw.send(RequestRedraw);
     }
 }
 

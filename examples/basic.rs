@@ -97,6 +97,14 @@ fn main() {
                 .in_exec_act(false),
             exec_act.pipe(future_sink),
         )
+
+        .add_act(
+            Act::unregistered()
+                .named("toggle_vis")
+                .hotkey(keyseq!('`'))
+                .in_exec_act(false),
+            toggle_visibility
+        )
         .add_act(
             Act::unregistered()
                 .named("list_acts")

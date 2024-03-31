@@ -1,19 +1,13 @@
 #+title: Todo
 * TODO
-** print message
-** access to live prompt?
-** Add some kind of validation
-** Add a tab complete scroll list
-** Handle backspace key repeat
-** What about single character reponses?
-Generalize the handling of input and TextPrompt.
+** Make tab complete scrollable
 ** Rename modules as singular (tasks -> task)
-** What should project actually be called? NanoConsole? NanoPrompt? NanoCommands?
+** What should project actually be called? NanoConsole? NanoPrompt? NanoCommands? Minibuffer?
 ** nano::{prompt::*, command::*, console::*, task::*, keybind::*}
-** What depends on what?
-** What could be offered without the other?
-command could be offered.
-** Add configuration for autohide
+** Modeline?
+** Toggle visibility with `
 * BUGS
-** 1 starts a new prompt recursively.
-** quit message not shown.
+** C-h a doesn't show up readily at first
+** autocomplete hides when there are more choices
+One can match and be a prefix for other matches. Therefore, the LookUp trait
+must account for both with Result<String, LookUpError> can't do.

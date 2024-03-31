@@ -8,10 +8,8 @@ pub mod style;
 use style::MinibufferStyle;
 use bevy_input_sequence::*;
 use asky::bevy::{AskyPlugin, AskyPrompt};
-use bevy::ecs::schedule::common_conditions::in_state;
 pub use prompt::Minibuffer;
 use bevy_crossbeam_event::CrossbeamEventApp;
-use trie_rs::map::Trie;
 
 pub use keyseq::{Modifiers, bevy::{pkey as key, pkeyseq as keyseq}};
 

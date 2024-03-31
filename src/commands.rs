@@ -173,7 +173,7 @@ impl LookUp for Vec<Act> {
         self.resolve(input).map(|_| ())
     }
 
-    fn longest_prefix(&self, input: &str) -> Option<String> {
+    fn longest_prefix(&self, _input: &str) -> Option<String> {
         None
     }
 }
@@ -332,7 +332,7 @@ pub fn list_acts(
 pub fn list_key_bindings<E: Event + Debug>(
     mut asky: Minibuffer,
     key_bindings: Query<&KeySequence<E>>) -> impl Future<Output = ()> {
-    let header = format!("{:8}\t{}\n", "KEY BINDING", "EVENT");
+    let mut msg = format!("{:8}\t{}\n", "KEY BINDING", "EVENT");
     let mut key_bindings: Vec<String> = key_bindings
         .iter()
         .map(|k| {
@@ -341,8 +341,9 @@ pub fn list_key_bindings<E: Event + Debug>(
         })
         .collect();
     key_bindings.sort();
-    let msg: String = key_bindings.into_iter()
-        .collect();
+    // let msg: String = key_bindings.into_iter()
+    //     .collect();
+    msg.extend(key_bindings);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;
     }

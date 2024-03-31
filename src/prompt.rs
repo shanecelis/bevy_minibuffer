@@ -1,6 +1,6 @@
 #![allow(async_fn_in_trait)]
 use std::borrow::Cow;
-use std::fmt::{Display, Debug};
+use std::fmt::{Debug};
 
 use bevy::ecs::{component::Tick, system::{SystemParam, SystemMeta, SystemState}, world::unsafe_world_cell::UnsafeWorldCell};
 use bevy::prelude::*;
@@ -91,7 +91,7 @@ impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
-        map::Trie::<u8, V>::longest_prefix(&self, input)
+        map::Trie::<u8, V>::longest_prefix(self, input)
     }
 }
 
@@ -161,7 +161,7 @@ impl<T: AsRef<str>> LookUp for &[T] {
         self.resolve(input).map(|_| ())
     }
 
-    fn longest_prefix(&self, input: &str) -> Option<String> {
+    fn longest_prefix(&self, _input: &str) -> Option<String> {
         todo!();
     }
 
@@ -410,29 +410,24 @@ impl<T> Typeable<KeyEvent> for AutoComplete<T> where
         use crate::prompt::LookUpError::*;
         // let mut hide = true;
         for code in &key.codes {
-            match code {
-                KeyCode::Tab => {
-                    self.show_completions = true;
+            if code == &KeyCode::Tab {
+                self.show_completions = true;
 
-                    match self.inner.value() {
-                        // What value does the input have?
-                        Ok(input) => match self.look_up.look_up(input.as_ref()) {
-                            Err(e) => match e {
-                                Message(s) => (), // Err(s),
-                                Incomplete(v) => {
-                                    if let Some(new_input) = self.look_up.longest_prefix(input.as_ref()) {
-                                        let _ = self.inner.set_value(new_input);
-                                    }
-                                },
-                                NanoError(e) => (), //Err(format!("Error: {:?}", e).into()),
+                if let Ok(input) = self.inner.value() {
+                    // What value does the input have?
+                    if let Err(e) = self.look_up.look_up(input.as_ref()) {
+                        match e {
+                            Message(_s) => (), // Err(s),
+                            Incomplete(_v) => {
+                                if let Some(new_input) = self.look_up.longest_prefix(input.as_ref()) {
+                                    let _ = self.inner.set_value(new_input);
+                                }
                             },
-                            _ => (),
+                            NanoError(_e) => (), //Err(format!("Error: {:?}", e).into()),
                         }
-                        Err(_) => ()
                     }
-                    // hide = false;
                 }
-                _ => ()
+                // hide = false;
             }
         }
         // if hide {
@@ -440,22 +435,21 @@ impl<T> Typeable<KeyEvent> for AutoComplete<T> where
         // }
         let result = self.inner.handle_key(key);
         if self.show_completions {
-            match self.inner.value() {
+            if let Ok(input) = self.inner.value() {
                 // What value does the input have?
-                Ok(input) => match self.look_up.look_up(input.as_ref()) {
-                    Ok(the_match) => self.channel.send(LookUpEvent::Hide),
+                match self.look_up.look_up(input.as_ref()) {
+                    Ok(_) => self.channel.send(LookUpEvent::Hide),
                     Err(e) => match e {
-                        Message(s) => {
+                        Message(_s) => {
                             // TODO: message should go somewhere.
                             self.channel.send(LookUpEvent::Hide);
                         }// Err(s),
                         Incomplete(v) => {
                             self.channel.send(LookUpEvent::Completions(v))
                         },
-                        NanoError(e) => (), //Err(format!("Error: {:?}", e).into()),
+                        NanoError(_e) => (), //Err(format!("Error: {:?}", e).into()),
                     },
                 }
-                Err(_) => ()
             }
         }
         result
@@ -463,9 +457,8 @@ impl<T> Typeable<KeyEvent> for AutoComplete<T> where
 
     fn will_handle_key(&self, key: &KeyEvent) -> bool {
         for code in &key.codes {
-            match code {
-                KeyCode::Tab => return true,
-                _ => ()
+            if code == &KeyCode::Tab {
+                return true;
             }
         }
         self.inner.will_handle_key(key)
@@ -619,7 +612,6 @@ pub(crate) fn handle_dispatch_event(
 pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
                                    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
                                    mut next_completion_state: ResMut<NextState<CompletionState>>,
-                                   asset_server: Res<AssetServer>,
                                    mut redraw: EventWriter<RequestRedraw>,
                                    mut commands: Commands,
                                    mut last_hash: Local<Option<u64>>,
@@ -634,7 +626,6 @@ pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
                 let hash = rnd_state.hash_one(v);
                 eprintln!("hash {hash}");
                 if last_hash.unwrap_or(0) != hash {
-                    // let font = asset_server.load("fonts/FiraSans-Bold.ttf");
                     let (completion_node, children) = completion.single();
                     completion_set(completion_node, children,
                                    v.clone(),
@@ -707,6 +698,6 @@ mod tests {
         let lookup: &dyn LookUp = &trie;
         assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
         assert_eq!(lookup.longest_prefix("b"), None);
-        let lookup: &dyn LookUp = &trie;
+        // let lookup: &dyn LookUp = &trie;
     }
 }

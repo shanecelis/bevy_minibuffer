@@ -1,0 +1,32 @@
+digraph StateDiagram {
+    // rankdir=TB;
+    label=<<font point-size="28">Minibuffer State Transition Diagram</font>>;
+
+    node [shape = point] ENTRY;
+    node [shape = circle];
+    // overlap = true;
+    Inactive;
+    CInvisible [label = "Invisible"];
+    CVisible [label = "Visible"];
+
+    subgraph cluster_0 {
+        ENTRY->Inactive;
+        Inactive->Active [label="P = AskyState::Waiting || AskyDelay"];
+        Active->Inactive [label="!P"];
+        label = "AskyPrompt";
+    }
+
+    subgraph cluster_1 {
+        label = "PromptState";
+        Invisible->Visible;
+        Visible->Finished;
+        Finished->Invisible;
+    }
+
+    subgraph cluster_2 {
+        label = "CompletionState";
+        CInvisible->CVisible;
+        CVisible->CInvisible;
+    }
+
+}

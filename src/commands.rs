@@ -323,6 +323,7 @@ pub fn list_acts(
     acts.sort_by_key(|a| a.name());
     let msg = acts.into_iter()
                   .fold(header, |acc, act| format!("{}{}\n", acc, act));
+    eprintln!("{}", &msg);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;
     }
@@ -332,18 +333,28 @@ pub fn list_acts(
 pub fn list_key_bindings<E: Event + Debug>(
     mut asky: Minibuffer,
     key_bindings: Query<&KeySequence<E>>) -> impl Future<Output = ()> {
-    let mut msg = format!("{:8}\t{}\n", "KEY BINDING", "EVENT");
-    let mut key_bindings: Vec<String> = key_bindings
+
+    let mut key_bindings: Vec<(String, &E)> = key_bindings
         .iter()
         .map(|k| {
-            let binding = k.acts.iter().fold(String::new(), |acc, chord| format!("{} {}", acc, chord));
-            format!("{:8}\t{:?}\n", binding, k.event)
+            let binding: String = k.acts.iter()
+                                        .map(|chord| format!("{} ", chord))
+                                        .collect();
+
+            // format!("{:8}\t{:?}\n", binding, k.event)
+            (binding, &k.event)
         })
         .collect();
+
+    let max_width = key_bindings.iter().map(|(s, _e)| s.len()).max().unwrap();
+
+    let mut msg = format!("{:max_width$}\t{}\n", "KEY BINDING", "EVENT");
+    let mut key_bindings: Vec<_> = key_bindings.into_iter()
+               .map(|(s, e)| format!("{:max_width$}\t{:?}\n", s, e))
+               .collect();
     key_bindings.sort();
-    // let msg: String = key_bindings.into_iter()
-    //     .collect();
     msg.extend(key_bindings);
+    eprintln!("{}", &msg);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;
     }

@@ -1,3 +1,4 @@
 /target
 /nano-macro/target/
 Cargo.lock
+/docs/state-diagram.png

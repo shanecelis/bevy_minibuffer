@@ -2,12 +2,12 @@
 use std::borrow::Cow;
 use std::fmt::{Debug};
 
-use bevy::ecs::{component::Tick, system::{SystemParam, SystemMeta, SystemState}, world::unsafe_world_cell::UnsafeWorldCell};
+use bevy::ecs::{component, system::{SystemParam, SystemMeta, SystemState}, world::unsafe_world_cell::UnsafeWorldCell};
 use bevy::prelude::*;
 use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
 
-use asky::{Printable, Typeable, Valuable, Error, SetValue, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style, utils::renderer::Renderer};
+use asky::{Printable, Typeable, Valuable, Tick, OnTick, Error, SetValue, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style, utils::renderer::Renderer};
 
 use std::io;
 use std::future::Future;
@@ -335,7 +335,7 @@ unsafe impl SystemParam for Minibuffer {
         state: &'s mut Self::State,
         _system_meta: &SystemMeta,
         _world: UnsafeWorldCell<'w>,
-        _change_tick: Tick,
+        _change_tick: component::Tick,
     ) -> Self::Item<'w, 's> {
         let state = state.clone();
         Minibuffer {
@@ -398,6 +398,12 @@ impl<T> Valuable for AutoComplete<T> where T: Valuable {
     type Output = T::Output;
     fn value(&self) -> Result<Self::Output, Error> {
         self.inner.value()
+    }
+}
+
+impl<T: Tick> Tick for AutoComplete<T> {
+    fn tick(&mut self) -> OnTick {
+        self.inner.tick()
     }
 }
 

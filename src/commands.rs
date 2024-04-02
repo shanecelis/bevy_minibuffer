@@ -8,6 +8,7 @@ use bevy_input_sequence::*;
 use asky::Message;
 use std::fmt::{self, Display, Debug};
 use trie_rs::map::{Trie, TrieBuilder};
+use tabular::{Table, Row};
 
 use crate::prompt::*;
 
@@ -320,11 +321,25 @@ pub fn exec_act(
 pub fn list_acts(
     mut asky: Minibuffer,
     acts: Query<&Act>) -> impl Future<Output = ()> {
-    let header = format!("{:8}\t{}\n", "NAME", "KEY BINDING");
-    let mut acts: Vec<&Act> = acts.iter().collect();
-    acts.sort_by_key(|a| a.name());
-    let msg = acts.into_iter()
-                  .fold(header, |acc, act| format!("{}{}\n", acc, act));
+
+    let mut table = Table::new("{:<}\t{:<}");
+    table.add_row(Row::new()
+                    .with_cell("NAME")
+                    .with_cell("KEY BINDING"));
+    let mut acts: Vec<_> = acts.iter().collect();
+    acts.sort_by(|a, b| a.name().cmp(&b.name()));
+    for act in &acts {
+
+        let binding: String = act.hotkey.as_ref()
+                                        .map(|chords|
+                                             chords.iter().map(|chord| format!("{} ", chord))
+                                             .collect())
+            .unwrap_or(String::from(""));
+        table.add_row(Row::new()
+                      .with_cell(act.name())
+                      .with_cell(binding));
+    }
+    let msg = format!("{}", table);
     eprintln!("{}", &msg);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;
@@ -334,7 +349,13 @@ pub fn list_acts(
 /// List key bindings for event `E`.
 pub fn list_key_bindings<E: Event + Debug>(
     mut asky: Minibuffer,
-    key_bindings: Query<&KeySequence<E>>) -> impl Future<Output = ()> {
+    key_bindings: Query<&KeySequence<E>>
+) -> impl Future<Output = ()>
+{
+    let mut table = Table::new("{:<}\t{:<}");
+    table.add_row(Row::new()
+                    .with_cell("KEY BINDING")
+                    .with_cell("EVENT"));
 
     let mut key_bindings: Vec<(String, &E)> = key_bindings
         .iter()
@@ -343,19 +364,17 @@ pub fn list_key_bindings<E: Event + Debug>(
                                         .map(|chord| format!("{} ", chord))
                                         .collect();
 
-            // format!("{:8}\t{:?}\n", binding, k.event)
             (binding, &k.event)
         })
         .collect();
+    key_bindings.sort_by(|a, b| a.0.cmp(&b.0));
+    for (binding, e) in &key_bindings {
+        table.add_row(Row::new()
+                      .with_cell(binding)
+                      .with_cell(format!("{:?}", e)));
 
-    let max_width = key_bindings.iter().map(|(s, _e)| s.len()).max().unwrap();
-
-    let mut msg = format!("{:max_width$}\t{}\n", "KEY BINDING", "EVENT");
-    let mut key_bindings: Vec<_> = key_bindings.into_iter()
-               .map(|(s, e)| format!("{:max_width$}\t{:?}\n", s, e))
-               .collect();
-    key_bindings.sort();
-    msg.extend(key_bindings);
+    }
+    let msg = format!("{}", table);
     eprintln!("{}", &msg);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;

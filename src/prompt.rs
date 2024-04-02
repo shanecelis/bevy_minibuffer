@@ -21,7 +21,7 @@ use crate::ui::*;
 
 pub type CowStr = Cow<'static, str>;
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum PromptState {
     #[default]
     // Uninit,
@@ -30,7 +30,7 @@ pub enum PromptState {
     Visible,
 }
 
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum CompletionState {
     // Uninit,
     #[default]
@@ -213,12 +213,12 @@ pub fn show<T: Component>(
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect)]
 pub struct HideTime {
     pub timer: Timer,
 }
 
-#[derive(Debug, Resource, Clone, Default)]
+#[derive(Debug, Resource, Clone, Default, Reflect)]
 pub struct ConsoleConfig {
     pub auto_hide: bool,
     pub hide_delay: Option<u64>, // milliseconds

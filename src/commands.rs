@@ -30,11 +30,13 @@ bitflags! {
     }
 }
 
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, Reflect)]
 pub struct Act {
     pub(crate) name: Option<Cow<'static, str>>,
     pub(crate) hotkey: Option<Vec<KeyChord>>,
+    #[reflect(ignore)]
     pub system_id: Option<SystemId>,
+    #[reflect(ignore)]
     pub flags: ActFlags,
 }
 

@@ -1,9 +1,12 @@
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
+use bevy_inspector_egui::quick::{WorldInspectorPlugin, StateInspectorPlugin};
+// use bevy_editor_pls::{quick, prelude::*};
 use bevy_nano_console::commands::*;
 use bevy_nano_console::*;
 use bevy_nano_console::ui::*;
 use bevy_nano_console::style::*;
+use bevy_nano_console::prompt::*;
 use keyseq::bevy::pkeyseq as keyseq;
 use std::{time::Duration, future::Future};
 use asky::prelude::*;
@@ -79,6 +82,12 @@ fn main() {
             }),
             ..Default::default()
         }))
+        .add_plugins((WorldInspectorPlugin::new(),
+                      StateInspectorPlugin::<asky::bevy::AskyPrompt>::new(),
+                      StateInspectorPlugin::<PromptState>::new(),
+                      StateInspectorPlugin::<CompletionState>::new(),
+        ))
+        // .add_plugins(EditorPlugin::default())
         .add_act(Act::unregistered().named("ask_nam"), ask_name.pipe(future_sink))
         // .add_command(
         //     // Command::new("ask_name", Some(vec![KeyCode::Digit1])),

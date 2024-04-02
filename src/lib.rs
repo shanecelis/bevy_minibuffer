@@ -23,6 +23,13 @@ impl bevy::app::Plugin for NanoPromptPlugin {
         use prompt::*;
         use tasks::*;
         use ui::*;
+
+        if let Some(type_registry) = app.world.get_resource_mut::<AppTypeRegistry>() {
+            let mut type_registry = type_registry.write();
+            type_registry.register::<PromptState>();
+            type_registry.register::<CompletionState>();
+            type_registry.register::<ConsoleConfig>();
+        }
         app
             .add_plugins(AskyPlugin)
             .add_key_sequence_event_run_if::<StartActEvent, _>(in_state(AskyPrompt::Inactive))

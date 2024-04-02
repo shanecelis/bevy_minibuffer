@@ -33,6 +33,4 @@ digraph StateDiagram {
         MActive -> MInactive -> MActive;
     }
 
-
-
 }

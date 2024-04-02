@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy = "0.13.0"
+bevy = "0.13"
 bitflags = "2.3.1"
 futures-lite = "1.13.0"
 promise_out = "1.0.0"
@@ -15,3 +15,7 @@ keyseq = { version = "0.2.2", features = [ "bevy" ], path = "../keyseq" }
 asky = { version = "0.1.1", path = "../asky", default-features = false, features = ["bevy"] }
 text-style = { path = "../text-style-rs", features = [ "crossterm", "bevy" ] }
 bevy_crossbeam_event = "0.5.0"
+
+[dev-dependencies]
+bevy-inspector-egui = "0.23.4"
+# bevy_editor_pls = { path = "../bevy_editor_pls/crates/bevy_" }

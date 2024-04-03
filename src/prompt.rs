@@ -1,13 +1,13 @@
 #![allow(async_fn_in_trait)]
 use std::borrow::Cow;
-use std::fmt::{Debug};
+use std::fmt::Debug;
 
 use bevy::ecs::{component, system::{SystemParam, SystemMeta, SystemState}, world::unsafe_world_cell::UnsafeWorldCell};
 use bevy::prelude::*;
 use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
 
-use asky::{Printable, Typeable, Valuable, Tick, OnTick, Error, SetValue, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style, utils::renderer::Renderer};
+use asky::{Printable, Typeable, Valuable, Tick, OnTick, SetValue, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style, utils::renderer::Renderer};
 
 use std::io;
 use std::future::Future;
@@ -38,17 +38,19 @@ pub enum CompletionState {
     Visible,
 }
 
-#[derive(Debug)]
-pub enum NanoError {
-    Cancelled,
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("{0}")]
     Message(CowStr),
+    #[error("asky {0}")]
+    Asky(#[from] asky::Error),
 }
 
 #[derive(Debug)]
 #[allow(dead_code)]
 pub enum LookUpError {
     Message(Cow<'static, str>),
-    NanoError(NanoError),
+    NanoError(Error),
     Incomplete(Vec<String>),
 }
 
@@ -303,6 +305,7 @@ pub fn hide<T: Component>(mut query: Query<&mut Visibility, With<T>>,
     }
 }
 
+#[derive(Clone)]
 pub struct Minibuffer {
     asky: Asky,
     dest: Entity,
@@ -396,7 +399,7 @@ impl<T> AutoComplete<T> where
 
 impl<T> Valuable for AutoComplete<T> where T: Valuable {
     type Output = T::Output;
-    fn value(&self) -> Result<Self::Output, Error> {
+    fn value(&self) -> Result<Self::Output, asky::Error> {
         self.inner.value()
     }
 }
@@ -522,14 +525,14 @@ impl Minibuffer {
     ) -> Result<T::Output, Error>
     where S: Style + Send + Sync + 'static {
         let _ = self.asky.clear(self.dest).await;
-        self.asky.prompt_styled(prompt, self.dest, style).await
+        self.asky.prompt_styled(prompt, self.dest, style).await.map_err(Error::from)
     }
 
-    pub fn clear(&mut self) -> impl Future<Output = Result<(), Error>> {
+    pub fn clear(&mut self) -> impl Future<Output = Result<(), asky::Error>> {
         self.asky.clear(self.dest)
     }
 
-    pub fn delay(&mut self, duration: Duration) -> impl Future<Output = Result<(), Error>> {
+    pub fn delay(&mut self, duration: Duration) -> impl Future<Output = Result<(), asky::Error>> {
         self.asky.delay(duration)
     }
 }
@@ -657,7 +660,6 @@ pub fn listen_prompt_active(mut transitions: EventReader<StateTransitionEvent<As
                             mut redraw: EventWriter<RequestRedraw>,
 ) {
     for transition in transitions.read() {
-        eprintln!("transition.after {:?}", &transition.after);
         match transition.after {
             AskyPrompt::Active => next_prompt_state.set(PromptState::Visible),
             AskyPrompt::Inactive => next_prompt_state.set(PromptState::Finished),

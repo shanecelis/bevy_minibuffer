@@ -11,9 +11,14 @@ use asky::bevy::{AskyPlugin, AskyPrompt};
 pub use prompt::Minibuffer;
 use bevy_crossbeam_event::CrossbeamEventApp;
 
+use prompt::ConsoleConfig;
 pub use keyseq::{Modifiers, bevy::{pkey as key, pkeyseq as keyseq}};
 
-pub struct NanoPromptPlugin;
+#[derive(Debug, Default, Clone)]
+pub struct NanoPromptPlugin {
+    pub config: ConsoleConfig,
+}
+
 #[rustfmt::skip]
 impl bevy::app::Plugin for NanoPromptPlugin {
     fn build(&self, app: &mut bevy::app::App) {
@@ -35,7 +40,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .add_key_sequence_event_run_if::<StartActEvent, _>(in_state(AskyPrompt::Inactive))
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
-            .init_resource::<ConsoleConfig>()
+            .insert_resource(self.config.clone())
             .add_crossbeam_event::<DispatchEvent>()
             .add_event::<LookUpEvent>()
             .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text>>)
@@ -45,6 +50,7 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .add_systems(Update,    hide_prompt_maybe)
             .add_systems(Update,    detect_additions::<StartActEvent>)
             .add_systems(Update,    poll_event_tasks::<StartActEvent>)
+            .add_systems(PostUpdate, tasks::poll_tasks_err::<(), Error>)
             // .add_systems(Update,    mouse_scroll)
             .add_systems(Update, listen_prompt_active)
             .add_systems(OnEnter(PromptState::Finished), hide_delayed::<PromptContainer>)

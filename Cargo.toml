@@ -16,6 +16,7 @@ asky = { version = "0.1.1", path = "../asky", default-features = false, features
 text-style = { path = "../text-style-rs", features = [ "crossterm", "bevy" ] }
 bevy_crossbeam_event = "0.5.0"
 tabular = "0.2.0"
+thiserror = "1.0.58"
 
 [dev-dependencies]
 bevy-inspector-egui = "0.23.4"

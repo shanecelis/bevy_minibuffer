@@ -9,17 +9,24 @@ use bevy_nano_console::style::*;
 use bevy_nano_console::prompt::*;
 use keyseq::bevy::pkeyseq as keyseq;
 use std::{time::Duration, future::Future};
-use asky::prelude::*;
-use asky::bevy::{Asky, future_sink};
+// use asky::prelude::*;
+use asky::{Message, Number, bevy::{Asky, future_sink}};
 
 async fn ask_name<'a>(mut asky: Minibuffer) {
-    if let Ok(first_name) = asky.prompt(asky::Text::new("What's your \nfirst name? ")).await {
+    if let Ok(first_name) = asky.prompt(asky::Text::new("What's your first name? ")).await {
         if let Ok(last_name) = asky.prompt(asky::Text::new("What's your last name? ")).await {
             let _ = asky.prompt(Message::new(format!("Hello, {first_name} {last_name}!"))).await;
             return;
         }
     }
     let _ = asky.prompt(Message::new("Got err in ask name")).await;
+}
+
+async fn ask_name_error<'a>(mut asky: Minibuffer) -> Result<(), Error> {
+    let first_name = asky.prompt(asky::Text::new("What's your first name? ")).await?;
+    let last_name = asky.prompt(asky::Text::new("What's your last name? ")).await?;
+    asky.prompt(Message::new(format!("Hello, {first_name} {last_name}!"))).await?;
+    Ok(())
 }
 
 // fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
@@ -73,7 +80,17 @@ fn setup(mut commands: Commands) {
 fn main() {
     App::new()
         .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
-        .add_plugins(NanoPromptPlugin)
+        .add_plugins(NanoPromptPlugin {
+            config: ConsoleConfig {
+                // auto_hide: true,
+                auto_hide: false,
+                hide_delay: Some(3000),
+                style: TextStyle {
+                    font_size: 20.0,
+                    ..default()
+                }
+            }
+        })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: [400., 400.].into(),
@@ -164,4 +181,10 @@ fn add_acts2(mut commands: Commands) {
                      .hotkey(keyseq!(D D)),
 
                      mb_age.pipe(future_sink));
+
+    commands.add_act(Act::unregistered()
+                     .named("ask_name_error")
+                     .hotkey(keyseq!(E E)),
+
+                     ask_name_error.pipe(future_sink));
 }

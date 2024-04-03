@@ -6,7 +6,7 @@ use std::borrow::Cow;
 use std::future::Future;
 use bevy_input_sequence::*;
 use asky::Message;
-use std::fmt::{self, Display, Debug};
+use std::fmt::{self, Display, Debug, Write};
 use trie_rs::map::{Trie, TrieBuilder};
 use tabular::{Table, Row};
 
@@ -327,13 +327,15 @@ pub fn list_acts(
                     .with_cell("NAME")
                     .with_cell("KEY BINDING"));
     let mut acts: Vec<_> = acts.iter().collect();
-    acts.sort_by(|a, b| a.name().cmp(&b.name()));
+    acts.sort_by(|a, b| a.name().cmp(b.name()));
     for act in &acts {
 
         let binding: String = act.hotkey.as_ref()
                                         .map(|chords|
-                                             chords.iter().map(|chord| format!("{} ", chord))
-                                             .collect())
+            chords.iter().fold(String::new(), |mut output, chord| {
+                let _ = write!(output, "{} ", chord);
+                output
+            }))
             .unwrap_or(String::from(""));
         table.add_row(Row::new()
                       .with_cell(act.name())
@@ -360,9 +362,13 @@ pub fn list_key_bindings<E: Event + Debug>(
     let mut key_bindings: Vec<(String, &E)> = key_bindings
         .iter()
         .map(|k| {
-            let binding: String = k.acts.iter()
-                                        .map(|chord| format!("{} ", chord))
-                                        .collect();
+            let binding: String = k.acts
+                .iter()
+                .fold(String::new(),
+                     |mut output, chord| {
+                         let _ = write!(output, "{} ", chord);
+                         output
+                     });
 
             (binding, &k.event)
         })

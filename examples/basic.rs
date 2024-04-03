@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
-use bevy_inspector_egui::quick::{WorldInspectorPlugin, StateInspectorPlugin};
 // use bevy_editor_pls::{quick, prelude::*};
 use bevy_nano_console::commands::*;
 use bevy_nano_console::*;
@@ -39,20 +38,20 @@ async fn ask_name_error<'a>(mut asky: Minibuffer) -> Result<(), Error> {
 //     }
 // }
 
-fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptContainer>>) -> impl Future<Output = ()> {
-    let id: Entity = query.single();
-    async move {
-        let _ = asky.clear(id).await;
-        if let Ok(age) = asky.prompt_styled(Number::<u8>::new("What's your age? "), id, MinibufferStyle::default()).await {
-            let _ = asky.delay(Duration::from_secs(2)).await;
-            let _ = asky.clear(id).await;
-            let _ = asky.prompt(Message::new(format!("You are {age} years old.")), id).await;
-        } else {
-            let _ = asky.clear(id).await;
-            let _ = asky.prompt(Message::new("error: I can only handle u8s for age.."), id).await;
-        }
-    }
-}
+// fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptContainer>>) -> impl Future<Output = ()> {
+//     let id: Entity = query.single();
+//     async move {
+//         let _ = asky.clear(id).await;
+//         if let Ok(age) = asky.prompt_styled(Number::<u8>::new("What's your age? "), id, MinibufferStyle::default()).await {
+//             let _ = asky.delay(Duration::from_secs(2)).await;
+//             let _ = asky.clear(id).await;
+//             let _ = asky.prompt(Message::new(format!("You are {age} years old.")), id).await;
+//         } else {
+//             let _ = asky.clear(id).await;
+//             let _ = asky.prompt(Message::new("error: I can only handle u8s for age.."), id).await;
+//         }
+//     }
+// }
 
 // fn mb_age(mut asky: Minibuffer) -> impl Future<Output = ()> {
 //     async move {
@@ -86,7 +85,7 @@ fn main() {
                 auto_hide: false,
                 hide_delay: Some(3000),
                 style: TextStyle {
-                    font_size: 20.0,
+                    font_size: 30.0,
                     ..default()
                 }
             }
@@ -99,11 +98,6 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins((WorldInspectorPlugin::new(),
-                      StateInspectorPlugin::<asky::bevy::AskyPrompt>::new(),
-                      StateInspectorPlugin::<PromptState>::new(),
-                      StateInspectorPlugin::<CompletionState>::new(),
-        ))
         // .add_plugins(EditorPlugin::default())
         .add_act(Act::unregistered().named("ask_nam"), ask_name.pipe(future_sink))
         // .add_command(
@@ -170,11 +164,11 @@ fn add_acts2(mut commands: Commands) {
 
     //                  ask_age.pipe(future_sink));
 
-    commands.add_act(Act::unregistered()
-                     .named("asky_age")
-                     .hotkey(keyseq!(C C)),
+    // commands.add_act(Act::unregistered()
+    //                  .named("asky_age")
+    //                  .hotkey(keyseq!(C C)),
 
-                     asky_age.pipe(future_sink));
+    //                  asky_age.pipe(future_sink));
 
     commands.add_act(Act::unregistered()
                      .named("mb_age")

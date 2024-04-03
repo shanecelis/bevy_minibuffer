@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
 
-use asky::{Printable, Typeable, Valuable, Tick, OnTick, SetValue, bevy::{Asky, KeyEvent, AskyPrompt}, style::Style, utils::renderer::Renderer};
+use asky::{Printable, Typeable, Valuable, Tick, OnTick, SetValue, bevy::{Asky, KeyEvent, AskyPrompt, AskyStyle}, style::Style, utils::renderer::Renderer};
 
 use std::io;
 use std::future::Future;
@@ -486,14 +486,13 @@ impl Minibuffer {
         &mut self,
         prompt: T
     ) -> impl Future<Output = Result<T::Output, Error>> + '_ {
-        self.prompt_styled(prompt, self.style)
+        self.prompt_styled(prompt, AskyStyle::new(self.style))
     }
 
     pub fn read<L>(
         &mut self,
         prompt: String,
         lookup: L
-    // ) -> impl Future<Output = Result<<asky::Text<'_> as Valuable>::Output, Error>> + '_ where
     ) -> impl Future<Output = Result<String, Error>> + '_ where
         L: LookUp + Clone + Send + Sync + 'static,
     {
@@ -515,15 +514,14 @@ impl Minibuffer {
         let text = AutoComplete::new(text,
                                      lookup,
                                      self.channel.clone());
-        self.prompt_styled(text, self.style)
+        self.prompt_styled(text, AskyStyle::new(self.style))
     }
 
-    pub async fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static, S>(
+    pub async fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static>(
         &mut self,
         prompt: T,
-        style: S
-    ) -> Result<T::Output, Error>
-    where S: Style + Send + Sync + 'static {
+        style: AskyStyle,
+    ) -> Result<T::Output, Error> {
         let _ = self.asky.clear(self.dest).await;
         self.asky.prompt_styled(prompt, self.dest, style).await.map_err(Error::from)
     }

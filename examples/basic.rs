@@ -1,15 +1,11 @@
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
-// use bevy_editor_pls::{quick, prelude::*};
 use bevy_nano_console::commands::*;
 use bevy_nano_console::*;
-use bevy_nano_console::ui::*;
-use bevy_nano_console::style::*;
 use bevy_nano_console::prompt::*;
 use keyseq::bevy::pkeyseq as keyseq;
-use std::{time::Duration, future::Future};
-// use asky::prelude::*;
-use asky::{Message, Number, bevy::{Asky, future_sink}};
+use std::time::Duration;
+use asky::{Message, Number, bevy::future_sink};
 
 async fn ask_name<'a>(mut asky: Minibuffer) {
     if let Ok(first_name) = asky.prompt(asky::Text::new("What's your first name? ")).await {

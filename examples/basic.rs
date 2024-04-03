@@ -84,7 +84,7 @@ fn main() {
                 // auto_hide: true,
                 auto_hide: false,
                 hide_delay: Some(3000),
-                style: TextStyle {
+                text_style: TextStyle {
                     font_size: 30.0,
                     ..default()
                 }

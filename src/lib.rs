@@ -41,6 +41,10 @@ impl bevy::app::Plugin for NanoPromptPlugin {
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .insert_resource(self.config.clone())
+            .insert_resource(MinibufferStyle {
+                text_style: Some(self.config.text_style.clone()),
+                ..default()
+            })
             .add_crossbeam_event::<DispatchEvent>()
             .add_event::<LookUpEvent>()
             .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text>>)

@@ -224,7 +224,7 @@ pub struct HideTime {
 pub struct ConsoleConfig {
     pub auto_hide: bool,
     pub hide_delay: Option<u64>, // milliseconds
-    pub style: TextStyle,
+    pub text_style: TextStyle,
 }
 
 // impl Default for ConsoleConfig {
@@ -330,7 +330,8 @@ unsafe impl SystemParam for Minibuffer {
         //     .get_resource_mut::<AskyParamConfig>()
         //     .expect("No AskyParamConfig setup.")
         //     .clone();
-        (asky, query.single(), res.map(|x| *x), channel.clone())
+        // (asky, query.single(), res.map(|x| x), channel.clone())
+        (asky, query.single(), res.map(|x| x.clone()), channel.clone())
     }
 
     #[inline]
@@ -486,7 +487,7 @@ impl Minibuffer {
         &mut self,
         prompt: T
     ) -> impl Future<Output = Result<T::Output, Error>> + '_ {
-        self.prompt_styled(prompt, AskyStyle::new(self.style))
+        self.prompt_styled(prompt, self.style.clone().into())
     }
 
     pub fn read<L>(
@@ -514,7 +515,7 @@ impl Minibuffer {
         let text = AutoComplete::new(text,
                                      lookup,
                                      self.channel.clone());
-        self.prompt_styled(text, AskyStyle::new(self.style))
+        self.prompt_styled(text, self.style.clone().into())
     }
 
     pub async fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static>(
@@ -624,7 +625,7 @@ pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
                                    mut last_hash: Local<Option<u64>>,
                                    config: Res<ConsoleConfig>,
 ) {
-    let text_style = &config.style;
+    let text_style = &config.text_style;
     for e in look_up_events.read() {
         info!("look up event: {e:?}");
         match e {

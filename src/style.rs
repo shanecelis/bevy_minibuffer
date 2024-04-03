@@ -1,12 +1,14 @@
-use asky::{style::{Style, Section, Flags}, utils::renderer::Renderer};
+use asky::{style::{Style, Section, Flags}, utils::renderer::Renderer, bevy::AskyStyle};
 use std::io;
 use text_style::AnsiColor::*;
 use bevy::ecs::system::Resource;
+use bevy::text::TextStyle;
 // use text_style::{self, Color, Style, StyledString};
-#[derive(Clone, Copy, Debug, Resource)]
+#[derive(Clone, Debug, Resource)]
 pub struct MinibufferStyle {
     pub ascii: bool,
     pub newlines: bool,
+    pub text_style: Option<TextStyle>,
 }
 
 impl Default for MinibufferStyle {
@@ -14,6 +16,18 @@ impl Default for MinibufferStyle {
         Self {
             ascii: true,
             newlines: false,
+            text_style: None,
+        }
+    }
+}
+
+impl From<MinibufferStyle> for AskyStyle {
+    fn from(mut style: MinibufferStyle) -> AskyStyle {
+        if let Some(text_style) = style.text_style.take() {
+            AskyStyle::new(style)
+                .with_text_style(text_style)
+        } else {
+            AskyStyle::new(style)
         }
     }
 }

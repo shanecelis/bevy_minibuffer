@@ -12,8 +12,25 @@ async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugins(MinibufferPlugin::default())
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                resolution: [400., 400.].into(),
+                title: "Bevy Minibuffer Simplest Example".to_owned(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        }))
+        .add_plugins(MinibufferPlugin {
+            config: ConsoleConfig {
+                auto_hide: true,
+                // auto_hide: false,
+                hide_delay: Some(3000),
+                text_style: TextStyle {
+                    font_size: 20.0,
+                    ..default()
+                },
+            },
+        })
         .add_systems(Startup, setup)
         .run();
 }

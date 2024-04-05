@@ -1,12 +1,11 @@
+use asky::{bevy::future_sink, Message, Number};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_nano_console::commands::*;
-use bevy_nano_console::*;
 use bevy_nano_console::prompt::*;
+use bevy_nano_console::*;
 use keyseq::bevy::pkeyseq as keyseq;
 use std::time::Duration;
-use asky::{Message, Number, bevy::future_sink};
-
 
 /// Ask the user for their name. Say hello.
 async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {
@@ -27,9 +26,11 @@ async fn ask_age(mut asky: Minibuffer) -> Result<(), Error> {
 /// Example of adding acts with an exclusive world system.
 fn add_acts_with_mutable_world(world: &mut World) {
     let system_id = world.register_system(ask_name.pipe(future_sink));
-    world.spawn(Act::preregistered(system_id)
-        .named("ask_name")
-        .hotkey(keyseq!(1)));
+    world.spawn(
+        Act::preregistered(system_id)
+            .named("ask_name")
+            .hotkey(keyseq!(1)),
+    );
 }
 
 /// Add acts using [Commands] with [AddAct].
@@ -72,8 +73,8 @@ fn main() {
                 text_style: TextStyle {
                     font_size: 20.0,
                     ..default()
-                }
-            }
+                },
+            },
         })
         // Add acts directly to an app via [AddAct].
         .add_act(
@@ -93,8 +94,7 @@ fn main() {
             Act::new()
                 .named("list_key_bindings")
                 .hotkey(keyseq!(ctrl-H B)),
-            list_key_bindings::<StartActEvent>
-                .pipe(future_sink),
+            list_key_bindings::<StartActEvent>.pipe(future_sink),
         )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)

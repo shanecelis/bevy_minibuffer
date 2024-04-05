@@ -2,19 +2,28 @@
 use std::borrow::Cow;
 use std::fmt::Debug;
 
-use bevy::ecs::{component, system::{SystemParam, SystemMeta, SystemState}, world::unsafe_world_cell::UnsafeWorldCell};
+use bevy::ecs::{
+    component,
+    system::{SystemMeta, SystemParam, SystemState},
+    world::unsafe_world_cell::UnsafeWorldCell,
+};
 use bevy::prelude::*;
 use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
 
-use asky::{Printable, Typeable, Valuable, Tick, OnTick, SetValue, bevy::{Asky, KeyEvent, AskyPrompt, AskyStyle}, style::Style, utils::renderer::Renderer};
+use asky::{
+    bevy::{Asky, AskyPrompt, AskyStyle, KeyEvent},
+    style::Style,
+    utils::renderer::Renderer,
+    OnTick, Printable, SetValue, Tick, Typeable, Valuable,
+};
 
-use std::io;
 use std::future::Future;
+use std::io;
 
-use bevy_crossbeam_event::CrossbeamEventSender;
-use crate::MinibufferStyle;
 use crate::commands::StartActEvent;
+use crate::MinibufferStyle;
+use bevy_crossbeam_event::CrossbeamEventSender;
 use trie_rs::{iter::KeysExt, map};
 
 use crate::ui::*;
@@ -82,7 +91,7 @@ impl<V: Send + Sync + Clone> Resolve for map::Trie<u8, V> {
             //     } else {
             //         Err(LookUpError::Incomplete(matches))
             //     },
-            _ => Err(LookUpError::Incomplete(matches))
+            _ => Err(LookUpError::Incomplete(matches)),
         }
     }
 }
@@ -166,9 +175,7 @@ impl<T: AsRef<str>> LookUp for &[T] {
     fn longest_prefix(&self, _input: &str) -> Option<String> {
         todo!();
     }
-
 }
-
 
 // impl<T> LookUp for T
 // where
@@ -241,26 +248,22 @@ pub fn hide_delayed<T: Component>(
     mut redraw: EventWriter<RequestRedraw>,
     mut query: Query<(Entity, &mut Visibility, Option<&mut HideTime>), With<T>>,
 ) {
-    if ! config.auto_hide {
+    if !config.auto_hide {
         return;
     }
     for (id, mut visibility, hide_time_maybe) in query.iter_mut() {
         match config.hide_delay {
-            Some(hide_delay) => {
-                match hide_time_maybe {
-                    Some(mut hide_time) => {
-                        hide_time
-                            .timer = Timer::new(Duration::from_millis(hide_delay),
-                                                TimerMode::Once);
-                    }
-                    None => {
-                        commands.entity(id).insert(HideTime {
-                            timer: Timer::new(Duration::from_millis(hide_delay),
-                                            TimerMode::Once),
-                        });
-                    }
+            Some(hide_delay) => match hide_time_maybe {
+                Some(mut hide_time) => {
+                    hide_time.timer =
+                        Timer::new(Duration::from_millis(hide_delay), TimerMode::Once);
                 }
-            }
+                None => {
+                    commands.entity(id).insert(HideTime {
+                        timer: Timer::new(Duration::from_millis(hide_delay), TimerMode::Once),
+                    });
+                }
+            },
             None => {
                 *visibility = Visibility::Hidden;
                 redraw.send(RequestRedraw);
@@ -285,7 +288,6 @@ pub fn hide_prompt_maybe(
         hide.timer.tick(time.delta());
         if hide.timer.finished() {
             if *state == AskyPrompt::Inactive {
-
                 next_prompt_state.set(PromptState::Invisible);
                 next_completion_state.set(CompletionState::Invisible);
                 // eprintln!("hiding after delay.");
@@ -297,8 +299,10 @@ pub fn hide_prompt_maybe(
 }
 
 #[allow(dead_code)]
-pub fn hide<T: Component>(mut query: Query<&mut Visibility, With<T>>,
-                          mut redraw: EventWriter<RequestRedraw>) {
+pub fn hide<T: Component>(
+    mut query: Query<&mut Visibility, With<T>>,
+    mut redraw: EventWriter<RequestRedraw>,
+) {
     if let Ok(mut visibility) = query.get_single_mut() {
         *visibility = Visibility::Hidden;
         redraw.send(RequestRedraw);
@@ -314,7 +318,12 @@ pub struct Minibuffer {
 }
 
 unsafe impl SystemParam for Minibuffer {
-    type State = (Asky, Entity, Option<MinibufferStyle>, CrossbeamEventSender<DispatchEvent>);
+    type State = (
+        Asky,
+        Entity,
+        Option<MinibufferStyle>,
+        CrossbeamEventSender<DispatchEvent>,
+    );
     type Item<'w, 's> = Minibuffer;
 
     #[allow(clippy::type_complexity)]
@@ -331,7 +340,12 @@ unsafe impl SystemParam for Minibuffer {
         //     .expect("No AskyParamConfig setup.")
         //     .clone();
         // (asky, query.single(), res.map(|x| x), channel.clone())
-        (asky, query.single(), res.map(|x| x.clone()), channel.clone())
+        (
+            asky,
+            query.single(),
+            res.map(|x| x.clone()),
+            channel.clone(),
+        )
     }
 
     #[inline]
@@ -354,7 +368,7 @@ unsafe impl SystemParam for Minibuffer {
 #[derive(Debug, Clone, Event)]
 pub enum LookUpEvent {
     Hide,
-    Completions(Vec<String>)
+    Completions(Vec<String>),
 }
 
 #[derive(Debug, Clone, Event)]
@@ -374,21 +388,22 @@ impl From<StartActEvent> for DispatchEvent {
     }
 }
 
-
-
 pub struct AutoComplete<T> {
     inner: T,
     look_up: Box<dyn LookUp + Send + Sync>,
     channel: CrossbeamEventSender<DispatchEvent>,
-    show_completions: bool
+    show_completions: bool,
 }
 
-impl<T> AutoComplete<T> where
+impl<T> AutoComplete<T>
+where
     T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
     <T as Valuable>::Output: AsRef<str>,
 {
     fn new<L>(inner: T, look_up: L, channel: CrossbeamEventSender<DispatchEvent>) -> Self
-    where L: LookUp + Send + Sync + 'static {
+    where
+        L: LookUp + Send + Sync + 'static,
+    {
         Self {
             inner,
             look_up: Box::new(look_up),
@@ -398,7 +413,10 @@ impl<T> AutoComplete<T> where
     }
 }
 
-impl<T> Valuable for AutoComplete<T> where T: Valuable {
+impl<T> Valuable for AutoComplete<T>
+where
+    T: Valuable,
+{
     type Output = T::Output;
     fn value(&self) -> Result<Self::Output, asky::Error> {
         self.inner.value()
@@ -411,10 +429,11 @@ impl<T: Tick> Tick for AutoComplete<T> {
     }
 }
 
-impl<T> Typeable<KeyEvent> for AutoComplete<T> where
+impl<T> Typeable<KeyEvent> for AutoComplete<T>
+where
     T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
     <T as Valuable>::Output: AsRef<str>,
-// L::Item: Display
+    // L::Item: Display
 {
     fn handle_key(&mut self, key: &KeyEvent) -> bool {
         use crate::prompt::LookUpError::*;
@@ -429,10 +448,11 @@ impl<T> Typeable<KeyEvent> for AutoComplete<T> where
                         match e {
                             Message(_s) => (), // Err(s),
                             Incomplete(_v) => {
-                                if let Some(new_input) = self.look_up.longest_prefix(input.as_ref()) {
+                                if let Some(new_input) = self.look_up.longest_prefix(input.as_ref())
+                                {
                                     let _ = self.inner.set_value(new_input);
                                 }
-                            },
+                            }
                             NanoError(_e) => (), //Err(format!("Error: {:?}", e).into()),
                         }
                     }
@@ -453,10 +473,8 @@ impl<T> Typeable<KeyEvent> for AutoComplete<T> where
                         Message(_s) => {
                             // TODO: message should go somewhere.
                             self.channel.send(LookUpEvent::Hide);
-                        }// Err(s),
-                        Incomplete(v) => {
-                            self.channel.send(LookUpEvent::Completions(v))
-                        },
+                        } // Err(s),
+                        Incomplete(v) => self.channel.send(LookUpEvent::Completions(v)),
                         NanoError(_e) => (), //Err(format!("Error: {:?}", e).into()),
                     },
                 }
@@ -475,9 +493,11 @@ impl<T> Typeable<KeyEvent> for AutoComplete<T> where
     }
 }
 
-impl<T> Printable for AutoComplete<T> where T: Printable {
-    fn draw_with_style<R: Renderer>(&self, renderer: &mut R, style: &dyn Style)
-        -> io::Result<()> {
+impl<T> Printable for AutoComplete<T>
+where
+    T: Printable,
+{
+    fn draw_with_style<R: Renderer>(&self, renderer: &mut R, style: &dyn Style) -> io::Result<()> {
         self.inner.draw_with_style(renderer, style)
     }
 }
@@ -485,7 +505,7 @@ impl<T> Printable for AutoComplete<T> where T: Printable {
 impl Minibuffer {
     pub fn prompt<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static>(
         &mut self,
-        prompt: T
+        prompt: T,
     ) -> impl Future<Output = Result<T::Output, Error>> + '_ {
         self.prompt_styled(prompt, self.style.clone().into())
     }
@@ -493,28 +513,24 @@ impl Minibuffer {
     pub fn read<L>(
         &mut self,
         prompt: String,
-        lookup: L
-    ) -> impl Future<Output = Result<String, Error>> + '_ where
+        lookup: L,
+    ) -> impl Future<Output = Result<String, Error>> + '_
+    where
         L: LookUp + Clone + Send + Sync + 'static,
     {
-
         use crate::prompt::LookUpError::*;
         let mut text = asky::Text::new(prompt);
         let l = lookup.clone();
-        text
-            .validate(move |input|
-                      match l.look_up(input) {
-                          Ok(_) => Ok(()),
-                          Err(e) => match e {
-                              Message(s) => Err(s),
-                              // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
-                              Incomplete(_v) => Err("Incomplete".into()),
-                              NanoError(e) => Err(format!("Error: {:?}", e).into()),
-                          },
-                      });
-        let text = AutoComplete::new(text,
-                                     lookup,
-                                     self.channel.clone());
+        text.validate(move |input| match l.look_up(input) {
+            Ok(_) => Ok(()),
+            Err(e) => match e {
+                Message(s) => Err(s),
+                // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
+                Incomplete(_v) => Err("Incomplete".into()),
+                NanoError(e) => Err(format!("Error: {:?}", e).into()),
+            },
+        });
+        let text = AutoComplete::new(text, lookup, self.channel.clone());
         self.prompt_styled(text, self.style.clone().into())
     }
 
@@ -524,7 +540,10 @@ impl Minibuffer {
         style: AskyStyle,
     ) -> Result<T::Output, Error> {
         let _ = self.asky.clear(self.dest).await;
-        self.asky.prompt_styled(prompt, self.dest, style).await.map_err(Error::from)
+        self.asky
+            .prompt_styled(prompt, self.dest, style)
+            .await
+            .map_err(Error::from)
     }
 
     pub fn clear(&mut self) -> impl Future<Output = Result<(), asky::Error>> {
@@ -580,29 +599,24 @@ impl Minibuffer {
 //     }
 // }
 
-fn completion_set(completion: Entity,
-                  children: Option<&Children>,
-                  labels: Vec<String>,
-                  style: TextStyle,
-                  commands: &mut Commands) {
+fn completion_set(
+    completion: Entity,
+    children: Option<&Children>,
+    labels: Vec<String>,
+    style: TextStyle,
+    commands: &mut Commands,
+) {
     let new_children = labels
         .into_iter()
-        .map(|label| {
-            commands
-                .spawn(completion_item(label, style.clone()))
-                .id()
-        })
+        .map(|label| commands.spawn(completion_item(label, style.clone())).id())
         .collect::<Vec<Entity>>();
-    commands
-        .entity(completion)
-        .replace_children(&new_children);
+    commands.entity(completion).replace_children(&new_children);
     if let Some(children) = children {
         for child in children.iter() {
             commands.entity(*child).despawn();
         }
     }
 }
-
 
 pub(crate) fn handle_dispatch_event(
     mut dispatch_events: EventReader<DispatchEvent>,
@@ -612,18 +626,23 @@ pub(crate) fn handle_dispatch_event(
     use crate::prompt::DispatchEvent::*;
     for e in dispatch_events.read() {
         match e {
-            LookUpEvent(l) => { look_up_events.send(l.clone()); }
-            StartActEvent(s) => { request_act_events.send(s.clone()); }
+            LookUpEvent(l) => {
+                look_up_events.send(l.clone());
+            }
+            StartActEvent(s) => {
+                request_act_events.send(s.clone());
+            }
         }
     }
 }
-pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
-                                   completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
-                                   mut next_completion_state: ResMut<NextState<CompletionState>>,
-                                   mut redraw: EventWriter<RequestRedraw>,
-                                   mut commands: Commands,
-                                   mut last_hash: Local<Option<u64>>,
-                                   config: Res<ConsoleConfig>,
+pub(crate) fn handle_look_up_event(
+    mut look_up_events: EventReader<LookUpEvent>,
+    completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
+    mut next_completion_state: ResMut<NextState<CompletionState>>,
+    mut redraw: EventWriter<RequestRedraw>,
+    mut commands: Commands,
+    mut last_hash: Local<Option<u64>>,
+    config: Res<ConsoleConfig>,
 ) {
     let text_style = &config.text_style;
     for e in look_up_events.read() {
@@ -635,15 +654,18 @@ pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
                 eprintln!("hash {hash}");
                 if last_hash.unwrap_or(0) != hash {
                     let (completion_node, children) = completion.single();
-                    completion_set(completion_node, children,
-                                   v.clone(),
-                                   text_style.clone(),
-                                   &mut commands);
+                    completion_set(
+                        completion_node,
+                        children,
+                        v.clone(),
+                        text_style.clone(),
+                        &mut commands,
+                    );
                     next_completion_state.set(CompletionState::Visible);
                     redraw.send(RequestRedraw);
                 }
                 *last_hash = Some(hash);
-            },
+            }
             LookUpEvent::Hide => {
                 eprintln!("hide");
                 *last_hash = None;
@@ -654,9 +676,10 @@ pub(crate) fn handle_look_up_event(mut look_up_events: EventReader<LookUpEvent>,
     }
 }
 
-pub fn listen_prompt_active(mut transitions: EventReader<StateTransitionEvent<AskyPrompt>>,
-                            mut next_prompt_state: ResMut<NextState<PromptState>>,
-                            mut redraw: EventWriter<RequestRedraw>,
+pub fn listen_prompt_active(
+    mut transitions: EventReader<StateTransitionEvent<AskyPrompt>>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
+    mut redraw: EventWriter<RequestRedraw>,
 ) {
     for transition in transitions.read() {
         match transition.after {
@@ -698,8 +721,8 @@ mod tests {
 
     #[test]
     fn test_lookup() {
-        use trie_rs::Trie;
         use super::LookUp;
+        use trie_rs::Trie;
         let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
         assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");
         let lookup: &dyn LookUp = &trie;

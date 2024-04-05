@@ -1,8 +1,12 @@
-use asky::{style::{Style, Section, Flags}, utils::renderer::Renderer, bevy::AskyStyle};
-use std::io;
-use text_style::AnsiColor::*;
+use asky::{
+    bevy::AskyStyle,
+    style::{Flags, Section, Style},
+    utils::renderer::Renderer,
+};
 use bevy::ecs::system::Resource;
 use bevy::text::TextStyle;
+use std::io;
+use text_style::AnsiColor::*;
 // use text_style::{self, Color, Style, StyledString};
 #[derive(Clone, Debug, Resource)]
 pub struct MinibufferStyle {
@@ -24,8 +28,7 @@ impl Default for MinibufferStyle {
 impl From<MinibufferStyle> for AskyStyle {
     fn from(mut style: MinibufferStyle) -> AskyStyle {
         if let Some(text_style) = style.text_style.take() {
-            AskyStyle::new(style)
-                .with_text_style(text_style)
+            AskyStyle::new(style).with_text_style(text_style)
         } else {
             AskyStyle::new(style)
         }

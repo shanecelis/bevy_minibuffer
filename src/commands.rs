@@ -1,14 +1,14 @@
+use asky::Message;
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
 use bevy::window::RequestRedraw;
+use bevy_input_sequence::*;
 use bitflags::bitflags;
 use std::borrow::Cow;
+use std::fmt::{self, Debug, Display, Write};
 use std::future::Future;
-use bevy_input_sequence::*;
-use asky::Message;
-use std::fmt::{self, Display, Debug, Write};
+use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
-use tabular::{Table, Row};
 
 use crate::prompt::*;
 
@@ -70,15 +70,17 @@ pub struct Register<S>(S);
 
 impl<S> Register<S> {
     pub fn new<Into, Param>(system: Into) -> Self
-        where Into: IntoSystem<(), (), Param, System = S> + 'static,
+    where
+        Into: IntoSystem<(), (), Param, System = S> + 'static,
     {
         Self(IntoSystem::into_system(system))
     }
 }
 
 impl<S> bevy::ecs::system::EntityCommand for Register<S>
-where S: System<In = (), Out = ()> + Send + 'static {
-
+where
+    S: System<In = (), Out = ()> + Send + 'static,
+{
     fn apply(self, id: Entity, world: &mut World) {
         eprintln!("registering");
         let system_id = world.register_system(self.0);
@@ -123,7 +125,9 @@ impl Act {
     }
 
     pub fn hotkey<T>(mut self, hotkey: impl IntoIterator<Item = T>) -> Self
-        where KeyChord: From<T> {
+    where
+        KeyChord: From<T>,
+    {
         self.hotkey = Some(hotkey.into_iter().map(|v| v.into()).collect());
         self
     }
@@ -143,14 +147,14 @@ impl AsRef<str> for Act {
 impl Resolve for Vec<Act> {
     type Item = Act;
     fn resolve(&self, input: &str) -> Result<Act, LookUpError> {
-        let mut matches = self
-            .iter()
-            .filter(|command| {
-                command
-                    .flags
-                    .contains(ActFlags::ExecAct | ActFlags::Active)
-                    && command.name.as_ref().map(|name| name.starts_with(input)).unwrap_or(false)
-            });
+        let mut matches = self.iter().filter(|command| {
+            command.flags.contains(ActFlags::ExecAct | ActFlags::Active)
+                && command
+                    .name
+                    .as_ref()
+                    .map(|name| name.starts_with(input))
+                    .unwrap_or(false)
+        });
         // Collecting and matching is nice expressively. But manually iterating
         // avoids that allocation.
         if let Some(first) = matches.next() {
@@ -235,7 +239,10 @@ impl AddAct for App {
         // }
         let mut spawn = self.world.spawn(cmd.clone());
         if cmd.hotkey.is_some() {
-            spawn.insert(KeySequence::new(StartActEvent(system_id), cmd.hotkey.as_ref().unwrap().clone()));
+            spawn.insert(KeySequence::new(
+                StartActEvent(system_id),
+                cmd.hotkey.as_ref().unwrap().clone(),
+            ));
         }
 
         // self.world.spawn(cmd.clone());
@@ -243,28 +250,31 @@ impl AddAct for App {
     }
 }
 
-impl AddAct for Commands<'_, '_ >  {
+impl AddAct for Commands<'_, '_> {
     fn add_act<Params>(
         &mut self,
         act: impl Into<Act>,
         system: impl IntoSystem<(), (), Params> + 'static,
     ) -> &mut Self {
-
-        self.spawn(act.into())
-            .add(Register::new(system));
+        self.spawn(act.into()).add(Register::new(system));
         self
     }
 }
 
 #[allow(clippy::type_complexity)]
-pub(crate) fn detect_additions<E>(query: Query<(Entity, &Act),
-                                               (Added<Act>, Without<KeySequence<E>>)>,
-                                  mut commands: Commands)
-where E: Send + Sync + 'static {
+pub(crate) fn detect_additions<E>(
+    query: Query<(Entity, &Act), (Added<Act>, Without<KeySequence<E>>)>,
+    mut commands: Commands,
+) where
+    E: Send + Sync + 'static,
+{
     for (id, act) in &query {
         if let Some(ref keys) = act.hotkey {
             eprintln!("add key");
-            commands.entity(id).insert(KeySequence::new(StartActEvent(act.system_id.unwrap()), keys.clone()));
+            commands.entity(id).insert(KeySequence::new(
+                StartActEvent(act.system_id.unwrap()),
+                keys.clone(),
+            ));
         }
     }
 }
@@ -286,23 +296,31 @@ pub fn exec_act(
     let acts: Trie<u8, Act> = builder.build();
     async move {
         // match asky.prompt(asky::Text::new(":")).await {
-        match asky.read(":".to_string(), acts.clone()).await { // TODO: Get rid of clone.
+        match asky.read(":".to_string(), acts.clone()).await {
+            // TODO: Get rid of clone.
             Ok(act_name) => {
                 match acts.resolve(&act_name) {
-                    Ok(act) =>
-                        match act.system_id {
-                            Some(system_id) => Some(StartActEvent(system_id)),
-                            None => {
-                                let _ = asky.prompt(Message::new(format!("Error: No system_id for act {:?}; was it registered?", act))).await;
-                                None
-                            }
-                        }
-                    Err(e) =>
-                        {
-                            let _ = asky.prompt(Message::new(format!("Error: Could not resolve act named {:?}: {:?}", act_name, e))).await;
+                    Ok(act) => match act.system_id {
+                        Some(system_id) => Some(StartActEvent(system_id)),
+                        None => {
+                            let _ = asky
+                                .prompt(Message::new(format!(
+                                    "Error: No system_id for act {:?}; was it registered?",
+                                    act
+                                )))
+                                .await;
                             None
                         }
-
+                    },
+                    Err(e) => {
+                        let _ = asky
+                            .prompt(Message::new(format!(
+                                "Error: Could not resolve act named {:?}: {:?}",
+                                act_name, e
+                            )))
+                            .await;
+                        None
+                    }
                 }
                 // } else {
                 //     let _ = asky.prompt(Message::new(format!("No such command: {input}"))).await;
@@ -318,28 +336,23 @@ pub fn exec_act(
 }
 
 /// List acts currently operant.
-pub fn list_acts(
-    mut asky: Minibuffer,
-    acts: Query<&Act>) -> impl Future<Output = ()> {
-
+pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output = ()> {
     let mut table = Table::new("{:<}\t{:<}");
-    table.add_row(Row::new()
-                    .with_cell("NAME")
-                    .with_cell("KEY BINDING"));
+    table.add_row(Row::new().with_cell("NAME").with_cell("KEY BINDING"));
     let mut acts: Vec<_> = acts.iter().collect();
     acts.sort_by(|a, b| a.name().cmp(b.name()));
     for act in &acts {
-
-        let binding: String = act.hotkey.as_ref()
-                                        .map(|chords|
-            chords.iter().fold(String::new(), |mut output, chord| {
-                let _ = write!(output, "{} ", chord);
-                output
-            }))
+        let binding: String = act
+            .hotkey
+            .as_ref()
+            .map(|chords| {
+                chords.iter().fold(String::new(), |mut output, chord| {
+                    let _ = write!(output, "{} ", chord);
+                    output
+                })
+            })
             .unwrap_or(String::from(""));
-        table.add_row(Row::new()
-                      .with_cell(act.name())
-                      .with_cell(binding));
+        table.add_row(Row::new().with_cell(act.name()).with_cell(binding));
     }
     let msg = format!("{}", table);
     eprintln!("{}", &msg);
@@ -351,34 +364,25 @@ pub fn list_acts(
 /// List key bindings for event `E`.
 pub fn list_key_bindings<E: Event + Debug>(
     mut asky: Minibuffer,
-    key_bindings: Query<&KeySequence<E>>
-) -> impl Future<Output = ()>
-{
+    key_bindings: Query<&KeySequence<E>>,
+) -> impl Future<Output = ()> {
     let mut table = Table::new("{:<}\t{:<}");
-    table.add_row(Row::new()
-                    .with_cell("KEY BINDING")
-                    .with_cell("EVENT"));
+    table.add_row(Row::new().with_cell("KEY BINDING").with_cell("EVENT"));
 
     let mut key_bindings: Vec<(String, &E)> = key_bindings
         .iter()
         .map(|k| {
-            let binding: String = k.acts
-                .iter()
-                .fold(String::new(),
-                     |mut output, chord| {
-                         let _ = write!(output, "{} ", chord);
-                         output
-                     });
+            let binding: String = k.acts.iter().fold(String::new(), |mut output, chord| {
+                let _ = write!(output, "{} ", chord);
+                output
+            });
 
             (binding, &k.event)
         })
         .collect();
     key_bindings.sort_by(|a, b| a.0.cmp(&b.0));
     for (binding, e) in &key_bindings {
-        table.add_row(Row::new()
-                      .with_cell(binding)
-                      .with_cell(format!("{:?}", e)));
-
+        table.add_row(Row::new().with_cell(binding).with_cell(format!("{:?}", e)));
     }
     let msg = format!("{}", table);
     eprintln!("{}", &msg);

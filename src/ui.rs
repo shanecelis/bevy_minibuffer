@@ -28,22 +28,15 @@ pub struct ScrollingList {
 
 pub struct CompletionList(pub Vec<Cow<'static, str>>);
 
-pub fn completion_item(
-    label: String,
-    style: TextStyle,
-) -> (TextBundle, Label, AccessibilityNode) {
+pub fn completion_item(label: String, style: TextStyle) -> (TextBundle, Label, AccessibilityNode) {
     (
-        TextBundle::from_section(
-            label,
-            style
-        ),
+        TextBundle::from_section(label, style),
         Label,
         AccessibilityNode(NodeBuilder::new(Role::ListItem)),
     )
 }
 
 pub fn spawn_layout(mut commands: Commands) {
-
     commands
         .spawn(NodeBundle {
             // visibility: Visibility::Hidden,
@@ -173,4 +166,3 @@ pub fn mouse_scroll(
         }
     }
 }
-

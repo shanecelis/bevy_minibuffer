@@ -1,9 +1,9 @@
-use std::fmt::{Debug, Display};
+use crate::Minibuffer;
+use asky::{bevy::TaskSink, Message};
 use bevy::ecs::prelude::*;
 use bevy::tasks::block_on;
 use futures_lite::future;
-use asky::{Message, bevy::TaskSink};
-use crate::Minibuffer;
+use std::fmt::{Debug, Display};
 
 /// Check for tasks which may emit a event we want to send.
 pub fn poll_event_tasks<T: Send + Event>(
@@ -35,10 +35,12 @@ pub fn poll_tasks_err<T: Send + Sync + 'static, E: Debug + Display + Send + Sync
 
                 let a = asky.clone();
                 let future = async move {
-                    let _ = a.clone().prompt(Message::new(format!("error: {}", error))).await;
+                    let _ = a
+                        .clone()
+                        .prompt(Message::new(format!("error: {}", error)))
+                        .await;
                 };
                 commands.spawn(TaskSink::new(future));
-
             }
             commands.entity(entity).despawn();
         }

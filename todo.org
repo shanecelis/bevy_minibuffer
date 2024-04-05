@@ -12,3 +12,4 @@
 One can match and be a prefix for other matches. Therefore, the LookUp trait
 must account for both with Result<String, LookUpError> can't do.
 ** Cursor goes to second line when on edge of window
+** Can add two acts with same name

@@ -2,17 +2,20 @@
 #![allow(incomplete_features)]
 pub mod commands;
 pub mod prompt;
+pub mod style;
 pub mod tasks;
 pub mod ui;
-pub mod style;
-use style::MinibufferStyle;
-use bevy_input_sequence::*;
 use asky::bevy::{AskyPlugin, AskyPrompt};
-pub use prompt::Minibuffer;
 use bevy_crossbeam_event::CrossbeamEventApp;
+use bevy_input_sequence::*;
+pub use prompt::Minibuffer;
+use style::MinibufferStyle;
 
+pub use keyseq::{
+    bevy::{pkey as key, pkeyseq as keyseq},
+    Modifiers,
+};
 use prompt::ConsoleConfig;
-pub use keyseq::{Modifiers, bevy::{pkey as key, pkeyseq as keyseq}};
 
 #[derive(Debug, Default, Clone)]
 pub struct NanoPromptPlugin {

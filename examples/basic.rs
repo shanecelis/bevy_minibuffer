@@ -7,85 +7,50 @@ use keyseq::bevy::pkeyseq as keyseq;
 use std::time::Duration;
 use asky::{Message, Number, bevy::future_sink};
 
-async fn ask_name<'a>(mut asky: Minibuffer) {
-    if let Ok(first_name) = asky.prompt(asky::Text::new("What's your first name? ")).await {
-        if let Ok(last_name) = asky.prompt(asky::Text::new("What's your last name? ")).await {
-            let _ = asky.prompt(Message::new(format!("Hello, {first_name} {last_name}!"))).await;
-            return;
-        }
-    }
-    let _ = asky.prompt(Message::new("Got err in ask name")).await;
-}
 
-async fn ask_name_error<'a>(mut asky: Minibuffer) -> Result<(), Error> {
-    let first_name = asky.prompt(asky::Text::new("What's your first name? ")).await?;
-    let last_name = asky.prompt(asky::Text::new("What's your last name? ")).await?;
+/// Ask the user for their name. Say hello.
+async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {
+    let first_name = asky.prompt(asky::Text::new("What's your first name?")).await?;
+    let last_name = asky.prompt(asky::Text::new("What's your last name?")).await?;
     asky.prompt(Message::new(format!("Hello, {first_name} {last_name}!"))).await?;
     Ok(())
 }
 
-// fn ask_age(mut prompt: Prompt) -> impl Future<Output = ()> {
-//     async move {
-//         if let Ok(age) = prompt.read::<i32>("What's your age? ").await {
-//             prompt.message(format!("You are {age} years old."));
-//         } else {
-//             eprintln!("Got err in ask age");
-//         }
-//     }
-// }
-
-// fn asky_age(mut asky: Asky, query: Query<Entity, With<PromptContainer>>) -> impl Future<Output = ()> {
-//     let id: Entity = query.single();
-//     async move {
-//         let _ = asky.clear(id).await;
-//         if let Ok(age) = asky.prompt_styled(Number::<u8>::new("What's your age? "), id, MinibufferStyle::default()).await {
-//             let _ = asky.delay(Duration::from_secs(2)).await;
-//             let _ = asky.clear(id).await;
-//             let _ = asky.prompt(Message::new(format!("You are {age} years old.")), id).await;
-//         } else {
-//             let _ = asky.clear(id).await;
-//             let _ = asky.prompt(Message::new("error: I can only handle u8s for age.."), id).await;
-//         }
-//     }
-// }
-
-// fn mb_age(mut asky: Minibuffer) -> impl Future<Output = ()> {
-//     async move {
-//         if let Ok(age) = asky.prompt(Number::<u8>::new("What's your age? ")).await {
-//             let _ = asky.delay(Duration::from_secs(2)).await;
-//             let _ = asky.prompt(Message::new(format!("You are {age} years old."))).await;
-//         } else {
-//             let _ = asky.prompt(Message::new("error: I can only handle u8s for age..")).await;
-//         }
-//     }
-// }
-async fn mb_age(mut asky: Minibuffer) {
-    if let Ok(age) = asky.prompt(Number::<u8>::new("What's your age? ")).await {
-        let _ = asky.delay(Duration::from_secs(2)).await;
-        let _ = asky.prompt(Message::new(format!("You are {age} years old."))).await;
-    } else {
-        let _ = asky.prompt(Message::new("error: I can only handle u8s for age..")).await;
-    }
+// Ask the user for their age.
+async fn ask_age(mut asky: Minibuffer) -> Result<(), Error> {
+    let age = asky.prompt(Number::<u8>::new("What's your age?")).await?;
+    asky.delay(Duration::from_secs(2)).await?;
+    asky.prompt(Message::new(format!("You are {age} years old."))).await?;
+    Ok(())
 }
 
-fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+/// Example of adding acts with an exclusive world system.
+fn add_acts_with_mutable_world(world: &mut World) {
+    let system_id = world.register_system(ask_name.pipe(future_sink));
+    world.spawn(Act::preregistered(system_id)
+        .named("ask_name")
+        .hotkey(keyseq!(1)));
+}
+
+/// Add acts using [Commands] with [AddAct].
+fn add_acts(mut commands: Commands) {
+
+    commands.add_act(Act::new()
+                     .named("ask_age")
+                     .hotkey(keyseq!(D D)),
+
+                     ask_age.pipe(future_sink));
+
+    commands.add_act(Act::new()
+                     .named("ask_name")
+                     .hotkey(keyseq!(E E)),
+
+                     ask_name.pipe(future_sink));
 }
 
 fn main() {
     App::new()
         .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
-        .add_plugins(NanoPromptPlugin {
-            config: ConsoleConfig {
-                // auto_hide: true,
-                auto_hide: false,
-                hide_delay: Some(3000),
-                text_style: TextStyle {
-                    font_size: 30.0,
-                    ..default()
-                }
-            }
-        })
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 resolution: [400., 400.].into(),
@@ -94,87 +59,49 @@ fn main() {
             }),
             ..Default::default()
         }))
-        // .add_plugins(EditorPlugin::default())
-        .add_act(Act::unregistered().named("ask_nam"), ask_name.pipe(future_sink))
-        // .add_command(
-        //     // Command::new("ask_name", Some(vec![KeyCode::Digit1])),
-        //     Act::new("ask_name", keyseq!(1)),
-        //     ask_name.pipe(future_sink),
-        // )
-        // .add_command(
-        //     // Command::new("ask_age", vec![KeyCode::KeyA, KeyCode::KeyA]),
-        //     Act::new("ask_age", keyseq!(A A)),
-        //     ask_age.pipe(future_sink),
-        // )
+        // .add_plugins((WorldInspectorPlugin::new(),
+        //               StateInspectorPlugin::<asky::bevy::AskyPrompt>::new(),
+        //               StateInspectorPlugin::<PromptState>::new(),
+        //               StateInspectorPlugin::<CompletionState>::new(),
+        // ))
+        .add_plugins(NanoPromptPlugin {
+            config: ConsoleConfig {
+                auto_hide: true,
+                // auto_hide: false,
+                hide_delay: Some(3000),
+                text_style: TextStyle {
+                    font_size: 20.0,
+                    ..default()
+                }
+            }
+        })
+        // Add acts directly to an app via [AddAct].
         .add_act(
-            Act::unregistered()
+            Act::new()
                 .named("exec_act")
                 .hotkey(keyseq!(shift-;))
                 .in_exec_act(false),
             exec_act.pipe(future_sink),
         )
-
         .add_act(
-            Act::unregistered()
-                .named("toggle_vis")
-                .hotkey(keyseq!('`'))
-                .in_exec_act(false),
-            toggle_visibility,
-        )
-        .add_act(
-            Act::unregistered()
+            Act::new()
                 .named("list_acts")
                 .hotkey(keyseq!(ctrl-H A)),
             list_acts.pipe(future_sink),
         )
-
         .add_act(
-            Act::unregistered()
+            Act::new()
                 .named("list_key_bindings")
                 .hotkey(keyseq!(ctrl-H B)),
-            list_key_bindings::<StartActEvent>.pipe(future_sink),
+            list_key_bindings::<StartActEvent>
+                .pipe(future_sink),
         )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)
-        .add_systems(Startup, add_acts2)
+        .add_systems(Startup, add_acts_with_mutable_world)
         .run();
 }
 
-fn add_acts(world: &mut World) {
-    let system_id = world.register_system(ask_name.pipe(future_sink));
-    world.spawn(Act::new(system_id)
-        .named("ask_name2")
-        .hotkey(keyseq!(1)));
-}
-
-fn add_acts2(mut commands: Commands) {
-
-    // commands.spawn(Act::unregistered()
-    //                .named("ask_age")
-    //                .hotkey(keyseq!(A A)))
-    //     .add(Register::new(ask_age.pipe(future_sink)));
-
-    // commands.add_act(Act::unregistered()
-    //                  .named("ask_age2")
-    //                  .hotkey(keyseq!(B B)),
-
-    //                  ask_age.pipe(future_sink));
-
-    // commands.add_act(Act::unregistered()
-    //                  .named("asky_age")
-    //                  .hotkey(keyseq!(C C)),
-
-    //                  asky_age.pipe(future_sink));
-
-    commands.add_act(Act::unregistered()
-                     .named("mb_age")
-                     .hotkey(keyseq!(D D)),
-
-                     mb_age.pipe(future_sink));
-
-    commands.add_act(Act::unregistered()
-                     .named("ask_name_error")
-                     .hotkey(keyseq!(E E)),
-
-                     ask_name_error.pipe(future_sink));
+fn setup(mut commands: Commands) {
+    commands.spawn(Camera2dBundle::default());
 }

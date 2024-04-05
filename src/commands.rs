@@ -96,7 +96,7 @@ where S: System<In = (), Out = ()> + Send + 'static {
 impl Act {
     const ANONYMOUS: Cow<'static, str> = Cow::Borrowed("*anonymous*");
 
-    pub fn unregistered() -> Self {
+    pub fn new() -> Self {
         Act {
             name: None,
             hotkey: None,
@@ -104,7 +104,7 @@ impl Act {
             flags: ActFlags::Active | ActFlags::ExecAct,
         }
     }
-    pub fn new(system_id: SystemId) -> Self {
+    pub fn preregistered(system_id: SystemId) -> Self {
         Act {
             name: None,
             hotkey: None,

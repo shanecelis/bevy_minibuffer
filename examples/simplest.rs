@@ -1,8 +1,6 @@
-use asky::{bevy::future_sink, Message};
 use bevy::prelude::*;
-use bevy_nano_console::commands::*;
-use bevy_nano_console::prompt::*;
-use bevy_nano_console::*;
+use asky::Message;
+use bevy_minibuffer::prelude::*;
 
 /// Ask the user for their name. Say hello.
 async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {

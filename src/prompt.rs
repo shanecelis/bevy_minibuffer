@@ -21,14 +21,13 @@ use asky::{
 use std::future::Future;
 use std::io;
 
+use crate::Error;
 use crate::commands::StartActEvent;
 use crate::MinibufferStyle;
 use bevy_crossbeam_event::CrossbeamEventSender;
 use trie_rs::{iter::KeysExt, map};
 
 use crate::ui::*;
-
-pub type CowStr = Cow<'static, str>;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum PromptState {
@@ -45,14 +44,6 @@ pub enum CompletionState {
     #[default]
     Invisible,
     Visible,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("{0}")]
-    Message(CowStr),
-    #[error("asky {0}")]
-    Asky(#[from] asky::Error),
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -1,5 +1,5 @@
 [package]
-name = "bevy-nano-console"
+name = "bevy_minibuffer"
 version = "0.1.0"
 edition = "2021"
 

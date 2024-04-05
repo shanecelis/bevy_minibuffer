@@ -1,9 +1,9 @@
 // use bevy::prelude::*;
-// use bevy_nano_console::commands::*;
-// use bevy_nano_console::prompt::*;
-// use bevy_nano_console::tasks::*;
-// // use bevy_nano_console::ui::*;
-// use bevy_nano_console::*;
+// use bevy_minibuffer::commands::*;
+// use bevy_minibuffer::prompt::*;
+// use bevy_minibuffer::tasks::*;
+// // use bevy_minibuffer::ui::*;
+// use bevy_minibuffer::*;
 // use bevy_input_sequence::*;
 // use std::f32::consts::TAU;
 // use std::future::Future;

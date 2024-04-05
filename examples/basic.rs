@@ -1,9 +1,9 @@
 use asky::{bevy::future_sink, Message, Number};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
-use bevy_nano_console::commands::*;
-use bevy_nano_console::prompt::*;
-use bevy_nano_console::*;
+use bevy_minibuffer::commands::*;
+use bevy_minibuffer::prompt::*;
+use bevy_minibuffer::*;
 use keyseq::bevy::pkeyseq as keyseq;
 use std::time::Duration;
 

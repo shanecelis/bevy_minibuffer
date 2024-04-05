@@ -1,5 +1,6 @@
 // #![feature(return_position_impl_trait_in_trait)]
 #![allow(incomplete_features)]
+use std::borrow::Cow;
 pub mod commands;
 pub mod prompt;
 pub mod style;
@@ -20,6 +21,21 @@ use prompt::ConsoleConfig;
 #[derive(Debug, Default, Clone)]
 pub struct NanoPromptPlugin {
     pub config: ConsoleConfig,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("{0}")]
+    Message(Cow<'static, str>),
+    #[error("asky {0}")]
+    Asky(#[from] asky::Error),
+}
+
+pub mod prelude {
+    pub use super::{Minibuffer, keyseq, Error, NanoPromptPlugin};
+    pub use super::commands::{Act, AddAct};
+    pub use super::prompt::ConsoleConfig;
+    pub use asky::bevy::future_sink;
 }
 
 #[rustfmt::skip]

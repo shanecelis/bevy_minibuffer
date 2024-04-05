@@ -55,11 +55,14 @@ pub enum Error {
     Asky(#[from] asky::Error),
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 #[allow(dead_code)]
 pub enum LookUpError {
+    #[error("{0}")]
     Message(Cow<'static, str>),
-    NanoError(Error),
+    #[error("minibuffer {0}")]
+    Nano(#[from] Error),
+    #[error("incomplete {0:?}")]
     Incomplete(Vec<String>),
 }
 
@@ -453,7 +456,7 @@ where
                                     let _ = self.inner.set_value(new_input);
                                 }
                             }
-                            NanoError(_e) => (), //Err(format!("Error: {:?}", e).into()),
+                            Nano(_e) => (), //Err(format!("Error: {:?}", e).into()),
                         }
                     }
                 }
@@ -475,7 +478,7 @@ where
                             self.channel.send(LookUpEvent::Hide);
                         } // Err(s),
                         Incomplete(v) => self.channel.send(LookUpEvent::Completions(v)),
-                        NanoError(_e) => (), //Err(format!("Error: {:?}", e).into()),
+                        Nano(_e) => (), //Err(format!("Error: {:?}", e).into()),
                     },
                 }
             }
@@ -527,7 +530,7 @@ impl Minibuffer {
                 Message(s) => Err(s),
                 // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
                 Incomplete(_v) => Err("Incomplete".into()),
-                NanoError(e) => Err(format!("Error: {:?}", e).into()),
+                Nano(e) => Err(format!("Error: {:?}", e).into()),
             },
         });
         let text = AutoComplete::new(text, lookup, self.channel.clone());

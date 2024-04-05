@@ -315,7 +315,7 @@ pub fn exec_act(
                     Err(e) => {
                         let _ = asky
                             .prompt(Message::new(format!(
-                                "Error: Could not resolve act named {:?}: {:?}",
+                                "Error: Could not resolve act named {:?}: {}",
                                 act_name, e
                             )))
                             .await;
@@ -328,7 +328,7 @@ pub fn exec_act(
                 // }
             }
             Err(e) => {
-                let _ = asky.prompt(Message::new(format!("Error: {:?}", e))).await;
+                let _ = asky.prompt(Message::new(format!("Error: {e}"))).await;
                 None
             }
         }

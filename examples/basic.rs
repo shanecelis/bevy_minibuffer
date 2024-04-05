@@ -60,11 +60,6 @@ fn main() {
             }),
             ..Default::default()
         }))
-        // .add_plugins((WorldInspectorPlugin::new(),
-        //               StateInspectorPlugin::<asky::bevy::AskyPrompt>::new(),
-        //               StateInspectorPlugin::<PromptState>::new(),
-        //               StateInspectorPlugin::<CompletionState>::new(),
-        // ))
         .add_plugins(NanoPromptPlugin {
             config: ConsoleConfig {
                 auto_hide: true,

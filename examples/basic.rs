@@ -60,7 +60,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins(NanoPromptPlugin {
+        .add_plugins(MinibufferPlugin {
             config: ConsoleConfig {
                 auto_hide: true,
                 // auto_hide: false,

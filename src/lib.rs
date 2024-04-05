@@ -19,7 +19,7 @@ pub use keyseq::{
 use prompt::ConsoleConfig;
 
 #[derive(Debug, Default, Clone)]
-pub struct NanoPromptPlugin {
+pub struct MinibufferPlugin {
     pub config: ConsoleConfig,
 }
 
@@ -32,14 +32,14 @@ pub enum Error {
 }
 
 pub mod prelude {
-    pub use super::{Minibuffer, keyseq, Error, NanoPromptPlugin};
+    pub use super::{Minibuffer, keyseq, Error, MinibufferPlugin};
     pub use super::commands::{Act, AddAct};
     pub use super::prompt::ConsoleConfig;
     pub use asky::bevy::future_sink;
 }
 
 #[rustfmt::skip]
-impl bevy::app::Plugin for NanoPromptPlugin {
+impl bevy::app::Plugin for MinibufferPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         use bevy::prelude::*;
         use bevy::ecs::schedule::{OnEnter, OnExit};

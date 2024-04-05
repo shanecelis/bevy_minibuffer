@@ -3,10 +3,10 @@ use asky::Message;
 use bevy_minibuffer::prelude::*;
 
 /// Ask the user for their name. Say hello.
-async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {
-    let first_name = asky.prompt(asky::Text::new("What's your first name?")).await?;
-    let last_name = asky.prompt(asky::Text::new("What's your last name?")).await?;
-    asky.prompt(Message::new(format!("Hello, {first_name} {last_name}!"))).await?;
+async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
+    let first_name = minibuffer.prompt(asky::Text::new("What's your first name?")).await?;
+    let last_name = minibuffer.prompt(asky::Text::new("What's your last name?")).await?;
+    minibuffer.prompt(Message::new(format!("Hello, {first_name} {last_name}!"))).await?;
     Ok(())
 }
 
@@ -20,7 +20,7 @@ fn main() {
             }),
             ..Default::default()
         }))
-        .add_plugins(NanoPromptPlugin {
+        .add_plugins(MinibufferPlugin {
             config: ConsoleConfig {
                 auto_hide: true,
                 // auto_hide: false,

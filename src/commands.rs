@@ -85,6 +85,12 @@ where
 }
 
 // TODO: Do we need a builder?
+impl Default for Act {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Act {
     const ANONYMOUS: Cow<'static, str> = Cow::Borrowed("*anonymous*");
 

@@ -5,7 +5,7 @@ use bevy::input::keyboard::KeyCode;
 use bevy_crossbeam_event::CrossbeamEventSender;
 
 use asky::{
-    bevy::{Asky, AskyPrompt, AskyStyle, KeyEvent},
+    bevy::{KeyEvent},
     style::Style,
     utils::renderer::Renderer,
     OnTick, Printable, SetValue, Tick, Typeable, Valuable,

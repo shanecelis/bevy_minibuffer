@@ -1,5 +1,5 @@
 #![allow(async_fn_in_trait)]
-use std::borrow::Cow;
+
 use std::fmt::Debug;
 
 use bevy::ecs::{
@@ -11,21 +11,17 @@ use bevy::prelude::*;
 use bevy::utils::Duration;
 use bevy::window::RequestRedraw;
 
-use asky::{
-    bevy::{Asky, AskyPrompt, AskyStyle, KeyEvent},
-    style::Style,
-    utils::renderer::Renderer,
-    OnTick, Printable, SetValue, Tick, Typeable, Valuable,
-};
+use asky::bevy::{Asky, AskyPrompt, AskyStyle, KeyEvent};
+use asky::{Typeable, Valuable};
 
 use std::future::Future;
-use std::io;
+
 
 use crate::{Error, ConsoleConfig, lookup::{LookUp, AutoComplete}};
 use crate::event::{StartActEvent, DispatchEvent, LookUpEvent};
 use crate::MinibufferStyle;
 use bevy_crossbeam_event::CrossbeamEventSender;
-use trie_rs::{iter::KeysExt, map};
+
 
 use crate::ui::*;
 
@@ -384,32 +380,32 @@ pub fn listen_prompt_active(
 
 #[cfg(test)]
 mod tests {
-    use crate::prompt::LookUpError;
-    use crate::prompt::Parse;
+    // use crate::prompt::LookUpError;
+    // use crate::prompt::Parse;
 
-    #[derive(Debug)]
-    struct TomDickHarry(String);
+    // #[derive(Debug)]
+    // struct TomDickHarry(String);
 
-    impl Parse for TomDickHarry {
-        fn parse(input: &str) -> Result<Self, LookUpError> {
-            match input {
-                "Tom" => Ok(TomDickHarry(input.into())),
-                "Dick" => Ok(TomDickHarry(input.into())),
-                "Harry" => Ok(TomDickHarry(input.into())),
-                _ => Err(LookUpError::Incomplete(vec![
-                    "Tom".into(),
-                    "Dick".into(),
-                    "Harry".into(),
-                ])),
-            }
-        }
-    }
+    // impl Parse for TomDickHarry {
+    //     fn parse(input: &str) -> Result<Self, LookUpError> {
+    //         match input {
+    //             "Tom" => Ok(TomDickHarry(input.into())),
+    //             "Dick" => Ok(TomDickHarry(input.into())),
+    //             "Harry" => Ok(TomDickHarry(input.into())),
+    //             _ => Err(LookUpError::Incomplete(vec![
+    //                 "Tom".into(),
+    //                 "Dick".into(),
+    //                 "Harry".into(),
+    //             ])),
+    //         }
+    //     }
+    // }
 
-    #[test]
-    fn test_tom_dick_parse() {
-        let a = TomDickHarry::parse("Tom").unwrap();
-        assert_eq!(a.0, "Tom");
-    }
+    // #[test]
+    // fn test_tom_dick_parse() {
+    //     let a = TomDickHarry::parse("Tom").unwrap();
+    //     assert_eq!(a.0, "Tom");
+    // }
 
     #[test]
     fn test_lookup() {

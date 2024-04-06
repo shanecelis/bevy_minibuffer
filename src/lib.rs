@@ -13,13 +13,17 @@ pub use plugin::Error;
 
 pub use prompt::Minibuffer;
 pub use style::MinibufferStyle;
-pub use keyseq::{
-    bevy::{pkey as key, pkeyseq as keyseq},
-    Modifiers,
-};
+
+pub mod input {
+    pub use keyseq::{
+        bevy::{pkey as key, pkeyseq as keyseq},
+        Modifiers,
+    };
+}
 
 pub mod prelude {
-    pub use super::{Minibuffer, keyseq, Error, MinibufferPlugin};
+    pub use super::{Minibuffer, Error, MinibufferPlugin};
+    pub use super::input::*;
     pub use super::commands::{Act, AddAct};
     pub use super::ConsoleConfig;
     pub use asky::bevy::future_sink;

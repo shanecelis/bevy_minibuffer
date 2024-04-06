@@ -82,7 +82,6 @@ where
     S: System<In = (), Out = ()> + Send + 'static,
 {
     fn apply(self, id: Entity, world: &mut World) {
-        eprintln!("registering");
         let system_id = world.register_system(self.0);
         let mut entity = world.get_entity_mut(id).unwrap();
         let mut act = entity.get_mut::<Act>().unwrap();
@@ -270,7 +269,6 @@ pub(crate) fn detect_additions<E>(
 {
     for (id, act) in &query {
         if let Some(ref keys) = act.hotkey {
-            eprintln!("add key");
             commands.entity(id).insert(KeySequence::new(
                 StartActEvent(act.system_id.unwrap()),
                 keys.clone(),
@@ -355,7 +353,7 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
         table.add_row(Row::new().with_cell(act.name()).with_cell(binding));
     }
     let msg = format!("{}", table);
-    eprintln!("{}", &msg);
+    // eprintln!("{}", &msg);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;
     }
@@ -385,7 +383,7 @@ pub fn list_key_bindings<E: Event + Debug>(
         table.add_row(Row::new().with_cell(binding).with_cell(format!("{:?}", e)));
     }
     let msg = format!("{}", table);
-    eprintln!("{}", &msg);
+    // eprintln!("{}", &msg);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;
     }

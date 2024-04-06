@@ -624,12 +624,12 @@ pub(crate) fn handle_look_up_event(
 ) {
     let text_style = &config.text_style;
     for e in look_up_events.read() {
-        info!("look up event: {e:?}");
+        // info!("look up event: {e:?}");
         match e {
             LookUpEvent::Completions(v) => {
                 let rnd_state = bevy::utils::RandomState::with_seed(0);
                 let hash = rnd_state.hash_one(v);
-                eprintln!("hash {hash}");
+                // eprintln!("hash {hash}");
                 if last_hash.unwrap_or(0) != hash {
                     let (completion_node, children) = completion.single();
                     completion_set(
@@ -645,7 +645,7 @@ pub(crate) fn handle_look_up_event(
                 *last_hash = Some(hash);
             }
             LookUpEvent::Hide => {
-                eprintln!("hide");
+                // eprintln!("hide");
                 *last_hash = None;
                 next_completion_state.set(CompletionState::Invisible);
                 redraw.send(RequestRedraw);

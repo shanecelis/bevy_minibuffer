@@ -21,7 +21,7 @@ use asky::{
 use std::future::Future;
 use std::io;
 
-use crate::Error;
+use crate::{Error, ConsoleConfig};
 use crate::commands::StartActEvent;
 use crate::MinibufferStyle;
 use bevy_crossbeam_event::CrossbeamEventSender;
@@ -52,7 +52,7 @@ pub enum LookUpError {
     #[error("{0}")]
     Message(Cow<'static, str>),
     #[error("minibuffer {0}")]
-    Nano(#[from] Error),
+    Minibuffer(#[from] Error),
     #[error("incomplete {0:?}")]
     Incomplete(Vec<String>),
 }
@@ -110,7 +110,7 @@ impl Resolve for trie_rs::Trie<u8> {
 
 impl LookUp for trie_rs::Trie<u8> {
     fn look_up(&self, input: &str) -> Result<(), LookUpError> {
-        self.resolve(input).map(|_| ())
+        self.0.resolve(input)
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
@@ -221,21 +221,6 @@ pub struct HideTime {
     pub timer: Timer,
 }
 
-#[derive(Debug, Resource, Clone, Default, Reflect)]
-pub struct ConsoleConfig {
-    pub auto_hide: bool,
-    pub hide_delay: Option<u64>, // milliseconds
-    pub text_style: TextStyle,
-}
-
-// impl Default for ConsoleConfig {
-//     fn default() -> Self {
-//         Self {
-//             hide_delay: Some(2000), /* milliseconds */
-//         }
-//     }
-// }
-
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<ConsoleConfig>,
@@ -268,7 +253,6 @@ pub fn hide_delayed<T: Component>(
 
 pub fn hide_prompt_maybe(
     mut commands: Commands,
-    // mut tasks: Query<(Entity, &mut TaskSink<T>)>,
     time: Res<Time>,
     state: Res<State<AskyPrompt>>,
     mut redraw: EventWriter<RequestRedraw>,
@@ -447,7 +431,7 @@ where
                                     let _ = self.inner.set_value(new_input);
                                 }
                             }
-                            Nano(_e) => (), //Err(format!("Error: {:?}", e).into()),
+                            Minibuffer(_e) => (), //Err(format!("Error: {:?}", e).into()),
                         }
                     }
                 }
@@ -469,7 +453,7 @@ where
                             self.channel.send(LookUpEvent::Hide);
                         } // Err(s),
                         Incomplete(v) => self.channel.send(LookUpEvent::Completions(v)),
-                        Nano(_e) => (), //Err(format!("Error: {:?}", e).into()),
+                        Minibuffer(_e) => (), //Err(format!("Error: {:?}", e).into()),
                     },
                 }
             }
@@ -521,7 +505,7 @@ impl Minibuffer {
                 Message(s) => Err(s),
                 // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
                 Incomplete(_v) => Err("Incomplete".into()),
-                Nano(e) => Err(format!("Error: {:?}", e).into()),
+                Minibuffer(e) => Err(format!("Error: {:?}", e).into()),
             },
         });
         let text = AutoComplete::new(text, lookup, self.channel.clone());

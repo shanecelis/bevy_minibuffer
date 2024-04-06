@@ -1,10 +1,8 @@
-use asky::{bevy::future_sink, Message, Number};
+use asky::{Message, Number};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
+use bevy_minibuffer::prelude::*;
 use bevy_minibuffer::commands::*;
-use bevy_minibuffer::prompt::*;
-use bevy_minibuffer::*;
-use keyseq::bevy::pkeyseq as keyseq;
 use std::time::Duration;
 
 /// Ask the user for their name. Say hello.

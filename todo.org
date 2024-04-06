@@ -6,6 +6,7 @@
 ** nano::{prompt::*, command::*, console::*, task::*, keybind::*}
 ** Modeline?
 ** Toggle visibility with `
+** Allow multiple hotkeys
 * BUGS
 ** C-h a doesn't show up readily at first
 ** autocomplete hides when there are more choices

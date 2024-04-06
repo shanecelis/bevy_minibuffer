@@ -3,7 +3,9 @@ use bevy::{ecs::system::Resource, reflect::Reflect, text::TextStyle};
 use asky::bevy::{AskyPlugin, AskyPrompt};
 use bevy_crossbeam_event::CrossbeamEventApp;
 use bevy_input_sequence::*;
-use crate::prompt::{PromptState, CompletionState, DispatchEvent, LookUpEvent, AutoComplete,
+use crate::lookup::{AutoComplete};
+use crate::event::{DispatchEvent, LookUpEvent, StartActEvent};
+use crate::prompt::{PromptState, CompletionState,
                     handle_dispatch_event, handle_look_up_event, hide, hide_prompt_maybe,
                     listen_prompt_active, hide_delayed, show};
 

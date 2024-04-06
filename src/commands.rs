@@ -1,27 +1,18 @@
+use std::borrow::Cow;
+use std::fmt::{self, Debug, Display, Write};
+use std::future::Future;
 use asky::Message;
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
 use bevy::window::RequestRedraw;
 use bevy_input_sequence::*;
 use bitflags::bitflags;
-use std::borrow::Cow;
-use std::fmt::{self, Debug, Display, Write};
-use std::future::Future;
 use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
 
 use crate::prompt::*;
-
-#[derive(Clone, Event)]
-pub struct StartActEvent(pub SystemId);
-
-impl Debug for StartActEvent {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let rnd_state = bevy::utils::RandomState::with_seed(0);
-        let hash = rnd_state.hash_one(self.0);
-        write!(f, "StartActEvent({:04})", hash % 10000)
-    }
-}
+use crate::lookup::*;
+use crate::event::*;
 
 bitflags! {
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]

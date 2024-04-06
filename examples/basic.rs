@@ -1,15 +1,20 @@
 use asky::{Message, Number};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
-use bevy_minibuffer::prelude::*;
 use bevy_minibuffer::commands::*;
+use bevy_minibuffer::prelude::*;
 use std::time::Duration;
 
 /// Ask the user for their name. Say hello.
 async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {
-    let first_name = asky.prompt(asky::Text::new("What's your first name?")).await?;
-    let last_name = asky.prompt(asky::Text::new("What's your last name?")).await?;
-    asky.prompt(Message::new(format!("Hello, {first_name} {last_name}!"))).await?;
+    let first_name = asky
+        .prompt(asky::Text::new("What's your first name?"))
+        .await?;
+    let last_name = asky
+        .prompt(asky::Text::new("What's your last name?"))
+        .await?;
+    asky.prompt(Message::new(format!("Hello, {first_name} {last_name}!")))
+        .await?;
     Ok(())
 }
 
@@ -17,7 +22,8 @@ async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {
 async fn ask_age(mut asky: Minibuffer) -> Result<(), Error> {
     let age = asky.prompt(Number::<u8>::new("What's your age?")).await?;
     asky.delay(Duration::from_secs(2)).await?;
-    asky.prompt(Message::new(format!("You are {age} years old."))).await?;
+    asky.prompt(Message::new(format!("You are {age} years old.")))
+        .await?;
     Ok(())
 }
 
@@ -33,18 +39,15 @@ fn add_acts_with_mutable_world(world: &mut World) {
 
 /// Add acts using [Commands] with [AddAct].
 fn add_acts(mut commands: Commands) {
+    commands.add_act(
+        Act::new().named("ask_age").hotkey(keyseq!(D D)),
+        ask_age.pipe(future_sink),
+    );
 
-    commands.add_act(Act::new()
-                     .named("ask_age")
-                     .hotkey(keyseq!(D D)),
-
-                     ask_age.pipe(future_sink));
-
-    commands.add_act(Act::new()
-                     .named("ask_name")
-                     .hotkey(keyseq!(E E)),
-
-                     ask_name.pipe(future_sink));
+    commands.add_act(
+        Act::new().named("ask_name").hotkey(keyseq!(E E)),
+        ask_name.pipe(future_sink),
+    );
 }
 
 fn main() {
@@ -78,9 +81,7 @@ fn main() {
             exec_act.pipe(future_sink),
         )
         .add_act(
-            Act::new()
-                .named("list_acts")
-                .hotkey(keyseq!(ctrl-H A)),
+            Act::new().named("list_acts").hotkey(keyseq!(ctrl-H A)),
             list_acts.pipe(future_sink),
         )
         .add_act(

@@ -1,13 +1,14 @@
-use std::borrow::Cow;
-use bevy::{ecs::system::Resource, reflect::Reflect, text::TextStyle};
+use crate::event::{DispatchEvent, LookUpEvent, StartActEvent};
+use crate::lookup::AutoComplete;
+use crate::prompt::{
+    handle_dispatch_event, handle_look_up_event, hide, hide_delayed, hide_prompt_maybe,
+    listen_prompt_active, show, CompletionState, PromptState,
+};
 use asky::bevy::{AskyPlugin, AskyPrompt};
+use bevy::{ecs::system::Resource, reflect::Reflect, text::TextStyle};
 use bevy_crossbeam_event::CrossbeamEventApp;
 use bevy_input_sequence::*;
-use crate::lookup::{AutoComplete};
-use crate::event::{DispatchEvent, LookUpEvent, StartActEvent};
-use crate::prompt::{PromptState, CompletionState,
-                    handle_dispatch_event, handle_look_up_event, hide, hide_prompt_maybe,
-                    listen_prompt_active, hide_delayed, show};
+use std::borrow::Cow;
 
 #[derive(Debug, Default, Clone)]
 pub struct MinibufferPlugin {

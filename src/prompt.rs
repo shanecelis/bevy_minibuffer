@@ -16,12 +16,13 @@ use asky::{Typeable, Valuable};
 
 use std::future::Future;
 
-
-use crate::{Error, ConsoleConfig, lookup::{LookUp, AutoComplete}};
-use crate::event::{StartActEvent, DispatchEvent, LookUpEvent};
+use crate::event::{DispatchEvent, LookUpEvent, StartActEvent};
 use crate::MinibufferStyle;
+use crate::{
+    lookup::{AutoComplete, LookUp},
+    ConsoleConfig, Error,
+};
 use bevy_crossbeam_event::CrossbeamEventSender;
-
 
 use crate::ui::*;
 
@@ -41,7 +42,6 @@ pub enum CompletionState {
     Invisible,
     Visible,
 }
-
 
 // impl<T> LookUp for T
 // where

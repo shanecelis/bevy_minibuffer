@@ -1,17 +1,15 @@
-use std::borrow::Cow;
-use std::io;
-use trie_rs::{map, iter::KeysExt};
 use bevy::input::keyboard::KeyCode;
 use bevy_crossbeam_event::CrossbeamEventSender;
+use std::borrow::Cow;
+use std::io;
+use trie_rs::{iter::KeysExt, map};
 
-use asky::{
-    bevy::{KeyEvent},
-    style::Style,
-    utils::renderer::Renderer,
-    OnTick, Printable, SetValue, Tick, Typeable, Valuable,
-};
 use crate::event::*;
 use crate::Error;
+use asky::{
+    bevy::KeyEvent, style::Style, utils::renderer::Renderer, OnTick, Printable, SetValue, Tick,
+    Typeable, Valuable,
+};
 
 #[derive(Debug, thiserror::Error)]
 #[allow(dead_code)]

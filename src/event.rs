@@ -1,7 +1,6 @@
-use std::fmt;
 use bevy::ecs::event::Event;
 use bevy::ecs::system::SystemId;
-
+use std::fmt;
 
 #[derive(Clone, Event)]
 pub struct StartActEvent(pub SystemId);
@@ -13,7 +12,6 @@ impl fmt::Debug for StartActEvent {
         write!(f, "StartActEvent({:04})", hash % 10000)
     }
 }
-
 
 #[derive(Debug, Clone, Event)]
 pub enum LookUpEvent {

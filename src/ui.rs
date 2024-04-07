@@ -1,3 +1,4 @@
+//! UI
 use bevy::{
     a11y::{
         accesskit::{NodeBuilder, Role},
@@ -10,15 +11,23 @@ use std::borrow::Cow;
 const PADDING: Val = Val::Px(3.);
 const LEFT_PADDING: Val = Val::Px(6.);
 
+/// Root minibuffer node
 #[derive(Component)]
 struct MinibufferNode;
+
+/// Minibuffer prompt parent
 #[derive(Component)]
 pub struct PromptContainer;
+
+/// Mode line
 #[derive(Component)]
 pub struct StatusNode;
+
+/// Autocomplete panel parent
 #[derive(Component)]
 pub struct CompletionContainer;
 
+/// Autocomplete scrolling state
 #[derive(Component, Default)]
 pub struct ScrollingList {
     position: f32,
@@ -26,9 +35,11 @@ pub struct ScrollingList {
     // last_selection: Option<usize>,
 }
 
+/// Autocomplete list
 pub struct CompletionList(pub Vec<Cow<'static, str>>);
 
-pub fn completion_item(label: String, style: TextStyle) -> (TextBundle, Label, AccessibilityNode) {
+/// Autocomplete item
+pub(crate) fn completion_item(label: String, style: TextStyle) -> (TextBundle, Label, AccessibilityNode) {
     (
         TextBundle::from_section(label, style),
         Label,
@@ -36,6 +47,7 @@ pub fn completion_item(label: String, style: TextStyle) -> (TextBundle, Label, A
     )
 }
 
+/// Create the UI layout.
 pub fn spawn_layout(mut commands: Commands) {
     commands
         .spawn(NodeBundle {
@@ -143,7 +155,8 @@ pub fn spawn_layout(mut commands: Commands) {
         });
 }
 
-pub fn mouse_scroll(
+/// Scroll the auto complete panel with mouse.
+fn mouse_scroll(
     mut mouse_wheel_events: EventReader<MouseWheel>,
     mut query_list: Query<(&mut ScrollingList, &mut Style, &Parent, &Node)>,
     query_node: Query<&Node>,

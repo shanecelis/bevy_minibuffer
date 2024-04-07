@@ -10,15 +10,21 @@ use bevy_crossbeam_event::CrossbeamEventApp;
 use bevy_input_sequence::*;
 use std::borrow::Cow;
 
+/// Minibuffer plugin
 #[derive(Debug, Default, Clone)]
 pub struct MinibufferPlugin {
+    /// Configuration
     pub config: ConsoleConfig,
 }
 
+/// Minibuffer config
 #[derive(Debug, Resource, Clone, Default, Reflect)]
 pub struct ConsoleConfig {
+    /// If true, auto hide minibuffer after use.
     pub auto_hide: bool,
+    /// Auto hide delay in milliseconds.
     pub hide_delay: Option<u64>, // milliseconds
+    /// The text style for minibuffer
     pub text_style: TextStyle,
 }
 
@@ -30,10 +36,13 @@ pub struct ConsoleConfig {
 //     }
 // }
 
+/// Minibuffer error
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    /// An error message
     #[error("{0}")]
     Message(Cow<'static, str>),
+    /// An [asky] error
     #[error("asky {0}")]
     Asky(#[from] asky::Error),
 }
@@ -69,7 +78,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text>>)
             .add_systems(PostUpdate, (dispatch_events, look_up_events).chain())
             .add_systems(Startup,   spawn_layout)
-            .add_systems(PreUpdate, run_command_listener)
+            .add_systems(PreUpdate, run_act_listener)
             .add_systems(Update,    hide_prompt_maybe)
             .add_systems(Update,    detect_additions::<StartActEvent>)
             .add_systems(Update,    poll_event_tasks::<StartActEvent>)

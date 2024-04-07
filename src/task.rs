@@ -1,3 +1,4 @@
+//! Task handling systems
 use crate::Minibuffer;
 use asky::{bevy::TaskSink, Message};
 use bevy::ecs::prelude::*;

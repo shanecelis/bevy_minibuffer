@@ -1,3 +1,4 @@
+//! acts, or commands
 use asky::Message;
 use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
@@ -15,19 +16,24 @@ use crate::lookup::*;
 use crate::prompt::*;
 
 bitflags! {
+    /// Act flags
     #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
     pub struct ActFlags: u8 {
+        /// Act is active.
         const Active       = 0b00000001;
+        /// Act is shown in [crate::act::exec_act].
         const ExecAct      = 0b00000010;
     }
 }
 
+/// Act, a command in `bevy_minibuffer`
 #[derive(Debug, Clone, Component, Reflect)]
 pub struct Act {
     pub(crate) name: Option<Cow<'static, str>>,
     pub(crate) hotkey: Option<Vec<KeyChord>>,
     #[reflect(ignore)]
-    pub system_id: Option<SystemId>,
+    pub(crate) system_id: Option<SystemId>,
+    /// Flags for this act
     #[reflect(ignore)]
     pub flags: ActFlags,
 }
@@ -45,45 +51,6 @@ impl Display for Act {
     }
 }
 
-/// Register a system to an act.
-///
-/// ```compile
-/// fn setup_act(act: Act, mut commands: Commands) {
-///     commands.spawn(Act)
-///         .add(Register(my_action));
-/// }
-///
-/// fn my_action(query: Query<&Transform>) {
-///
-/// }
-/// ```
-pub struct Register<S>(S);
-
-impl<S> Register<S> {
-    pub fn new<Into, Param>(system: Into) -> Self
-    where
-        Into: IntoSystem<(), (), Param, System = S> + 'static,
-    {
-        Self(IntoSystem::into_system(system))
-    }
-}
-
-impl<S> bevy::ecs::system::EntityCommand for Register<S>
-where
-    S: System<In = (), Out = ()> + Send + 'static,
-{
-    fn apply(self, id: Entity, world: &mut World) {
-        let system_id = world.register_system(self.0);
-        let mut entity = world.get_entity_mut(id).unwrap();
-        let mut act = entity.get_mut::<Act>().unwrap();
-        if act.system_id.is_some() {
-            panic!("System already registered to act {:?}.", act);
-        } else {
-            act.system_id = Some(system_id);
-        }
-    }
-}
-
 // TODO: Do we need a builder?
 impl Default for Act {
     fn default() -> Self {
@@ -94,6 +61,7 @@ impl Default for Act {
 impl Act {
     const ANONYMOUS: Cow<'static, str> = Cow::Borrowed("*anonymous*");
 
+    /// Create a new [Act].
     pub fn new() -> Self {
         Act {
             name: None,
@@ -102,6 +70,8 @@ impl Act {
             flags: ActFlags::Active | ActFlags::ExecAct,
         }
     }
+
+    /// Create a new [Act] registered with `system_id`.
     pub fn preregistered(system_id: SystemId) -> Self {
         Act {
             name: None,
@@ -111,15 +81,18 @@ impl Act {
         }
     }
 
+    /// Name the act.
     pub fn named(mut self, name: impl Into<Cow<'static, str>>) -> Self {
         self.name = Some(name.into());
         self
     }
 
+    /// Return the name of this act or [Self::ANONYMOUS].
     pub fn name(&self) -> &str {
         self.name.as_ref().unwrap_or(&Self::ANONYMOUS)
     }
 
+    /// Add a hotkey.
     pub fn hotkey<T>(mut self, hotkey: impl IntoIterator<Item = T>) -> Self
     where
         KeyChord: From<T>,
@@ -128,6 +101,7 @@ impl Act {
         self
     }
 
+    /// Specify whether act should show up in [crate::act::exec_act].
     pub fn in_exec_act(mut self, yes: bool) -> Self {
         self.flags.set(ActFlags::ExecAct, yes);
         self
@@ -195,16 +169,53 @@ where
     }
 }
 
-// impl bevy::ecs::system::Command for Act {
-//     fn apply(self, world: &mut World) {
 
-//     }
-// }
+/// Register a system to an act.
+///
+/// ```compile
+/// fn setup_act(act: Act, mut commands: Commands) {
+///     commands.spawn(Act)
+///         .add(Register(my_action));
+/// }
+///
+/// fn my_action(query: Query<&Transform>) {
+///
+/// }
+/// ```
+pub struct Register<S>(S);
 
+impl<S> Register<S> {
+    /// Create a new Register.
+    pub fn new<Into, Param>(system: Into) -> Self
+    where
+        Into: IntoSystem<(), (), Param, System = S> + 'static,
+    {
+        Self(IntoSystem::into_system(system))
+    }
+}
+
+impl<S> bevy::ecs::system::EntityCommand for Register<S>
+where
+    S: System<In = (), Out = ()> + Send + 'static,
+{
+    fn apply(self, id: Entity, world: &mut World) {
+        let system_id = world.register_system(self.0);
+        let mut entity = world.get_entity_mut(id).unwrap();
+        let mut act = entity.get_mut::<Act>().unwrap();
+        if act.system_id.is_some() {
+            panic!("System already registered to act {:?}.", act);
+        } else {
+            act.system_id = Some(system_id);
+        }
+    }
+}
+
+/// Add an act extension trait
 pub trait AddAct {
+    /// Add an act with the given system.
     fn add_act<Params>(
         &mut self,
-        cmd: impl Into<Act>,
+        act: impl Into<Act>,
         system: impl IntoSystem<(), (), Params> + 'static,
     ) -> &mut Self;
 }
@@ -212,36 +223,36 @@ pub trait AddAct {
 impl AddAct for App {
     fn add_act<Params>(
         &mut self,
-        cmd: impl Into<Act>,
+        act: impl Into<Act>,
         system: impl IntoSystem<(), (), Params> + 'static,
     ) -> &mut Self {
         // Register the system.
-        let mut cmd = cmd.into();
-        if cmd.system_id.is_some() {
+        let mut act = act.into();
+        if act.system_id.is_some() {
             panic!(
                 "act '{}' already has a system_id; was it added before?",
-                cmd.name()
+                act.name()
             );
         }
         let system_id = self.world.register_system(system);
-        cmd.system_id = Some(system_id);
+        act.system_id = Some(system_id);
 
         // Add the command.
-        // if config.commands.iter().any(|i| i.name == cmd.name) {
-        //     let name = cmd.name;
+        // if config.commands.iter().any(|i| i.name == act.name) {
+        //     let name = act.name;
         //     warn!("act '{name}' already added; ignoring.");
         // } else {
-        //     config.commands.push(cmd);
+        //     config.commands.push(act);
         // }
-        let mut spawn = self.world.spawn(cmd.clone());
-        if cmd.hotkey.is_some() {
+        let mut spawn = self.world.spawn(act.clone());
+        if act.hotkey.is_some() {
             spawn.insert(KeySequence::new(
                 StartActEvent(system_id),
-                cmd.hotkey.as_ref().unwrap().clone(),
+                act.hotkey.as_ref().unwrap().clone(),
             ));
         }
 
-        // self.world.spawn(cmd.clone());
+        // self.world.spawn(act.clone());
         self
     }
 }
@@ -274,12 +285,14 @@ pub(crate) fn detect_additions<E>(
     }
 }
 
-pub fn run_command_listener(mut events: EventReader<StartActEvent>, mut commands: Commands) {
+/// Run act for any [crate::event::StartActEvent].
+pub fn run_act_listener(mut events: EventReader<StartActEvent>, mut commands: Commands) {
     for e in events.read() {
         commands.run_system(e.0);
     }
 }
 
+/// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 pub fn exec_act(
     mut asky: Minibuffer,
     acts: Query<&Act>,
@@ -386,6 +399,7 @@ pub fn list_key_bindings<E: Event + Debug>(
     }
 }
 
+/// Toggle visibility
 pub fn toggle_visibility(
     mut redraw: EventWriter<RequestRedraw>,
     prompt_state: Res<State<PromptState>>,

@@ -1,7 +1,9 @@
+//! Events
 use bevy::ecs::event::Event;
 use bevy::ecs::system::SystemId;
 use std::fmt;
 
+/// Request a one-shot system be run.
 #[derive(Clone, Event)]
 pub struct StartActEvent(pub SystemId);
 
@@ -13,15 +15,25 @@ impl fmt::Debug for StartActEvent {
     }
 }
 
+/// Look up event fires when autocomplete panel is shown or hidden.
 #[derive(Debug, Clone, Event)]
 pub enum LookUpEvent {
+    /// Hide the autocomplete panel
     Hide,
+    /// Show completions
     Completions(Vec<String>),
 }
 
+/// Dispatch an event
+///
+/// This event relays another event to fire.
+///
+/// Allows minibuffer to use one channel to dispatch multiple kinds of events.
 #[derive(Debug, Clone, Event)]
 pub enum DispatchEvent {
+    /// Send a look up event.
     LookUpEvent(LookUpEvent),
+    /// Send a start act event.
     StartActEvent(StartActEvent),
 }
 

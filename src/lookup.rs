@@ -1,3 +1,4 @@
+//! Lookup and autocompletion
 use bevy::input::keyboard::KeyCode;
 use bevy_crossbeam_event::CrossbeamEventSender;
 use std::borrow::Cow;
@@ -11,26 +12,40 @@ use asky::{
     Typeable, Valuable,
 };
 
+/// Look up error
+///
+/// Alternatives to having an exact match for lookup.
 #[derive(Debug, thiserror::Error)]
 #[allow(dead_code)]
 pub enum LookUpError {
+    /// An error message
     #[error("{0}")]
     Message(Cow<'static, str>),
+    /// An minibuffer error
     #[error("minibuffer {0}")]
     Minibuffer(#[from] Error),
+    /// A list of possible matches
     #[error("incomplete {0:?}")]
     Incomplete(Vec<String>),
 }
 
+/// Look up possible completions
+///
+/// This trait is object-safe.
 pub trait LookUp {
-    // Object-safe
+    /// Look up the `input`.
     fn look_up(&self, input: &str) -> Result<(), LookUpError>;
+    /// Return the longest prefix for `input`.
     fn longest_prefix(&self, input: &str) -> Option<String>;
 }
 
+/// Resolve the input to a particular kind of item.
+///
+/// This trait is not object-safe.
 pub trait Resolve {
-    // Not object-safe
+    /// The type this resolves to.
     type Item: Send;
+    /// Resolve the `input` or provide an error.
     fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError>;
 }
 
@@ -136,6 +151,7 @@ impl<T: AsRef<str>> LookUp for &[T] {
     }
 }
 
+/// A wrapper that provides autocompletion
 pub struct AutoComplete<T> {
     inner: T,
     look_up: Box<dyn LookUp + Send + Sync>,
@@ -148,6 +164,7 @@ where
     T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
     <T as Valuable>::Output: AsRef<str>,
 {
+    /// Wrap a prompt in autocomplete.
     pub fn new<L>(inner: T, look_up: L, channel: CrossbeamEventSender<DispatchEvent>) -> Self
     where
         L: LookUp + Send + Sync + 'static,

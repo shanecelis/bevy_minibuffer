@@ -7,11 +7,15 @@ use bevy::ecs::system::Resource;
 use bevy::text::TextStyle;
 use std::io;
 use text_style::AnsiColor::*;
-// use text_style::{self, Color, Style, StyledString};
+
+/// Minibuffer's style
 #[derive(Clone, Debug, Resource)]
 pub struct MinibufferStyle {
+    /// Use ascii?
     pub ascii: bool,
+    /// Use newlines?
     pub newlines: bool,
+    /// Use a particular [TextStyle]
     pub text_style: Option<TextStyle>,
 }
 

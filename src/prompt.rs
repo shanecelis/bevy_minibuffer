@@ -1,3 +1,4 @@
+//! Prompt
 #![allow(async_fn_in_trait)]
 
 use std::fmt::Debug;
@@ -26,23 +27,39 @@ use bevy_crossbeam_event::CrossbeamEventSender;
 
 use crate::ui::*;
 
+/// The state of the minibuffer
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum PromptState {
-    #[default]
     // Uninit,
+    /// Invisible
+    #[default]
     Invisible,
+    /// Finished prompt, start auto hide timer.
     Finished,
+    /// Visible
     Visible,
 }
 
+/// The state of the autocomplete panel
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum CompletionState {
     // Uninit,
+    /// Invisible
     #[default]
     Invisible,
+    /// Visible
     Visible,
 }
 
+/// Hides an entity after the timer finishes.
+#[derive(Component, Reflect)]
+pub struct HideTime {
+    /// Timer
+    pub timer: Timer,
+}
+
+
+/// Make component visible.
 pub fn show<T: Component>(
     mut redraw: EventWriter<RequestRedraw>,
     mut query: Query<&mut Visibility, With<T>>,
@@ -53,11 +70,7 @@ pub fn show<T: Component>(
     }
 }
 
-#[derive(Component, Reflect)]
-pub struct HideTime {
-    pub timer: Timer,
-}
-
+/// Hide entities with component [HideTime].
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<ConsoleConfig>,
@@ -88,6 +101,7 @@ pub fn hide_delayed<T: Component>(
     }
 }
 
+/// Hide the prompt if the timer is finished.
 pub fn hide_prompt_maybe(
     mut commands: Commands,
     time: Res<Time>,
@@ -113,6 +127,7 @@ pub fn hide_prompt_maybe(
     }
 }
 
+/// Hide the entity whose component matches.
 #[allow(dead_code)]
 pub fn hide<T: Component>(
     mut query: Query<&mut Visibility, With<T>>,
@@ -124,6 +139,7 @@ pub fn hide<T: Component>(
     }
 }
 
+/// Minibuffer, a [bevy::ecs::SystemParam]
 #[derive(Clone)]
 pub struct Minibuffer {
     asky: Asky,
@@ -176,6 +192,7 @@ unsafe impl SystemParam for Minibuffer {
 }
 
 impl Minibuffer {
+    /// Prompt the user for input.
     pub fn prompt<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static>(
         &mut self,
         prompt: T,
@@ -183,6 +200,7 @@ impl Minibuffer {
         self.prompt_styled(prompt, self.style.clone().into())
     }
 
+    /// Read input from user that must match a [LookUp].
     pub fn read<L>(
         &mut self,
         prompt: String,
@@ -207,6 +225,7 @@ impl Minibuffer {
         self.prompt_styled(text, self.style.clone().into())
     }
 
+    /// Prompt the user for input using a particular style.
     pub async fn prompt_styled<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static>(
         &mut self,
         prompt: T,
@@ -219,10 +238,12 @@ impl Minibuffer {
             .map_err(Error::from)
     }
 
+    /// Clear the minibuffer.
     pub fn clear(&mut self) -> impl Future<Output = Result<(), asky::Error>> {
         self.asky.clear(self.dest)
     }
 
+    /// Wait a certain duration.
     pub fn delay(&mut self, duration: Duration) -> impl Future<Output = Result<(), asky::Error>> {
         self.asky.delay(duration)
     }
@@ -305,6 +326,7 @@ pub(crate) fn look_up_events(
     }
 }
 
+/// Listen for [asky::bevy::AskyPrompt] transitions.
 pub fn listen_prompt_active(
     mut transitions: EventReader<StateTransitionEvent<AskyPrompt>>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,

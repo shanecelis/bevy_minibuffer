@@ -23,7 +23,7 @@ pub mod input {
     };
 }
 
-/// Prelude for convenient splat use, e.g., `use bevy_minibuffer::prelude::*`.
+/// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
     pub use super::act::{Act, AddAct};
     pub use super::event::StartActEvent;

@@ -30,7 +30,7 @@ bitflags! {
 #[derive(Debug, Clone, Component, Reflect)]
 pub struct Act {
     pub(crate) name: Option<Cow<'static, str>>,
-    pub(crate) hotkey: Option<Vec<KeyChord>>,
+    pub(crate) hotkeys: Vec<Vec<KeyChord>>,
     #[reflect(ignore)]
     pub(crate) system_id: Option<SystemId>,
     /// Flags for this act
@@ -40,14 +40,7 @@ pub struct Act {
 
 impl Display for Act {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:8}", self.name())?;
-        if let Some(keyseq) = &self.hotkey {
-            write!(f, "\t")?;
-            for key in keyseq {
-                write!(f, "{} ", key)?;
-            }
-        }
-        Ok(())
+        write!(f, "{}", self.name())
     }
 }
 
@@ -59,13 +52,14 @@ impl Default for Act {
 }
 
 impl Act {
-    const ANONYMOUS: Cow<'static, str> = Cow::Borrowed("*anonymous*");
+    /// The name of anonymous acts
+    pub const ANONYMOUS: Cow<'static, str> = Cow::Borrowed("*anonymous*");
 
     /// Create a new [Act].
     pub fn new() -> Self {
         Act {
             name: None,
-            hotkey: None,
+            hotkeys: Vec::new(),
             system_id: None,
             flags: ActFlags::Active | ActFlags::ExecAct,
         }
@@ -75,7 +69,7 @@ impl Act {
     pub fn preregistered(system_id: SystemId) -> Self {
         Act {
             name: None,
-            hotkey: None,
+            hotkeys: Vec::new(),
             system_id: Some(system_id),
             flags: ActFlags::Active | ActFlags::ExecAct,
         }
@@ -97,7 +91,7 @@ impl Act {
     where
         KeyChord: From<T>,
     {
-        self.hotkey = Some(hotkey.into_iter().map(|v| v.into()).collect());
+        self.hotkeys.push(hotkey.into_iter().map(|v| v.into()).collect());
         self
     }
 
@@ -162,7 +156,7 @@ where
     fn from(v: T) -> Self {
         Act {
             name: Some(v.into()),
-            hotkey: None,
+            hotkeys: Vec::new(),
             system_id: None,
             flags: ActFlags::Active | ActFlags::ExecAct,
         }
@@ -182,7 +176,7 @@ where
 ///
 /// }
 /// ```
-pub struct Register<S>(S);
+struct Register<S>(S);
 
 impl<S> Register<S> {
     /// Create a new Register.
@@ -236,23 +230,8 @@ impl AddAct for App {
         }
         let system_id = self.world.register_system(system);
         act.system_id = Some(system_id);
+        self.world.spawn(act);
 
-        // Add the command.
-        // if config.commands.iter().any(|i| i.name == act.name) {
-        //     let name = act.name;
-        //     warn!("act '{name}' already added; ignoring.");
-        // } else {
-        //     config.commands.push(act);
-        // }
-        let mut spawn = self.world.spawn(act.clone());
-        if act.hotkey.is_some() {
-            spawn.insert(KeySequence::new(
-                StartActEvent(system_id),
-                act.hotkey.as_ref().unwrap().clone(),
-            ));
-        }
-
-        // self.world.spawn(act.clone());
         self
     }
 }
@@ -276,12 +255,15 @@ pub(crate) fn detect_additions<E>(
     E: Send + Sync + 'static,
 {
     for (id, act) in &query {
-        if let Some(ref keys) = act.hotkey {
-            commands.entity(id).insert(KeySequence::new(
-                StartActEvent(act.system_id.unwrap()),
-                keys.clone(),
-            ));
-        }
+        commands.entity(id)
+                .with_children(|builder|
+                               for hotkey in &act.hotkeys {
+
+                                   builder.spawn(KeySequence::new(
+                                       StartActEvent(act.system_id.unwrap()),
+                                       hotkey.clone(),
+                                   ));
+                               });
     }
 }
 
@@ -350,17 +332,19 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
     let mut acts: Vec<_> = acts.iter().collect();
     acts.sort_by(|a, b| a.name().cmp(b.name()));
     for act in &acts {
-        let binding: String = act
-            .hotkey
-            .as_ref()
-            .map(|chords| {
+        let bindings = act
+            .hotkeys.iter()
+            .map(|chords|
                 chords.iter().fold(String::new(), |mut output, chord| {
                     let _ = write!(output, "{} ", chord);
                     output
                 })
-            })
-            .unwrap_or(String::from(""));
-        table.add_row(Row::new().with_cell(act.name()).with_cell(binding));
+            );
+        let mut name = Some(act.name());
+
+        for binding in bindings {
+            table.add_row(Row::new().with_cell(name.take().unwrap_or("")).with_cell(binding));
+        }
     }
     let msg = format!("{}", table);
     // eprintln!("{}", &msg);

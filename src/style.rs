@@ -8,7 +8,7 @@ use bevy::text::TextStyle;
 use std::io;
 use text_style::AnsiColor::*;
 
-/// Minibuffer's style
+/// Minibuffer style
 #[derive(Clone, Debug, Resource)]
 pub struct MinibufferStyle {
     /// Use ascii?

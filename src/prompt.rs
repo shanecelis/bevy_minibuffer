@@ -139,7 +139,7 @@ pub fn hide<T: Component>(
     }
 }
 
-/// Minibuffer, a [bevy::ecs::SystemParam]
+/// Minibuffer, a [bevy::ecs::system::SystemParam]
 #[derive(Clone)]
 pub struct Minibuffer {
     asky: Asky,

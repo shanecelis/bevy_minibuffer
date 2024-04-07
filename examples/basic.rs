@@ -77,6 +77,7 @@ fn main() {
             Act::new()
                 .named("exec_act")
                 .hotkey(keyseq!(shift-;))
+                .hotkey(keyseq!(alt-X))
                 .in_exec_act(false),
             exec_act.pipe(future_sink),
         )

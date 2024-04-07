@@ -20,7 +20,7 @@ async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
 // Ask the user for their age.
 async fn ask_age(mut asky: Minibuffer) -> Result<(), Error> {
     let age = asky.prompt(Number::<u8>::new("What's your age?")).await?;
-    asky.delay(Duration::from_secs(2)).await?;
+    // asky.delay(Duration::from_secs(2)).await?;
     asky.prompt(Message::new(format!("You are {age} years old.")))
         .await?;
     Ok(())
@@ -45,11 +45,13 @@ fn setup(mut commands: Commands) {
         ask_age.pipe(future_sink),
     );
 
-    // Add a builtin act
+    // Add a builtin act.
     commands.add_act(
         Act::new().named("exec_act")
-                  .hotkey(keyseq!(shift-;)) // For vimmers
-                  .hotkey(keyseq!(alt-X)), // For Emacsers
+                  .hotkey(keyseq!(shift-;)) // For vimmers a `:` key binding
+                  .hotkey(keyseq!(alt-X))   // For Emacsers a `M-x` key binding
+                  .in_exec_act(false),      // Don't show "exec_act" in its list
+                                            // of acts.
         act::exec_act.pipe(future_sink),
     );
 }

@@ -62,7 +62,7 @@ fn main() {
             ..Default::default()
         }))
         .add_plugins(MinibufferPlugin {
-            config: ConsoleConfig {
+            config: Config {
                 auto_hide: true,
                 // auto_hide: false,
                 hide_delay: Some(3000),

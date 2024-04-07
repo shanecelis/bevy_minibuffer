@@ -8,7 +8,7 @@ pub mod prompt;
 mod style;
 pub mod task;
 pub mod ui;
-pub use plugin::ConsoleConfig;
+pub use plugin::Config;
 pub use plugin::Error;
 pub use plugin::MinibufferPlugin;
 
@@ -27,8 +27,8 @@ pub mod input {
 pub mod prelude {
     pub use super::act::{Act, AddAct};
     pub use super::event::RunActEvent;
-    pub use super::input::*;
-    pub use super::ConsoleConfig;
+    pub use super::input::{key, keyseq, Modifiers};
+    pub use super::Config;
     pub use super::{Error, Minibuffer, MinibufferPlugin};
     pub use asky::bevy::future_sink;
 }

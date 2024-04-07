@@ -14,12 +14,12 @@ use std::borrow::Cow;
 #[derive(Debug, Default, Clone)]
 pub struct MinibufferPlugin {
     /// Configuration
-    pub config: ConsoleConfig,
+    pub config: Config,
 }
 
 /// Minibuffer config
 #[derive(Debug, Resource, Clone, Default, Reflect)]
-pub struct ConsoleConfig {
+pub struct Config {
     /// If true, auto hide minibuffer after use.
     pub auto_hide: bool,
     /// Auto hide delay in milliseconds.
@@ -61,7 +61,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             let mut type_registry = type_registry.write();
             type_registry.register::<PromptState>();
             type_registry.register::<CompletionState>();
-            type_registry.register::<ConsoleConfig>();
+            type_registry.register::<Config>();
         }
         app
             .add_plugins(AskyPlugin)

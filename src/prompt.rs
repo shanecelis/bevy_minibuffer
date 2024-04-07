@@ -21,7 +21,7 @@ use crate::event::{DispatchEvent, LookUpEvent, RunActEvent};
 use crate::MinibufferStyle;
 use crate::{
     lookup::{AutoComplete, LookUp},
-    ConsoleConfig, Error,
+    Config, Error,
 };
 use bevy_crossbeam_event::CrossbeamEventSender;
 
@@ -73,7 +73,7 @@ pub fn show<T: Component>(
 /// Hide entities with component [HideTime].
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,
-    config: Res<ConsoleConfig>,
+    config: Res<Config>,
     mut redraw: EventWriter<RequestRedraw>,
     mut query: Query<(Entity, &mut Visibility, Option<&mut HideTime>), With<T>>,
 ) {
@@ -292,7 +292,7 @@ pub(crate) fn look_up_events(
     mut redraw: EventWriter<RequestRedraw>,
     mut commands: Commands,
     mut last_hash: Local<Option<u64>>,
-    config: Res<ConsoleConfig>,
+    config: Res<Config>,
 ) {
     let text_style = &config.text_style;
     for e in look_up_events.read() {
@@ -326,8 +326,8 @@ pub(crate) fn look_up_events(
     }
 }
 
-/// Listen for [asky::bevy::AskyPrompt] transitions.
-pub fn listen_prompt_active(
+/// Listen for [AskyPrompt] transitions.
+pub(crate) fn listen_prompt_active(
     mut transitions: EventReader<StateTransitionEvent<AskyPrompt>>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut redraw: EventWriter<RequestRedraw>,

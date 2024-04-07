@@ -255,20 +255,21 @@ pub(crate) fn detect_additions<E>(
     E: Send + Sync + 'static,
 {
     for (id, act) in &query {
-        commands.entity(id)
-                .with_children(|builder|
-                               for hotkey in &act.hotkeys {
+        commands
+            .entity(id)
+            .with_children(|builder|
+                           for hotkey in &act.hotkeys {
 
-                                   builder.spawn(KeySequence::new(
-                                       StartActEvent(act.system_id.unwrap()),
-                                       hotkey.clone(),
-                                   ));
-                               });
+                               builder.spawn(KeySequence::new(
+                                   RunActEvent(act.system_id.unwrap()),
+                                   hotkey.clone(),
+                               ));
+                           });
     }
 }
 
 /// Run act for any [crate::event::StartActEvent].
-pub fn run_act_listener(mut events: EventReader<StartActEvent>, mut commands: Commands) {
+pub fn run_acts(mut events: EventReader<RunActEvent>, mut commands: Commands) {
     for e in events.read() {
         commands.run_system(e.0);
     }
@@ -278,20 +279,21 @@ pub fn run_act_listener(mut events: EventReader<StartActEvent>, mut commands: Co
 pub fn exec_act(
     mut asky: Minibuffer,
     acts: Query<&Act>,
-) -> impl Future<Output = Option<StartActEvent>> {
+) -> impl Future<Output = Option<RunActEvent>> {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
-        builder.push(act.name(), act.clone());
+        if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
+            builder.push(act.name(), act.clone());
+        }
     }
     let acts: Trie<u8, Act> = builder.build();
     async move {
-        // match asky.prompt(asky::Text::new(":")).await {
         match asky.read(":".to_string(), acts.clone()).await {
             // TODO: Get rid of clone.
             Ok(act_name) => {
                 match acts.resolve(&act_name) {
                     Ok(act) => match act.system_id {
-                        Some(system_id) => Some(StartActEvent(system_id)),
+                        Some(system_id) => Some(RunActEvent(system_id)),
                         None => {
                             let _ = asky
                                 .prompt(Message::new(format!(
@@ -312,10 +314,6 @@ pub fn exec_act(
                         None
                     }
                 }
-                // } else {
-                //     let _ = asky.prompt(Message::new(format!("No such command: {input}"))).await;
-                //     None
-                // }
             }
             Err(e) => {
                 let _ = asky.prompt(Message::new(format!("Error: {e}"))).await;

@@ -5,9 +5,9 @@ use std::fmt;
 
 /// Request a one-shot system be run.
 #[derive(Clone, Event)]
-pub struct StartActEvent(pub SystemId);
+pub struct RunActEvent(pub SystemId);
 
-impl fmt::Debug for StartActEvent {
+impl fmt::Debug for RunActEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let rnd_state = bevy::utils::RandomState::with_seed(0);
         let hash = rnd_state.hash_one(self.0);
@@ -34,7 +34,7 @@ pub enum DispatchEvent {
     /// Send a look up event.
     LookUpEvent(LookUpEvent),
     /// Send a start act event.
-    StartActEvent(StartActEvent),
+    StartActEvent(RunActEvent),
 }
 
 impl From<LookUpEvent> for DispatchEvent {
@@ -42,8 +42,8 @@ impl From<LookUpEvent> for DispatchEvent {
         Self::LookUpEvent(e)
     }
 }
-impl From<StartActEvent> for DispatchEvent {
-    fn from(e: StartActEvent) -> Self {
+impl From<RunActEvent> for DispatchEvent {
+    fn from(e: RunActEvent) -> Self {
         Self::StartActEvent(e)
     }
 }

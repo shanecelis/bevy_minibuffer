@@ -89,7 +89,7 @@ fn main() {
             Act::new()
                 .named("list_key_bindings")
                 .hotkey(keyseq!(ctrl-H B)),
-            list_key_bindings::<StartActEvent>.pipe(future_sink),
+            list_key_bindings::<RunActEvent>.pipe(future_sink),
         )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)

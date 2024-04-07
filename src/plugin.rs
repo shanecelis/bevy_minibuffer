@@ -1,4 +1,4 @@
-use crate::event::{DispatchEvent, LookUpEvent, StartActEvent};
+use crate::event::{DispatchEvent, LookUpEvent, RunActEvent};
 use crate::lookup::AutoComplete;
 use crate::prompt::{
     dispatch_events, look_up_events, hide, hide_delayed, hide_prompt_maybe,
@@ -65,7 +65,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
         }
         app
             .add_plugins(AskyPlugin)
-            .add_key_sequence_event_run_if::<StartActEvent, _>(in_state(AskyPrompt::Inactive))
+            .add_key_sequence_event_run_if::<RunActEvent, _>(in_state(AskyPrompt::Inactive))
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .insert_resource(self.config.clone())
@@ -78,10 +78,10 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_systems(Update, asky::bevy::asky_system::<AutoComplete<asky::Text>>)
             .add_systems(PostUpdate, (dispatch_events, look_up_events).chain())
             .add_systems(Startup,   spawn_layout)
-            .add_systems(PreUpdate, run_act_listener)
+            .add_systems(PreUpdate, run_acts)
             .add_systems(Update,    hide_prompt_maybe)
-            .add_systems(Update,    detect_additions::<StartActEvent>)
-            .add_systems(Update,    poll_event_tasks::<StartActEvent>)
+            .add_systems(Update,    detect_additions::<RunActEvent>)
+            .add_systems(Update,    poll_event_tasks::<RunActEvent>)
             .add_systems(PostUpdate, task::poll_tasks_err::<(), Error>)
             // .add_systems(Update,    mouse_scroll)
             .add_systems(Update, listen_prompt_active)

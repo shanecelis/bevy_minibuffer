@@ -17,7 +17,7 @@ use asky::{Typeable, Valuable};
 
 use std::future::Future;
 
-use crate::event::{DispatchEvent, LookUpEvent, StartActEvent};
+use crate::event::{DispatchEvent, LookUpEvent, RunActEvent};
 use crate::MinibufferStyle;
 use crate::{
     lookup::{AutoComplete, LookUp},
@@ -271,7 +271,7 @@ fn completion_set(
 pub(crate) fn dispatch_events(
     mut dispatch_events: EventReader<DispatchEvent>,
     mut look_up_events: EventWriter<LookUpEvent>,
-    mut request_act_events: EventWriter<StartActEvent>,
+    mut request_act_events: EventWriter<RunActEvent>,
 ) {
     use crate::event::DispatchEvent::*;
     for e in dispatch_events.read() {

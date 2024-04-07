@@ -6,13 +6,13 @@ pub mod lookup;
 mod plugin;
 pub mod prompt;
 mod style;
+mod param;
 pub mod task;
 pub mod ui;
+pub use param::Minibuffer;
 pub use plugin::Config;
 pub use plugin::Error;
 pub use plugin::MinibufferPlugin;
-
-pub use prompt::Minibuffer;
 pub use style::MinibufferStyle;
 
 /// Input, mainly re-exports from [keyseq].

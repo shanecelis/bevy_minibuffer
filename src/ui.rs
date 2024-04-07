@@ -48,7 +48,7 @@ pub(crate) fn completion_item(label: String, style: TextStyle) -> (TextBundle, L
 }
 
 /// Create the UI layout.
-pub fn spawn_layout(mut commands: Commands) {
+pub(crate) fn spawn_layout(mut commands: Commands) {
     commands
         .spawn(NodeBundle {
             // visibility: Visibility::Hidden,

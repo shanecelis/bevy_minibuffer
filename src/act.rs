@@ -14,6 +14,7 @@ use trie_rs::map::{Trie, TrieBuilder};
 use crate::event::*;
 use crate::lookup::*;
 use crate::prompt::*;
+use crate::Minibuffer;
 
 bitflags! {
     /// Act flags
@@ -265,13 +266,6 @@ pub(crate) fn detect_additions<E>(
                                    hotkey.clone(),
                                ));
                            });
-    }
-}
-
-/// Run act for any [crate::event::StartActEvent].
-pub fn run_acts(mut events: EventReader<RunActEvent>, mut commands: Commands) {
-    for e in events.read() {
-        commands.run_system(e.0);
     }
 }
 

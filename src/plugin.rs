@@ -1,4 +1,4 @@
-use crate::event::{DispatchEvent, LookUpEvent, RunActEvent};
+use crate::event::{DispatchEvent, LookUpEvent, RunActEvent, run_acts};
 use crate::lookup::AutoComplete;
 use crate::prompt::{
     dispatch_events, look_up_events, hide, hide_delayed, hide_prompt_maybe,

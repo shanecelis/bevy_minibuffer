@@ -1,6 +1,9 @@
 //! Events
-use bevy::ecs::event::Event;
-use bevy::ecs::system::SystemId;
+use bevy::ecs::{
+    system::Commands,
+    event::{Event, EventReader},
+    system::SystemId
+};
 use std::fmt;
 
 /// Request a one-shot system be run.
@@ -45,5 +48,12 @@ impl From<LookUpEvent> for DispatchEvent {
 impl From<RunActEvent> for DispatchEvent {
     fn from(e: RunActEvent) -> Self {
         Self::StartActEvent(e)
+    }
+}
+
+/// Run act for any [RunActEvent].
+pub fn run_acts(mut events: EventReader<RunActEvent>, mut commands: Commands) {
+    for e in events.read() {
+        commands.run_system(e.0);
     }
 }

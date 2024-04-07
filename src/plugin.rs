@@ -44,7 +44,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
         use bevy::prelude::*;
         use bevy::ecs::schedule::{OnEnter, OnExit};
         use super::*;
-        use commands::*;
+        use act::*;
         use task::*;
         use ui::*;
 

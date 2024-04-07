@@ -1,5 +1,5 @@
 // use bevy::prelude::*;
-// use bevy_minibuffer::commands::*;
+// use bevy_minibuffer::act::*;
 // use bevy_minibuffer::prompt::*;
 // use bevy_minibuffer::tasks::*;
 // // use bevy_minibuffer::ui::*;

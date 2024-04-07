@@ -1,7 +1,7 @@
 use asky::{Message, Number};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
-use bevy_minibuffer::commands::*;
+use bevy_minibuffer::act::*;
 use bevy_minibuffer::prelude::*;
 use std::time::Duration;
 

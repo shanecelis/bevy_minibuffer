@@ -1,7 +1,7 @@
 // #![feature(return_position_impl_trait_in_trait)]
 // #![forbid(missing_docs)]
 #![allow(incomplete_features)]
-pub mod commands;
+pub mod act;
 pub mod event;
 pub mod lookup;
 mod plugin;
@@ -24,7 +24,7 @@ pub mod input {
 }
 
 pub mod prelude {
-    pub use super::commands::{Act, AddAct};
+    pub use super::act::{Act, AddAct};
     pub use super::event::StartActEvent;
     pub use super::input::*;
     pub use super::ConsoleConfig;

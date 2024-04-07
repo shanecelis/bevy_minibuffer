@@ -23,7 +23,8 @@ pub fn poll_event_tasks<T: Send + Event>(
 
 /// Check for tasks which may emit a `Result<T, E>`. Report errors to the user
 /// if any.
-pub fn poll_tasks_err<T: Send + Sync + 'static, E: Debug + Display + Send + Sync + 'static>(
+pub fn poll_tasks_err<T: Send + Sync + 'static,
+                      E: Debug + Display + Send + Sync + 'static>(
     mut commands: Commands,
     asky: Minibuffer,
     mut tasks: Query<(Entity, &mut TaskSink<Result<T, E>>)>,

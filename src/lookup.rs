@@ -274,3 +274,13 @@ where
 //         }
 //     }
 // }
+
+// impl<T> LookUp for T
+// where
+//     T: Parse,
+// {
+//     type Item = T;
+//     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
+//         T::parse(input)
+//     }
+// }

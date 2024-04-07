@@ -2,8 +2,6 @@
 * TODO
 ** Make tab complete scrollable
 ** Rename modules as singular (tasks -> task)
-** What should project actually be called? NanoConsole? NanoPrompt? NanoCommands? Minibuffer?
-** nano::{prompt::*, command::*, console::*, task::*, keybind::*}
 ** Modeline?
 ** Toggle visibility with `
 ** Allow multiple hotkeys

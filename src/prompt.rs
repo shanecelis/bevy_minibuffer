@@ -43,16 +43,6 @@ pub enum CompletionState {
     Visible,
 }
 
-// impl<T> LookUp for T
-// where
-//     T: Parse,
-// {
-//     type Item = T;
-//     fn look_up(&self, input: &str) -> Result<Self::Item, LookUpError> {
-//         T::parse(input)
-//     }
-// }
-
 pub fn show<T: Component>(
     mut redraw: EventWriter<RequestRedraw>,
     mut query: Query<&mut Visibility, With<T>>,
@@ -160,11 +150,6 @@ unsafe impl SystemParam for Minibuffer {
             Res<CrossbeamEventSender<DispatchEvent>>,
         )> = SystemState::new(world);
         let (asky, query, res, channel) = state.get_mut(world);
-        // let asky_param_config = world
-        //     .get_resource_mut::<AskyParamConfig>()
-        //     .expect("No AskyParamConfig setup.")
-        //     .clone();
-        // (asky, query.single(), res.map(|x| x), channel.clone())
         (
             asky,
             query.single(),
@@ -243,50 +228,6 @@ impl Minibuffer {
     }
 }
 
-// async fn read_crit<T>(
-//     &mut self,
-//     prompt: impl Into<PromptBuf>,
-//     look_up: &impl LookUp<Item = T>,
-// ) -> Result<T, NanoError> {
-//     let mut buf = prompt.into();
-//     loop {
-//         match self.read_raw(buf.clone()).await {
-//             Ok(mut new_buf) => match look_up.look_up(&new_buf.input) {
-//                 Ok(v) => {
-//                     if new_buf.flags.contains(Requests::Submit) {
-//                         return Ok(v);
-//                     } else {
-//                         buf = new_buf
-//                     }
-//                 }
-//                 Err(LookUpError::Message(m)) => {
-//                     new_buf.completion.clear();
-//                     new_buf.message = m.to_string();
-//                     buf = new_buf;
-//                 }
-//                 Err(LookUpError::Incomplete(v)) => {
-//                     if new_buf.flags.contains(Requests::AutoComplete) {
-//                         new_buf.completion.clear();
-//                         new_buf.completion.extend_from_slice(&v[..]);
-
-//                         if !new_buf.completion.is_empty() {
-//                             let prefix = longest_common_prefix(&new_buf.completion);
-//                             if prefix.len() > new_buf.input.len() {
-//                                 new_buf.input = prefix;
-//                             }
-//                             new_buf.message.clear();
-//                         }
-//                     }
-//                     buf = new_buf;
-//                 }
-//                 Err(LookUpError::NanoError(e)) => return Err(e),
-//             },
-//             Err(e) => return Err(e),
-//         }
-//         buf.flags = Requests::empty();
-//     }
-// }
-
 fn completion_set(
     completion: Entity,
     children: Option<&Children>,
@@ -306,7 +247,7 @@ fn completion_set(
     }
 }
 
-pub(crate) fn handle_dispatch_event(
+pub(crate) fn dispatch_events(
     mut dispatch_events: EventReader<DispatchEvent>,
     mut look_up_events: EventWriter<LookUpEvent>,
     mut request_act_events: EventWriter<StartActEvent>,
@@ -323,7 +264,7 @@ pub(crate) fn handle_dispatch_event(
         }
     }
 }
-pub(crate) fn handle_look_up_event(
+pub(crate) fn look_up_events(
     mut look_up_events: EventReader<LookUpEvent>,
     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
     mut next_completion_state: ResMut<NextState<CompletionState>>,

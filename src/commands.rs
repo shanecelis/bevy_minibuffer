@@ -219,7 +219,7 @@ impl AddAct for App {
         let mut cmd = cmd.into();
         if cmd.system_id.is_some() {
             panic!(
-                "nano command '{}' already has a system_id; was it added before?",
+                "act '{}' already has a system_id; was it added before?",
                 cmd.name()
             );
         }
@@ -229,7 +229,7 @@ impl AddAct for App {
         // Add the command.
         // if config.commands.iter().any(|i| i.name == cmd.name) {
         //     let name = cmd.name;
-        //     warn!("nano command '{name}' already added; ignoring.");
+        //     warn!("act '{name}' already added; ignoring.");
         // } else {
         //     config.commands.push(cmd);
         // }

@@ -7,7 +7,7 @@ pub mod lookup;
 mod plugin;
 pub mod prompt;
 mod style;
-pub mod tasks;
+pub mod task;
 pub mod ui;
 pub use plugin::ConsoleConfig;
 pub use plugin::Error;

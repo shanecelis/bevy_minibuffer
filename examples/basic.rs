@@ -1,9 +1,9 @@
+use std::time::Duration;
 use asky::{Message, Number};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_minibuffer::act::*;
 use bevy_minibuffer::prelude::*;
-use std::time::Duration;
 
 /// Ask the user for their name. Say hello.
 async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {

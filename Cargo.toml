@@ -8,7 +8,7 @@ bevy = "0.13"
 bitflags = "2.3.1"
 futures-lite = "1.13.0"
 promise_out = "1.0.0"
-trie-rs = { path = "../trie-rs" }
+trie-rs = { git = "https://github.com/shanecelis/trie-rs.git", branch = "add-iterators-and-inc-search" }
 colored = { version = "2.0.0", features = [ "no-color" ] }
 bevy-input-sequence = { version = "0.3.0", path = "../bevy-input-sequence" }
 keyseq = { version = "0.2.2", features = [ "bevy" ], path = "../keyseq" }

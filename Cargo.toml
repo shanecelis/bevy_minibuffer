@@ -10,10 +10,10 @@ futures-lite = "1.13.0"
 promise_out = "1.0.0"
 trie-rs = { git = "https://github.com/shanecelis/trie-rs.git", branch = "add-iterators-and-inc-search" }
 colored = { version = "2.0.0", features = [ "no-color" ] }
-bevy-input-sequence = { version = "0.3.0", path = "../bevy-input-sequence" }
-keyseq = { version = "0.2.2", features = [ "bevy" ], path = "../keyseq" }
-asky = { version = "0.1.1", path = "../asky", default-features = false, features = ["bevy"] }
-text-style = { path = "../text-style-rs", features = [ "crossterm", "bevy" ] }
+bevy-input-sequence = { git = "https://github.com/shanecelis/bevy-input-sequence.git", branch = "fix-multiple-input" }
+keyseq = { version = "0.2.3", features = [ "bevy" ]}
+asky = { git = "https://github.com/shanecelis/asky.git", branch = "bevy", default-features = false, features = ["bevy"] }
+text-style = { git = "https://github.com/shanecelis/text_style.git", branch = "feature/colored", features = [ "crossterm", "bevy" ] }
 bevy_crossbeam_event = "0.5.0"
 tabular = "0.2.0"
 thiserror = "1.0.58"

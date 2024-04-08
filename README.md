@@ -6,6 +6,10 @@ user interface of classic unix text editors rather than the unix shell.
 > [!CAUTION]
 > `bevy_minibuffer` is currently in the early stages of development and is subject to breaking changes.
 
+# Example
+![two_commands example](https://github.com/shanecelis/bevy_minibuffer/assets/54390/e90c4ef9-664c-47af-8ff5-a83214237341)
+The video above shows the [two_commands.rs](examples/two_commands.rs) example.
+
 # Goals
 
 - Easily add commands

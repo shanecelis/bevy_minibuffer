@@ -4,7 +4,6 @@ use bevy_minibuffer::prelude::*;
 
 #[path = "common/lib.rs"]
 mod common;
-use common::VideoCaptureSettings;
 
 /// Ask the user for their name. Say hello.
 async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
@@ -24,7 +23,7 @@ fn main() {
     App::new()
         // .add_plugins(DefaultPlugins)
         // .add_plugins(MinibufferPlugin::default())
-        .add_plugins(VideoCaptureSettings {
+        .add_plugins(common::VideoCaptureSettings {
             title: "Bevy Minibuffer Simplest Example".into(),
         })
         .add_systems(Startup, setup)

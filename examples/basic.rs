@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_minibuffer::act::*;
 use bevy_minibuffer::prelude::*;
+#[path = "common/lib.rs"] mod common;
 
 /// Ask the user for their name. Say hello.
 async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {
@@ -40,39 +41,20 @@ fn add_acts_with_mutable_world(world: &mut World) {
 /// Add acts using [Commands] with [AddAct].
 fn add_acts(mut commands: Commands) {
     commands.add_act(
-        Act::new().named("ask_age").hotkey(keyseq!(D D)),
+        Act::new().named("ask_age").hotkey(keyseq!{ ctrl-A A }),
         ask_age.pipe(future_sink),
-    );
-
-    commands.add_act(
-        Act::new().named("ask_name").hotkey(keyseq!(E E)),
-        ask_name.pipe(future_sink),
     );
 }
 
 fn main() {
     App::new()
         .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                resolution: [400., 400.].into(),
-                title: "Bevy NanoPrompt Basic Example".to_owned(),
-                ..Default::default()
-            }),
-            ..Default::default()
-        }))
-        .add_plugins(MinibufferPlugin {
-            config: Config {
-                auto_hide: true,
-                // auto_hide: false,
-                hide_delay: Some(3000),
-                text_style: TextStyle {
-                    font_size: 20.0,
-                    ..default()
-                },
-            },
+        // .add_plugins(DefaultPlugins)
+        // .add_plugins(MinibufferPlugin::default())
+        .add_plugins(common::VideoCaptureSettings {
+            title: "Bevy Minibuffer Basic Example".into(),
         })
-        // Add acts directly to an app via [AddAct].
+    // Add acts directly to an app via [AddAct].
         .add_act(
             Act::new()
                 .named("exec_act")

@@ -1,8 +1,11 @@
 //! Task handling systems
 use crate::Minibuffer;
 use asky::{bevy::TaskSink, Message};
-use bevy::ecs::prelude::*;
-use bevy::{tasks::block_on, utils::tracing::warn};
+use bevy::{
+    ecs::prelude::*,
+    tasks::block_on,
+    utils::tracing::warn,
+};
 use futures_lite::future;
 use std::fmt::{Debug, Display};
 
@@ -24,8 +27,7 @@ pub fn poll_event_tasks<T: Send + Event>(
 
 /// Check for tasks which may emit a `Result<T, E>`. Report errors to the user
 /// if any.
-pub fn poll_tasks_err<T: Send + Sync + 'static,
-                      E: Debug + Display + Send + Sync + 'static>(
+pub fn poll_tasks_err<T: Send + Sync + 'static, E: Debug + Display + Send + Sync + 'static>(
     mut commands: Commands,
     asky: Minibuffer,
     mut tasks: Query<(Entity, &mut TaskSink<Result<T, E>>)>,

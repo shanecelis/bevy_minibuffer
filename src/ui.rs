@@ -4,7 +4,7 @@ use bevy::{
         accesskit::{NodeBuilder, Role},
         AccessibilityNode,
     },
-    input::mouse::{MouseScrollUnit, MouseWheel},
+    // input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
 use std::borrow::Cow;
@@ -30,7 +30,7 @@ pub struct CompletionContainer;
 /// Autocomplete scrolling state
 #[derive(Component, Default)]
 pub struct ScrollingList {
-    position: f32,
+    // position: f32,
     // selection: Option<usize>,
     // last_selection: Option<usize>,
 }
@@ -39,7 +39,10 @@ pub struct ScrollingList {
 pub struct CompletionList(pub Vec<Cow<'static, str>>);
 
 /// Autocomplete item
-pub(crate) fn completion_item(label: String, style: TextStyle) -> (TextBundle, Label, AccessibilityNode) {
+pub(crate) fn completion_item(
+    label: String,
+    style: TextStyle,
+) -> (TextBundle, Label, AccessibilityNode) {
     (
         TextBundle::from_section(label, style),
         Label,
@@ -66,11 +69,11 @@ pub(crate) fn spawn_layout(mut commands: Commands) {
             },
             ..Default::default()
         })
-        .insert(MinibufferNode {})
+        .insert(MinibufferNode)
         .with_children(|builder| {
             builder
                 .spawn(NodeBundle {
-                    visibility: Visibility::Hidden,
+                    // visibility: Visibility::Hidden,
                     style: Style {
                         flex_direction: FlexDirection::Row,
                         ..default()
@@ -120,15 +123,15 @@ pub(crate) fn spawn_layout(mut commands: Commands) {
                                     // CompletionList(vec![]),
                                     AccessibilityNode(NodeBuilder::new(Role::List)),
                                 ))
-                                // .with_children(|parent| {
-                                //     // List items
-                                //     for i in 0..30 {
-                                //         parent.spawn(completion_item(
-                                //             format!("Item {i}"),
-                                //             TextStyle::default(),
-                                //         ));
-                                //     }
-                                // })
+                                .with_children(|parent| {
+                                    // List items
+                                    for i in 0..30 {
+                                        parent.spawn(completion_item(
+                                            format!("Item {i}"),
+                                            TextStyle::default(),
+                                        ));
+                                    }
+                                })
                                 ;
 
                             builder.spawn(NodeBundle::default());
@@ -151,31 +154,32 @@ pub(crate) fn spawn_layout(mut commands: Commands) {
                     background_color: BackgroundColor(Color::BLACK),
                     ..Default::default()
                 })
-                .insert(PromptContainer {});
+                .insert(PromptContainer);
         });
 }
 
-/// Scroll the auto complete panel with mouse.
-fn mouse_scroll(
-    mut mouse_wheel_events: EventReader<MouseWheel>,
-    mut query_list: Query<(&mut ScrollingList, &mut Style, &Parent, &Node)>,
-    query_node: Query<&Node>,
-) {
-    for mouse_wheel_event in mouse_wheel_events.read() {
-        for (mut scrolling_list, mut style, parent, list_node) in &mut query_list {
-            let items_height = list_node.size().y;
-            let container_height = query_node.get(parent.get()).unwrap().size().y;
+// Scroll the auto complete panel with mouse.
+// pub(crate) fn mouse_scroll(
+//     mut mouse_wheel_events: EventReader<MouseWheel>,
+//     mut query_list: Query<(&mut ScrollingList, &mut Style, &Parent, &Node)>,
+//     query_node: Query<&Node>,
+// ) {
+//     for mouse_wheel_event in mouse_wheel_events.read() {
+//         for (mut scrolling_list, mut style, parent, list_node) in &mut query_list {
+//             let items_height = list_node.size().y;
+//             let container_height = query_node.get(parent.get()).unwrap().size().y;
 
-            let max_scroll = (items_height - container_height).max(0.);
+//             let max_scroll = (items_height - container_height).max(0.);
 
-            let dy = match mouse_wheel_event.unit {
-                MouseScrollUnit::Line => mouse_wheel_event.y * 20.,
-                MouseScrollUnit::Pixel => mouse_wheel_event.y,
-            };
+//             let dy = match mouse_wheel_event.unit {
+//                 MouseScrollUnit::Line => mouse_wheel_event.y * 20.,
+//                 MouseScrollUnit::Pixel => mouse_wheel_event.y,
+//             };
 
-            scrolling_list.position += dy;
-            scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
-            style.top = Val::Px(scrolling_list.position);
-        }
-    }
-}
+//             scrolling_list.position += dy;
+//             scrolling_list.position = scrolling_list.position.clamp(-max_scroll, 0.);
+//             info!("scrolling position {}", scrolling_list.position);
+//             style.top = Val::Px(scrolling_list.position);
+//         }
+//     }
+// }

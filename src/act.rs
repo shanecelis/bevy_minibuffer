@@ -1,20 +1,25 @@
 //! acts, or commands
-use asky::Message;
-use bevy::ecs::system::SystemId;
-use bevy::prelude::*;
-use bevy::window::RequestRedraw;
-use bevy_input_sequence::*;
+use std::{
+    borrow::Cow,
+    fmt::{self, Debug, Display, Write},
+    future::Future,
+};
 use bitflags::bitflags;
-use std::borrow::Cow;
-use std::fmt::{self, Debug, Display, Write};
-use std::future::Future;
 use tabular::{Row, Table};
+use bevy::{
+    ecs::system::SystemId,
+    prelude::*,
+    window::RequestRedraw,
+};
+use bevy_input_sequence::{KeyChord, KeySequence};
+use asky::Message;
 use trie_rs::map::{Trie, TrieBuilder};
-
-use crate::event::*;
-use crate::lookup::*;
-use crate::prompt::*;
-use crate::Minibuffer;
+use crate::{
+    Minibuffer,
+    lookup::{Resolve, LookUpError, LookUp},
+    event::RunActEvent,
+    prompt::{PromptState, CompletionState},
+};
 
 bitflags! {
     /// Act flags
@@ -92,7 +97,8 @@ impl Act {
     where
         KeyChord: From<T>,
     {
-        self.hotkeys.push(hotkey.into_iter().map(|v| v.into()).collect());
+        self.hotkeys
+            .push(hotkey.into_iter().map(|v| v.into()).collect());
         self
     }
 
@@ -163,7 +169,6 @@ where
         }
     }
 }
-
 
 /// Register a system to an act.
 ///
@@ -256,16 +261,14 @@ pub(crate) fn detect_additions<E>(
     E: Send + Sync + 'static,
 {
     for (id, act) in &query {
-        commands
-            .entity(id)
-            .with_children(|builder|
-                           for hotkey in &act.hotkeys {
-
-                               builder.spawn(KeySequence::new(
-                                   RunActEvent(act.system_id.unwrap()),
-                                   hotkey.clone(),
-                               ));
-                           });
+        commands.entity(id).with_children(|builder| {
+            for hotkey in &act.hotkeys {
+                builder.spawn(KeySequence::new(
+                    RunActEvent(act.system_id.unwrap()),
+                    hotkey.clone(),
+                ));
+            }
+        });
     }
 }
 
@@ -284,31 +287,29 @@ pub fn exec_act(
     async move {
         match asky.read(":".to_string(), acts.clone()).await {
             // TODO: Get rid of clone.
-            Ok(act_name) => {
-                match acts.resolve(&act_name) {
-                    Ok(act) => match act.system_id {
-                        Some(system_id) => Some(RunActEvent(system_id)),
-                        None => {
-                            let _ = asky
-                                .prompt(Message::new(format!(
-                                    "Error: No system_id for act {:?}; was it registered?",
-                                    act
-                                )))
-                                .await;
-                            None
-                        }
-                    },
-                    Err(e) => {
+            Ok(act_name) => match acts.resolve(&act_name) {
+                Ok(act) => match act.system_id {
+                    Some(system_id) => Some(RunActEvent(system_id)),
+                    None => {
                         let _ = asky
                             .prompt(Message::new(format!(
-                                "Error: Could not resolve act named {:?}: {}",
-                                act_name, e
+                                "Error: No system_id for act {:?}; was it registered?",
+                                act
                             )))
                             .await;
                         None
                     }
+                },
+                Err(e) => {
+                    let _ = asky
+                        .prompt(Message::new(format!(
+                            "Error: Could not resolve act named {:?}: {}",
+                            act_name, e
+                        )))
+                        .await;
+                    None
                 }
-            }
+            },
             Err(e) => {
                 let _ = asky.prompt(Message::new(format!("Error: {e}"))).await;
                 None
@@ -324,18 +325,20 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
     let mut acts: Vec<_> = acts.iter().collect();
     acts.sort_by(|a, b| a.name().cmp(b.name()));
     for act in &acts {
-        let bindings = act
-            .hotkeys.iter()
-            .map(|chords|
-                chords.iter().fold(String::new(), |mut output, chord| {
-                    let _ = write!(output, "{} ", chord);
-                    output
-                })
-            );
+        let bindings = act.hotkeys.iter().map(|chords| {
+            chords.iter().fold(String::new(), |mut output, chord| {
+                let _ = write!(output, "{} ", chord);
+                output
+            })
+        });
         let mut name = Some(act.name());
 
         for binding in bindings {
-            table.add_row(Row::new().with_cell(name.take().unwrap_or("")).with_cell(binding));
+            table.add_row(
+                Row::new()
+                    .with_cell(name.take().unwrap_or(""))
+                    .with_cell(binding),
+            );
         }
     }
     let msg = format!("{}", table);

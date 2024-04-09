@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 
 pub struct VideoCaptureSettings {
-    pub title: String
+    pub title: String,
 }
 
 impl bevy::app::Plugin for VideoCaptureSettings {
@@ -27,5 +27,4 @@ impl bevy::app::Plugin for VideoCaptureSettings {
             },
         });
     }
-
 }

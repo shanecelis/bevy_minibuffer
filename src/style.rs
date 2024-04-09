@@ -6,7 +6,6 @@ use asky::{
 use bevy::ecs::system::Resource;
 use bevy::text::TextStyle;
 use std::io;
-use text_style::AnsiColor::*;
 
 /// Minibuffer style
 #[derive(Clone, Debug, Resource)]
@@ -41,6 +40,7 @@ impl From<MinibufferStyle> for AskyStyle {
 
 impl Style for MinibufferStyle {
     fn begin(&self, r: &mut dyn Renderer, section: Section) -> io::Result<()> {
+        use text_style::AnsiColor::*;
         use Section::*;
         match section {
             Query(_answered) => {

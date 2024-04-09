@@ -1,8 +1,8 @@
 //! Events
 use bevy::ecs::{
-    system::Commands,
     event::{Event, EventReader},
-    system::SystemId
+    system::Commands,
+    system::SystemId,
 };
 use std::fmt;
 

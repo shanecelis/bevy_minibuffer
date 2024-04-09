@@ -1,16 +1,11 @@
 //! Prompt
 
 use std::fmt::Debug;
-use bevy::{
-    prelude::*,
-    ecs::system::{SystemParam},
-    utils::Duration,
-    window::RequestRedraw,
-};
-use asky::{Valuable, bevy::AskyPrompt};
+use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
+use asky::bevy::AskyPrompt;
 use crate::{
     event::{DispatchEvent, LookUpEvent, RunActEvent},
-    ui::*,
+    ui::{completion_item, ScrollingList},
     Config,
 };
 
@@ -44,7 +39,6 @@ pub struct HideTime {
     /// Timer
     pub timer: Timer,
 }
-
 
 /// Make component visible.
 pub fn show<T: Component>(
@@ -220,7 +214,7 @@ pub(crate) fn listen_prompt_active(
 
 #[cfg(test)]
 mod tests {
-    use crate::lookup::{LookUp, LookUpError};
+    use crate::lookup:: LookUp ;
     // use crate::prompt::Parse;
 
     // #[derive(Debug)]
@@ -249,7 +243,6 @@ mod tests {
 
     #[test]
     fn test_lookup() {
-        use super::LookUp;
         use trie_rs::Trie;
         let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
         assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");

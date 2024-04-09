@@ -1,20 +1,25 @@
-use std::future::Future;
+use crate::{
+    event::DispatchEvent,
+    lookup::{AutoComplete, LookUp},
+    ui::PromptContainer,
+    MinibufferStyle,
+};
+use asky::{
+    bevy::{Asky, AskyStyle, KeyEvent},
+    Error, Typeable, Valuable,
+};
 use bevy::{
-    ecs::{system::{SystemParam, SystemMeta, SystemState, Query, Res},
-          world::{World, unsafe_world_cell::UnsafeWorldCell},
-          component,
-          entity::Entity,
-    query::With},
+    ecs::{
+        component,
+        entity::Entity,
+        query::With,
+        system::{Query, Res, SystemMeta, SystemParam, SystemState},
+        world::{unsafe_world_cell::UnsafeWorldCell, World},
+    },
     utils::Duration,
 };
 use bevy_crossbeam_event::CrossbeamEventSender;
-use asky::{Typeable, Valuable, Error, bevy::{Asky, KeyEvent, AskyStyle}};
-use crate::{
-    lookup::{LookUp, AutoComplete},
-    event::DispatchEvent,
-    MinibufferStyle,
-    ui::PromptContainer
-};
+use std::future::Future;
 
 /// Minibuffer, a [SystemParam]
 #[derive(Clone)]

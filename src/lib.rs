@@ -3,10 +3,10 @@
 pub mod act;
 pub mod event;
 pub mod lookup;
+mod param;
 mod plugin;
 pub mod prompt;
 mod style;
-mod param;
 pub mod task;
 pub mod ui;
 pub use param::Minibuffer;

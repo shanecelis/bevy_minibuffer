@@ -47,11 +47,12 @@ fn setup(mut commands: Commands) {
 
     // Add a builtin act.
     commands.add_act(
-        Act::new().named("exec_act")
-                  .hotkey(keyseq!(shift-;)) // For vimmers a `:` key binding
-                  .hotkey(keyseq!(alt-X))   // For Emacsers a `M-x` key binding
-                  .in_exec_act(false),      // Don't show "exec_act" in its list
-                                            // of acts.
+        Act::new()
+            .named("exec_act")
+            .hotkey(keyseq!(shift-;)) // For vimmers a `:` key binding
+            .hotkey(keyseq!(alt - X)) // For Emacsers a `M-x` key binding
+            .in_exec_act(false), // Don't show "exec_act" in its list
+        // of acts.
         act::exec_act.pipe(future_sink),
     );
 }

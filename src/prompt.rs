@@ -1,31 +1,18 @@
 //! Prompt
-#![allow(async_fn_in_trait)]
 
 use std::fmt::Debug;
-
-use bevy::ecs::{
-    component,
-    system::{SystemMeta, SystemParam, SystemState},
-    world::unsafe_world_cell::UnsafeWorldCell,
+use bevy::{
+    prelude::*,
+    ecs::system::{SystemParam},
+    utils::Duration,
+    window::RequestRedraw,
 };
-use bevy::prelude::*;
-use bevy::utils::Duration;
-use bevy::window::RequestRedraw;
-
-use asky::bevy::{Asky, AskyPrompt, AskyStyle, KeyEvent};
-use asky::{Typeable, Valuable};
-
-use std::future::Future;
-
-use crate::event::{DispatchEvent, LookUpEvent, RunActEvent};
-use crate::MinibufferStyle;
+use asky::{Valuable, bevy::AskyPrompt};
 use crate::{
-    lookup::{AutoComplete, LookUp},
-    Config, Error,
+    event::{DispatchEvent, LookUpEvent, RunActEvent},
+    ui::*,
+    Config,
 };
-use bevy_crossbeam_event::CrossbeamEventSender;
-
-use crate::ui::*;
 
 /// The state of the minibuffer
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
@@ -233,7 +220,7 @@ pub(crate) fn listen_prompt_active(
 
 #[cfg(test)]
 mod tests {
-    // use crate::prompt::LookUpError;
+    use crate::lookup::{LookUp, LookUpError};
     // use crate::prompt::Parse;
 
     // #[derive(Debug)]

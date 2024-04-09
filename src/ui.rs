@@ -123,15 +123,15 @@ pub(crate) fn spawn_layout(mut commands: Commands) {
                                     // CompletionList(vec![]),
                                     AccessibilityNode(NodeBuilder::new(Role::List)),
                                 ))
-                                .with_children(|parent| {
-                                    // List items
-                                    for i in 0..30 {
-                                        parent.spawn(completion_item(
-                                            format!("Item {i}"),
-                                            TextStyle::default(),
-                                        ));
-                                    }
-                                })
+                                // .with_children(|parent| {
+                                //     // List items
+                                //     for i in 0..30 {
+                                //         parent.spawn(completion_item(
+                                //             format!("Item {i}"),
+                                //             TextStyle::default(),
+                                //         ));
+                                //     }
+                                // })
                                 ;
 
                             builder.spawn(NodeBundle::default());

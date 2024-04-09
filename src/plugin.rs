@@ -1,28 +1,25 @@
 use crate::{
+    act,
     event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent},
     lookup::AutoComplete,
     prompt::{
-        dispatch_events, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active, look_up_events,
-        show, CompletionState, PromptState,
+        dispatch_events, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
+        look_up_events, show, CompletionState, PromptState,
     },
-    ui,
-    act,
-    task,
+    task, ui,
 };
 use asky::bevy::{AskyPlugin, AskyPrompt};
 use bevy::{
+    app::{PostUpdate, PreUpdate, Startup, Update},
     ecs::{
         reflect::AppTypeRegistry,
+        schedule::{common_conditions::in_state, OnEnter, OnExit},
         system::Resource,
-        schedule::{OnEnter, OnExit, common_conditions::in_state},
     },
+    prelude::IntoSystemConfigs,
     reflect::Reflect,
     text::TextStyle,
     utils::default,
-    app::{
-        Startup, PreUpdate, Update, PostUpdate
-    },
-    prelude::IntoSystemConfigs,
 };
 use bevy_crossbeam_event::CrossbeamEventApp;
 use bevy_input_sequence::AddInputSequenceEvent;

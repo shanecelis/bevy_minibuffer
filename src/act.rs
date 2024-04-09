@@ -1,25 +1,21 @@
 //! acts, or commands
+use crate::{
+    event::RunActEvent,
+    lookup::{LookUp, LookUpError, Resolve},
+    prompt::{CompletionState, PromptState},
+    Minibuffer,
+};
+use asky::Message;
+use bevy::{ecs::system::SystemId, prelude::*, window::RequestRedraw};
+use bevy_input_sequence::{KeyChord, KeySequence};
+use bitflags::bitflags;
 use std::{
     borrow::Cow,
     fmt::{self, Debug, Display, Write},
     future::Future,
 };
-use bitflags::bitflags;
 use tabular::{Row, Table};
-use bevy::{
-    ecs::system::SystemId,
-    prelude::*,
-    window::RequestRedraw,
-};
-use bevy_input_sequence::{KeyChord, KeySequence};
-use asky::Message;
 use trie_rs::map::{Trie, TrieBuilder};
-use crate::{
-    Minibuffer,
-    lookup::{Resolve, LookUpError, LookUp},
-    event::RunActEvent,
-    prompt::{PromptState, CompletionState},
-};
 
 bitflags! {
     /// Act flags

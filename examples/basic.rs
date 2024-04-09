@@ -76,19 +76,19 @@ fn main() {
         .add_act(
             Act::new()
                 .named("exec_act")
-                .hotkey(keyseq!{ shift-; })
-                .hotkey(keyseq!{ alt-X })
+                .hotkey(keyseq! { shift-; })
+                .hotkey(keyseq! { alt-X })
                 .in_exec_act(false),
             exec_act.pipe(future_sink),
         )
         .add_act(
-            Act::new().named("list_acts").hotkey(keyseq!{ ctrl-H A }),
+            Act::new().named("list_acts").hotkey(keyseq! { ctrl-H A }),
             list_acts.pipe(future_sink),
         )
         .add_act(
             Act::new()
                 .named("list_key_bindings")
-                .hotkey(keyseq!{ ctrl-H B }),
+                .hotkey(keyseq! { ctrl-H B }),
             list_key_bindings::<RunActEvent>.pipe(future_sink),
         )
         .add_systems(Startup, setup)

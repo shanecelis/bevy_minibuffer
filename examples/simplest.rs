@@ -34,7 +34,7 @@ fn main() {
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
     commands.add_act(
-        Act::new().named("ask_name").hotkey(keyseq!{ ctrl-A N }),
+        Act::new().named("ask_name").hotkey(keyseq! { ctrl-A N }),
         ask_name.pipe(future_sink),
     );
 }

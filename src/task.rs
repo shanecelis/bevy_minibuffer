@@ -1,11 +1,7 @@
 //! Task handling systems
 use crate::Minibuffer;
 use asky::{bevy::TaskSink, Message};
-use bevy::{
-    ecs::prelude::*,
-    tasks::block_on,
-    utils::tracing::warn,
-};
+use bevy::{ecs::prelude::*, tasks::block_on, utils::tracing::warn};
 use futures_lite::future;
 use std::fmt::{Debug, Display};
 

@@ -1,13 +1,13 @@
 //! Prompt
 
-use std::fmt::Debug;
-use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
-use asky::bevy::AskyPrompt;
 use crate::{
     event::{DispatchEvent, LookUpEvent, RunActEvent},
     ui::{completion_item, ScrollingList},
     Config,
 };
+use asky::bevy::AskyPrompt;
+use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
+use std::fmt::Debug;
 
 /// The state of the minibuffer
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
@@ -214,7 +214,7 @@ pub(crate) fn listen_prompt_active(
 
 #[cfg(test)]
 mod tests {
-    use crate::lookup:: LookUp ;
+    use crate::lookup::LookUp;
     // use crate::prompt::Parse;
 
     // #[derive(Debug)]

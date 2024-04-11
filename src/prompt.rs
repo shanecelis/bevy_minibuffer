@@ -5,8 +5,10 @@ use crate::{
     ui::{completion_item, ScrollingList},
     Config,
 };
+use bevy_input_sequence::{Modifiers, KeyChord};
 use asky::bevy::AskyPrompt;
 use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
+use promise_out::{Promise, pair::Producer};
 use std::fmt::Debug;
 
 /// The state of the minibuffer
@@ -40,6 +42,16 @@ pub struct HideTime {
     pub timer: Timer,
 }
 
+/// Get a key chord.
+#[derive(Component, Debug)]
+pub(crate) struct GetKeyChord(pub(crate) Option<Producer<Vec<KeyChord>, asky::Error>>);
+
+impl GetKeyChord {
+    pub(crate) fn new(promise: Producer<Vec<KeyChord>, asky::Error>) -> Self {
+        GetKeyChord(Some(promise))
+    }
+}
+
 /// Make component visible.
 pub fn show<T: Component>(
     mut redraw: EventWriter<RequestRedraw>,
@@ -51,6 +63,29 @@ pub fn show<T: Component>(
     }
 }
 
+pub(crate) fn get_key_chords(
+    mut query: Query<(Entity, &mut GetKeyChord)>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands,
+) {
+    let mut chords = None;
+    for (id, mut get_key_chord) in query.iter_mut() {
+        let chords: &mut Vec<KeyChord> = chords.get_or_insert_with(
+            || {
+                let mods = Modifiers::from_input(&keys);
+                keys.get_just_pressed()
+                    .map(move |key| KeyChord(mods, *key))
+                    .collect()
+            });
+        if !chords.is_empty() {
+            if let Some(promise) = get_key_chord.0.take() {
+                promise.resolve(chords.clone());
+            }
+            // commands.entity(id).remove::<GetKeyChord>();
+            commands.entity(id).despawn();
+        }
+    }
+}
 /// Hide entities with component [HideTime].
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,

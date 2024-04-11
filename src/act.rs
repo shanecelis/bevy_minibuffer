@@ -7,7 +7,7 @@ use crate::{
 };
 use asky::Message;
 use bevy::{ecs::system::SystemId, prelude::*, window::RequestRedraw};
-use bevy_input_sequence::{KeyChord, KeySequence};
+use bevy_input_sequence::{KeyChord, KeySequence, InputSequenceCache};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
@@ -405,5 +405,34 @@ pub fn toggle_visibility(
             next_completion_state.set(CompletionState::Invisible);
             redraw.send(RequestRedraw);
         }
+    }
+}
+
+pub fn describe_key<E: Event + Clone>(
+    keyseqs: Query<&KeySequence<E>>,
+    mut cache: ResMut<InputSequenceCache<E, KeyChord>>,
+    mut minibuffer: Minibuffer,
+) -> impl Future<Output = Result<(), crate::Error>> {
+    let trie: Trie<_, _> = cache.trie(keyseqs.iter())
+                                .clone();
+    async move {
+        let mut search = trie.inc_search();
+        let mut accum = Vec::new();
+        loop {
+            let chords = minibuffer.get_chord().await?;
+            info!("chords {:?}", &chords);
+            match search.query_until(&chords) {
+                Ok(_) => {
+                    accum.extend(chords);
+                    minibuffer.prompt(Message::new(format!("Key binding: {:?} exists", accum))).await?;
+                }
+                Err(i) => {
+                    accum.extend(chords.into_iter().take(i));
+                    minibuffer.prompt(Message::new(format!("No such key binding: {:?}", accum))).await?;
+                    break;
+                }
+            }
+        }
+        Ok(())
     }
 }

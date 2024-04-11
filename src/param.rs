@@ -3,6 +3,7 @@ use crate::{
     lookup::{AutoComplete, LookUp},
     ui::PromptContainer,
     MinibufferStyle,
+    prompt::GetKeyChord,
 };
 use asky::{
     bevy::{Asky, AskyStyle, KeyEvent},
@@ -13,12 +14,15 @@ use bevy::{
         component,
         entity::Entity,
         query::With,
-        system::{Query, Res, SystemMeta, SystemParam, SystemState},
+        system::{Query, Res, SystemMeta, SystemParam, SystemState, Commands},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
+    hierarchy::Children,
     utils::Duration,
 };
+use bevy_input_sequence::KeyChord;
 use bevy_crossbeam_event::CrossbeamEventSender;
+use promise_out::{Promise, pair::Producer};
 use std::future::Future;
 
 /// Minibuffer, a [SystemParam]
@@ -128,5 +132,18 @@ impl Minibuffer {
     /// Wait a certain duration.
     pub fn delay(&mut self, duration: Duration) -> impl Future<Output = Result<(), asky::Error>> {
         self.asky.delay(duration)
+    }
+
+    pub fn get_chord(&mut self) -> impl Future<Output = Result<Vec<KeyChord>, asky::Error>> {
+        let (promise, waiter) = Producer::<Vec<KeyChord>, asky::Error>::new();
+        self.asky.run(
+            move |commands: &mut Commands,
+            _entity: Option<Entity>,
+            _children: Option<&Children>| {
+                commands.spawn(GetKeyChord::new(promise));
+                Ok(())
+            },
+            None);
+        waiter
     }
 }

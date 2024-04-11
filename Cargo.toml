@@ -10,7 +10,7 @@ futures-lite = "1.13.0"
 promise_out = "1.0.0"
 trie-rs = { git = "https://github.com/shanecelis/trie-rs.git", branch = "dev" }
 colored = { version = "2.0.0", features = [ "no-color" ] }
-bevy-input-sequence = { git = "https://github.com/shanecelis/bevy-input-sequence.git", branch = "fix-multiple-input" }
+bevy-input-sequence = { git = "https://github.com/shanecelis/bevy-input-sequence.git", branch = "dev" }
 keyseq = { version = "0.2.3", features = [ "bevy" ]}
 asky = { git = "https://github.com/shanecelis/asky.git", branch = "bevy", default-features = false, features = ["bevy"] }
 text-style = { git = "https://github.com/shanecelis/text_style.git", branch = "feature/colored", features = [ "crossterm", "bevy" ] }

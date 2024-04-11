@@ -73,6 +73,13 @@ fn main() {
                 .hotkey(keyseq! { ctrl-H B }),
             list_key_bindings::<RunActEvent>.pipe(future_sink),
         )
+
+        .add_act(
+            Act::new()
+                .named("describe_key")
+                .hotkey(keyseq! { ctrl-H K }),
+            act::describe_key::<RunActEvent>.pipe(future_sink),
+        )
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)
         .add_systems(Startup, add_acts_with_mutable_world)

@@ -4,7 +4,7 @@ use crate::{
     lookup::AutoComplete,
     prompt::{
         dispatch_events, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
-        look_up_events, show, CompletionState, PromptState,
+        look_up_events, show, CompletionState, PromptState, get_key_chords
     },
     task, ui,
 };
@@ -90,6 +90,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_systems(Update,     act::detect_additions::<RunActEvent>)
             .add_systems(Update,     task::poll_event_tasks::<RunActEvent>)
             .add_systems(Update,     listen_prompt_active)
+            .add_systems(Update,     get_key_chords)
             .add_systems(Update,     asky::bevy::asky_system::<AutoComplete<asky::Text>>)
             .add_systems(PostUpdate, (dispatch_events, look_up_events).chain())
             .add_systems(PostUpdate, task::poll_tasks_err::<(), Error>)

@@ -18,6 +18,7 @@ text-style = { git = "https://github.com/shanecelis/text_style.git", branch = "f
 bevy_crossbeam_event = "0.5.0"
 tabular = "0.2.0"
 thiserror = "1.0.58"
+bevy_defer = "0.8.4"
 
 [dev-dependencies]
 bevy-inspector-egui = "0.23.4"

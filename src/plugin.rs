@@ -9,7 +9,8 @@ use crate::{
     },
     task, ui,
 };
-use asky::bevy::AskyPlugin;
+use bevy_defer::{AsyncPlugin};
+use asky::bevy::{AskyPlugin, AskyPrompt};
 use bevy::{
     app::{PostUpdate, PreUpdate, Startup, Update},
     ecs::{
@@ -74,6 +75,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             type_registry.register::<Config>();
         }
         app
+            .add_plugins(AsyncPlugin::default_settings())
             .add_plugins(AskyPlugin)
             .add_key_sequence_event_run_if::<RunActEvent, _>(in_state(MinibufferState::Inactive))
             .init_state::<MinibufferState>()

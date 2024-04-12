@@ -5,7 +5,7 @@ use crate::{
     ui::{completion_item, ScrollingList},
     Config,
 };
-use asky::bevy::{AskyPrompt, AskyState, AskyDelay};
+use asky::bevy::{AskyState, AskyDelay};
 use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
 use bevy_input_sequence::{KeyChord, Modifiers};
 use promise_out::{pair::Producer, Promise};
@@ -149,7 +149,7 @@ pub fn hide_delayed<T: Component>(
 pub fn hide_prompt_maybe(
     mut commands: Commands,
     time: Res<Time>,
-    state: Res<State<AskyPrompt>>,
+    state: Res<State<MinibufferState>>,
     mut redraw: EventWriter<RequestRedraw>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut next_completion_state: ResMut<NextState<CompletionState>>,
@@ -160,7 +160,7 @@ pub fn hide_prompt_maybe(
         redraw.send(RequestRedraw); // Force ticks to happen when a timer is present.
         hide.timer.tick(time.delta());
         if hide.timer.finished() {
-            if *state == AskyPrompt::Inactive {
+            if *state == MinibufferState::Inactive {
                 next_prompt_state.set(PromptState::Invisible);
                 next_completion_state.set(CompletionState::Invisible);
                 // eprintln!("hiding after delay.");
@@ -260,16 +260,16 @@ pub(crate) fn look_up_events(
     }
 }
 
-/// Listen for [AskyPrompt] transitions.
+/// Listen for [MinibufferState] transitions.
 pub(crate) fn listen_prompt_active(
-    mut transitions: EventReader<StateTransitionEvent<AskyPrompt>>,
+    mut transitions: EventReader<StateTransitionEvent<MinibufferState>>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut redraw: EventWriter<RequestRedraw>,
 ) {
     for transition in transitions.read() {
         match transition.after {
-            AskyPrompt::Active => next_prompt_state.set(PromptState::Visible),
-            AskyPrompt::Inactive => next_prompt_state.set(PromptState::Finished),
+            MinibufferState::Active => next_prompt_state.set(PromptState::Visible),
+            MinibufferState::Inactive => next_prompt_state.set(PromptState::Finished),
         }
         redraw.send(RequestRedraw);
     }

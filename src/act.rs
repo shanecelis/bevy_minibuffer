@@ -260,7 +260,7 @@ pub(crate) fn detect_additions<E>(
         commands.entity(id).with_children(|builder| {
             for hotkey in &act.hotkeys {
                 builder.spawn(KeySequence::new(
-                    RunActEvent(act.system_id.unwrap()),
+                    RunActEvent(act.clone()),
                     hotkey.clone(),
                 ));
             }
@@ -285,7 +285,7 @@ pub fn exec_act(
             // TODO: Get rid of clone.
             Ok(act_name) => match acts.resolve(&act_name) {
                 Ok(act) => match act.system_id {
-                    Some(system_id) => Some(RunActEvent(system_id)),
+                    Some(system_id) => Some(RunActEvent(act)),
                     None => {
                         let _ = asky
                             .prompt(Message::new(format!(
@@ -317,7 +317,7 @@ pub fn exec_act(
 /// List acts currently operant.
 pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output = ()> {
     let mut table = Table::new("{:<}\t{:<}");
-    table.add_row(Row::new().with_cell("NAME").with_cell("KEY BINDING"));
+    table.add_row(Row::new().with_cell("ACT").with_cell("KEY BINDING"));
     let mut acts: Vec<_> = acts.iter().collect();
     acts.sort_by(|a, b| a.name().cmp(b.name()));
     for act in &acts {
@@ -345,7 +345,7 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
 }
 
 /// List key bindings for event `E`.
-pub fn list_key_bindings<E: Event + Debug>(
+pub fn list_key_bindings<E: Event + Display>(
     mut asky: Minibuffer,
     key_bindings: Query<&KeySequence<E>>,
 ) -> impl Future<Output = ()> {
@@ -365,7 +365,7 @@ pub fn list_key_bindings<E: Event + Debug>(
         .collect();
     key_bindings.sort_by(|a, b| a.0.cmp(&b.0));
     for (binding, e) in &key_bindings {
-        table.add_row(Row::new().with_cell(binding).with_cell(format!("{:?}", e)));
+        table.add_row(Row::new().with_cell(binding).with_cell(format!("{}", e)));
     }
     let msg = format!("{}", table);
     // eprintln!("{}", &msg);
@@ -408,7 +408,8 @@ pub fn toggle_visibility(
     }
 }
 
-pub fn describe_key<E: Event + Clone>(
+/// Input a key sequence. This will tell you what it does.
+pub fn describe_key<E: Event + Clone + Display>(
     keyseqs: Query<&KeySequence<E>>,
     mut cache: ResMut<InputSequenceCache<E, KeyChord>>,
     mut minibuffer: Minibuffer,
@@ -418,21 +419,22 @@ pub fn describe_key<E: Event + Clone>(
                                 .clone();
     async move {
         let mut search = trie.inc_search();
-        let mut accum = String::new();
+        let mut accum = String::from("Press key: ");
 
         loop {
+            minibuffer.prompt(Message::new(accum.clone())).await?;
             let chords = minibuffer.get_chord().await?;
-            info!("chords {:?}", &chords);
             match search.query_until(&chords) {
                 Ok(x) => {
                     for chord in chords {
                         write!(accum, "{} ", chord);
                     }
+                    let v = search.value();
                     let msg = match x {
                         Answer::Match =>
-                            format!("{}is bound", accum),
+                            format!("{}is bound to {}", accum, v.unwrap().event),
                         Answer::PrefixAndMatch =>
-                            format!("{}is bound but not terminal", accum),
+                            format!("{}is bound to {} and more", accum, v.unwrap().event),
                         Answer::Prefix => accum.clone()
                     };
                     minibuffer.prompt(Message::new(msg)).await?;

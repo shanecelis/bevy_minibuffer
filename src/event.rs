@@ -7,16 +7,23 @@ use bevy::ecs::{
 use std::fmt;
 
 /// Request a one-shot system be run.
-#[derive(Clone, Event)]
-pub struct RunActEvent(pub SystemId);
+#[derive(Clone, Event, Debug)]
+// pub struct RunActEvent(pub SystemId);
+pub struct RunActEvent(pub super::act::Act);
 
-impl fmt::Debug for RunActEvent {
+impl fmt::Display for RunActEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let rnd_state = bevy::utils::RandomState::with_seed(0);
-        let hash = rnd_state.hash_one(self.0);
-        write!(f, "StartActEvent({:04})", hash % 10000)
+        // write!(f, "RunAct({})", self.0)
+        write!(f, "{}", self.0)
     }
 }
+// impl fmt::Debug for RunActEvent {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         let rnd_state = bevy::utils::RandomState::with_seed(0);
+//         let hash = rnd_state.hash_one(self.0);
+//         write!(f, "StartActEvent({:04})", hash % 10000)
+//     }
+// }
 
 /// Look up event fires when autocomplete panel is shown or hidden.
 #[derive(Debug, Clone, Event)]
@@ -54,6 +61,6 @@ impl From<RunActEvent> for DispatchEvent {
 /// Run act for any [RunActEvent].
 pub fn run_acts(mut events: EventReader<RunActEvent>, mut commands: Commands) {
     for e in events.read() {
-        commands.run_system(e.0);
+        commands.run_system(e.0.system_id.unwrap());
     }
 }

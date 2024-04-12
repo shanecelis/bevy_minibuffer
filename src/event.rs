@@ -2,7 +2,6 @@
 use bevy::ecs::{
     event::{Event, EventReader},
     system::Commands,
-    system::SystemId,
 };
 use std::fmt;
 

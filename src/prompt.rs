@@ -77,9 +77,8 @@ pub(crate) fn set_minibuffer_state(
     delays: Query<&AskyDelay>,
     key_chords: Query<&GetKeyChord>,
     mut next_minibuffer_state: ResMut<NextState<MinibufferState>>,
-    mut redraw: EventWriter<RequestRedraw>,
 ) {
-    let is_active = query.iter().filter(|x| matches!(*x, AskyState::Waiting)).next().is_some()
+    let is_active = query.iter().any(|x| matches!(x, AskyState::Waiting))
         || key_chords.iter().next().is_some()
         || delays.iter().next().is_some();
 

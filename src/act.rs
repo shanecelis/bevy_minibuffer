@@ -285,7 +285,7 @@ pub fn exec_act(
             // TODO: Get rid of clone.
             Ok(act_name) => match acts.resolve(&act_name) {
                 Ok(act) => match act.system_id {
-                    Some(system_id) => Some(RunActEvent(act)),
+                    Some(_system_id) => Some(RunActEvent(act)),
                     None => {
                         let _ = asky
                             .prompt(Message::new(format!(
@@ -427,7 +427,7 @@ pub fn describe_key<E: Event + Clone + Display>(
             match search.query_until(&chords) {
                 Ok(x) => {
                     for chord in chords {
-                        write!(accum, "{} ", chord);
+                        let _ = write!(accum, "{} ", chord);
                     }
                     let v = search.value();
                     let msg = match x {
@@ -444,7 +444,7 @@ pub fn describe_key<E: Event + Clone + Display>(
                 }
                 Err(i) => {
                     for chord in chords.into_iter().take(i + 1) {
-                        write!(accum, "{} ", chord);
+                        let _ = write!(accum, "{} ", chord);
                     }
                     let msg = format!("{}is unbound", accum);
                     minibuffer.prompt(Message::new(msg)).await?;

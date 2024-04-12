@@ -9,7 +9,7 @@ use crate::{
     },
     task, ui,
 };
-use asky::bevy::{AskyPlugin, AskyPrompt};
+use asky::bevy::AskyPlugin;
 use bevy::{
     app::{PostUpdate, PreUpdate, Startup, Update},
     ecs::{

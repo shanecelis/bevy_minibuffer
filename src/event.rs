@@ -37,7 +37,7 @@ pub enum DispatchEvent {
     /// Send a look up event.
     LookUpEvent(LookUpEvent),
     /// Send a start act event.
-    StartActEvent(RunActEvent),
+    RunActEvent(RunActEvent),
 }
 
 impl From<LookUpEvent> for DispatchEvent {
@@ -47,7 +47,7 @@ impl From<LookUpEvent> for DispatchEvent {
 }
 impl From<RunActEvent> for DispatchEvent {
     fn from(e: RunActEvent) -> Self {
-        Self::StartActEvent(e)
+        Self::RunActEvent(e)
     }
 }
 

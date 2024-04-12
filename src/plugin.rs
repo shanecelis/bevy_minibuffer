@@ -3,8 +3,9 @@ use crate::{
     event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent},
     lookup::AutoComplete,
     prompt::{
+        self,
         dispatch_events, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
-        look_up_events, show, CompletionState, PromptState, get_key_chords
+        look_up_events, show, CompletionState, PromptState, get_key_chords, MinibufferState,
     },
     task, ui,
 };
@@ -74,7 +75,8 @@ impl bevy::app::Plugin for MinibufferPlugin {
         }
         app
             .add_plugins(AskyPlugin)
-            .add_key_sequence_event_run_if::<RunActEvent, _>(in_state(AskyPrompt::Inactive))
+            .add_key_sequence_event_run_if::<RunActEvent, _>(in_state(MinibufferState::Inactive))
+            .init_state::<MinibufferState>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .insert_resource(self.config.clone())
@@ -85,7 +87,8 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_crossbeam_event::<DispatchEvent>()
             .add_event::<LookUpEvent>()
             .add_systems(Startup,    ui::spawn_layout)
-            .add_systems(PreUpdate,  run_acts)
+            .add_systems(PreUpdate,  (run_acts,
+                                     prompt::set_minibuffer_state))
             .add_systems(Update,     hide_prompt_maybe)
             .add_systems(Update,     act::detect_additions::<RunActEvent>)
             .add_systems(Update,     task::poll_event_tasks::<RunActEvent>)

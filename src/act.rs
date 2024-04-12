@@ -413,22 +413,39 @@ pub fn describe_key<E: Event + Clone>(
     mut cache: ResMut<InputSequenceCache<E, KeyChord>>,
     mut minibuffer: Minibuffer,
 ) -> impl Future<Output = Result<(), crate::Error>> {
+    use trie_rs::inc_search::Answer;
     let trie: Trie<_, _> = cache.trie(keyseqs.iter())
                                 .clone();
     async move {
         let mut search = trie.inc_search();
-        let mut accum = Vec::new();
+        let mut accum = String::new();
+
         loop {
             let chords = minibuffer.get_chord().await?;
             info!("chords {:?}", &chords);
             match search.query_until(&chords) {
-                Ok(_) => {
-                    accum.extend(chords);
-                    minibuffer.prompt(Message::new(format!("Key binding: {:?} exists", accum))).await?;
+                Ok(x) => {
+                    for chord in chords {
+                        write!(accum, "{} ", chord);
+                    }
+                    let msg = match x {
+                        Answer::Match =>
+                            format!("{}is bound", accum),
+                        Answer::PrefixAndMatch =>
+                            format!("{}is bound but not terminal", accum),
+                        Answer::Prefix => accum.clone()
+                    };
+                    minibuffer.prompt(Message::new(msg)).await?;
+                    if matches!(x, Answer::Match) {
+                        break;
+                    }
                 }
                 Err(i) => {
-                    accum.extend(chords.into_iter().take(i));
-                    minibuffer.prompt(Message::new(format!("No such key binding: {:?}", accum))).await?;
+                    for chord in chords.into_iter().take(i + 1) {
+                        write!(accum, "{} ", chord);
+                    }
+                    let msg = format!("{}is unbound", accum);
+                    minibuffer.prompt(Message::new(msg)).await?;
                     break;
                 }
             }

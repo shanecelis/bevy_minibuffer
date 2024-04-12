@@ -5,11 +5,18 @@ use crate::{
     ui::{completion_item, ScrollingList},
     Config,
 };
-use bevy_input_sequence::{Modifiers, KeyChord};
-use asky::bevy::AskyPrompt;
+use asky::bevy::{AskyPrompt, AskyState, AskyDelay};
 use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
-use promise_out::{Promise, pair::Producer};
+use bevy_input_sequence::{KeyChord, Modifiers};
+use promise_out::{pair::Producer, Promise};
 use std::fmt::Debug;
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
+pub enum MinibufferState {
+    #[default]
+    Inactive,
+    Active,
+}
 
 /// The state of the minibuffer
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
@@ -63,6 +70,27 @@ pub fn show<T: Component>(
     }
 }
 
+/// Check components to determine whether a MinibufferState state needs to
+/// change.
+pub(crate) fn set_minibuffer_state(
+    query: Query<&AskyState>,
+    delays: Query<&AskyDelay>,
+    key_chords: Query<&GetKeyChord>,
+    mut next_minibuffer_state: ResMut<NextState<MinibufferState>>,
+    mut redraw: EventWriter<RequestRedraw>,
+) {
+    let is_active = query.iter().filter(|x| matches!(*x, AskyState::Waiting)).next().is_some()
+        || key_chords.iter().next().is_some()
+        || delays.iter().next().is_some();
+
+    next_minibuffer_state.set(if is_active { MinibufferState::Active } else { MinibufferState::Inactive });
+}
+
+pub fn is_modifier(key: KeyCode) -> bool {
+    let mods = Modifiers::from(key);
+    !mods.is_empty()
+}
+
 pub(crate) fn get_key_chords(
     mut query: Query<(Entity, &mut GetKeyChord)>,
     keys: Res<ButtonInput<KeyCode>>,
@@ -70,13 +98,13 @@ pub(crate) fn get_key_chords(
 ) {
     let mut chords = None;
     for (id, mut get_key_chord) in query.iter_mut() {
-        let chords: &mut Vec<KeyChord> = chords.get_or_insert_with(
-            || {
-                let mods = Modifiers::from_input(&keys);
-                keys.get_just_pressed()
-                    .map(move |key| KeyChord(mods, *key))
-                    .collect()
-            });
+        let chords: &mut Vec<KeyChord> = chords.get_or_insert_with(|| {
+            let mods = Modifiers::from_input(&keys);
+            keys.get_just_pressed()
+                .filter(|key| ! is_modifier(**key))
+                .map(move |key| KeyChord(mods, *key))
+                .collect()
+        });
         if !chords.is_empty() {
             if let Some(promise) = get_key_chord.0.take() {
                 promise.resolve(chords.clone());
@@ -185,7 +213,7 @@ pub(crate) fn dispatch_events(
             LookUpEvent(l) => {
                 look_up_events.send(l.clone());
             }
-            StartActEvent(s) => {
+            RunActEvent(s) => {
                 request_act_events.send(s.clone());
             }
         }

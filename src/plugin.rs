@@ -62,6 +62,9 @@ pub enum Error {
     /// An [asky] error
     #[error("asky {0}")]
     Asky(#[from] asky::Error),
+    /// An async error
+    #[error("async error {0}")]
+    Async(#[from] bevy_defer::AsyncFailure),
 }
 
 #[rustfmt::skip]

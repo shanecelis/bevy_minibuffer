@@ -333,20 +333,28 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
     let mut acts: Vec<_> = acts.iter().collect();
     acts.sort_by(|a, b| a.name().cmp(b.name()));
     for act in &acts {
-        let bindings = act.hotkeys.iter().map(|chords| {
-            chords.iter().fold(String::new(), |mut output, chord| {
-                let _ = write!(output, "{} ", chord);
-                output
-            })
-        });
         let mut name = Some(act.name());
-
-        for binding in bindings {
+        if act.hotkeys.is_empty() {
             table.add_row(
                 Row::new()
                     .with_cell(name.take().unwrap_or(""))
-                    .with_cell(binding),
+                    .with_cell(""),
             );
+        } else {
+            let bindings = act.hotkeys.iter().map(|chords| {
+                chords.iter().fold(String::new(), |mut output, chord| {
+                    let _ = write!(output, "{} ", chord);
+                    output
+                })
+            });
+
+            for binding in bindings {
+                table.add_row(
+                    Row::new()
+                        .with_cell(name.take().unwrap_or(""))
+                        .with_cell(binding),
+                );
+            }
         }
     }
     let msg = format!("{}", table);

@@ -17,8 +17,8 @@ impl bevy::app::Plugin for VideoCaptureSettings {
         }))
         .add_plugins(MinibufferPlugin {
             config: Config {
-                auto_hide: true,
-                // auto_hide: false,
+                // auto_hide: true,
+                auto_hide: false,
                 hide_delay: Some(5000),
                 text_style: TextStyle {
                     font_size: 20.0,

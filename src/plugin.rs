@@ -7,10 +7,10 @@ use crate::{
         dispatch_events, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
         look_up_events, show, CompletionState, PromptState, get_key_chords, MinibufferState,
     },
-    task, ui,
+    ui,
 };
 use bevy_defer::{AsyncPlugin};
-use asky::bevy::{AskyPlugin, AskyPrompt};
+use asky::bevy::{AskyPlugin};
 use bevy::{
     app::{PostUpdate, PreUpdate, Startup, Update},
     ecs::{
@@ -75,7 +75,6 @@ impl bevy::app::Plugin for MinibufferPlugin {
             type_registry.register::<Config>();
         }
         app
-            .add_plugins(AsyncPlugin::default_settings())
             .add_plugins(AskyPlugin)
             .add_key_sequence_event_run_if::<RunActEvent, _>(in_state(MinibufferState::Inactive))
             .init_state::<MinibufferState>()
@@ -93,12 +92,10 @@ impl bevy::app::Plugin for MinibufferPlugin {
                                      prompt::set_minibuffer_state))
             .add_systems(Update,     hide_prompt_maybe)
             .add_systems(Update,     act::detect_additions::<RunActEvent>)
-            .add_systems(Update,     task::poll_event_tasks::<RunActEvent>)
             .add_systems(Update,     listen_prompt_active)
             .add_systems(Update,     get_key_chords)
             .add_systems(Update,     asky::bevy::asky_system::<AutoComplete<asky::Text>>)
             .add_systems(PostUpdate, (dispatch_events, look_up_events).chain())
-            .add_systems(PostUpdate, task::poll_tasks_err::<(), Error>)
             // .add_systems(Update,    mouse_scroll)
             .add_systems(OnEnter(PromptState::Finished),    hide_delayed::<ui::PromptContainer>)
             .add_systems(OnEnter(PromptState::Visible),     show::<ui::PromptContainer>)

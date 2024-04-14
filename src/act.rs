@@ -16,6 +16,7 @@ use std::{
 };
 use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
+use bevy_defer::world;
 
 bitflags! {
     /// Act flags
@@ -272,7 +273,7 @@ pub(crate) fn detect_additions<E>(
 pub fn exec_act(
     mut asky: Minibuffer,
     acts: Query<&Act>,
-) -> impl Future<Output = Option<RunActEvent>> {
+) -> impl Future<Output = ()> {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
@@ -285,7 +286,9 @@ pub fn exec_act(
             // TODO: Get rid of clone.
             Ok(act_name) => match acts.resolve(&act_name) {
                 Ok(act) => match act.system_id {
-                    Some(_system_id) => Some(RunActEvent(act)),
+                    Some(_system_id) => {
+                        world().send_event(RunActEvent(act)).await;
+                    },
                     None => {
                         let _ = asky
                             .prompt(Message::new(format!(
@@ -293,7 +296,6 @@ pub fn exec_act(
                                 act
                             )))
                             .await;
-                        None
                     }
                 },
                 Err(e) => {
@@ -303,12 +305,10 @@ pub fn exec_act(
                             act_name, e
                         )))
                         .await;
-                    None
                 }
             },
             Err(e) => {
                 let _ = asky.prompt(Message::new(format!("Error: {e}"))).await;
-                None
             }
         }
     }

@@ -12,13 +12,13 @@ trie-rs = { git = "https://github.com/shanecelis/trie-rs.git", branch = "dev" }
 colored = { version = "2.0.0", features = [ "no-color" ] }
 bevy-input-sequence = { git = "https://github.com/shanecelis/bevy-input-sequence.git", branch = "dev" }
 keyseq = { version = "0.2.3", features = [ "bevy" ]}
-asky = { git = "https://github.com/shanecelis/asky.git", branch = "bevy", default-features = false, features = ["bevy"] }
-# asky = { default-features = false, features = ["bevy"], path = "../asky" }
+# asky = { git = "https://github.com/shanecelis/asky.git", branch = "bevy", default-features = false, features = ["bevy"] }
+asky = { default-features = false, features = ["bevy"], path = "../asky" }
 text-style = { git = "https://github.com/shanecelis/text_style.git", branch = "feature/colored", features = [ "crossterm", "bevy" ] }
 bevy_crossbeam_event = "0.5.0"
 tabular = "0.2.0"
 thiserror = "1.0.58"
-bevy_defer = "0.8.4"
+bevy_defer = { version = "0.9.1" }
 
 [dev-dependencies]
 bevy-inspector-egui = "0.23.4"

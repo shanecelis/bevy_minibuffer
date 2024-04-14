@@ -5,7 +5,8 @@ use crate::{
     ui::{completion_item, ScrollingList},
     Config,
 };
-use asky::bevy::{AskyState, AskyDelay};
+// use asky::bevy::{AskyState, AskyDelay};
+use asky::bevy::{AskyState};
 use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
 use bevy_input_sequence::{KeyChord, Modifiers};
 use promise_out::{pair::Producer, Promise};
@@ -74,13 +75,14 @@ pub fn show<T: Component>(
 /// change.
 pub(crate) fn set_minibuffer_state(
     query: Query<&AskyState>,
-    delays: Query<&AskyDelay>,
+    // delays: Query<&AskyDelay>,
     key_chords: Query<&GetKeyChord>,
     mut next_minibuffer_state: ResMut<NextState<MinibufferState>>,
 ) {
     let is_active = query.iter().any(|x| matches!(x, AskyState::Waiting))
         || key_chords.iter().next().is_some()
-        || delays.iter().next().is_some();
+        // || delays.iter().next().is_some()
+        ;
 
     next_minibuffer_state.set(if is_active { MinibufferState::Active } else { MinibufferState::Inactive });
 }

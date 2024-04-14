@@ -22,7 +22,7 @@ async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {
 // Ask the user for their age.
 async fn ask_age(mut asky: Minibuffer) -> Result<(), Error> {
     let age = asky.prompt(Number::<u8>::new("What's your age?")).await?;
-    asky.delay(Duration::from_secs(2)).await?;
+    asky.delay(Duration::from_secs(2)).await;
     asky.prompt(Message::new(format!("You are {age} years old.")))
         .await?;
     Ok(())

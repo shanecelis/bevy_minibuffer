@@ -24,6 +24,7 @@ use bevy_input_sequence::KeyChord;
 use bevy_crossbeam_event::CrossbeamEventSender;
 use promise_out::{Promise, pair::Producer};
 use std::future::Future;
+use bevy_defer::world;
 
 /// Minibuffer, a [SystemParam]
 #[derive(Clone)]
@@ -125,25 +126,21 @@ impl Minibuffer {
     }
 
     /// Clear the minibuffer.
-    pub fn clear(&mut self) -> impl Future<Output = Result<(), asky::Error>> {
+    pub fn clear(&mut self) -> impl Future<Output = ()> {
         self.asky.clear(self.dest)
     }
 
     /// Wait a certain duration.
-    pub fn delay(&mut self, duration: Duration) -> impl Future<Output = Result<(), asky::Error>> {
+    pub fn delay(&mut self, duration: Duration) -> impl Future<Output = ()> {
         self.asky.delay(duration)
     }
 
     pub fn get_chord(&mut self) -> impl Future<Output = Result<Vec<KeyChord>, asky::Error>> {
-        let (promise, waiter) = Producer::<Vec<KeyChord>, asky::Error>::new();
-        self.asky.run(
-            move |commands: &mut Commands,
-            _entity: Option<Entity>,
-            _children: Option<&Children>| {
-                commands.spawn(GetKeyChord::new(promise));
-                Ok(())
-            },
-            None);
-        waiter
+        async {
+            let (promise, waiter) = Producer::<Vec<KeyChord>, asky::Error>::new();
+            let world = world();
+            world.spawn_bundle(GetKeyChord::new(promise)).await;
+            waiter.await
+        }
     }
 }

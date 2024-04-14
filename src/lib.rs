@@ -7,7 +7,6 @@ mod param;
 mod plugin;
 pub mod prompt;
 mod style;
-pub mod task;
 pub mod ui;
 pub use param::Minibuffer;
 pub use plugin::Config;

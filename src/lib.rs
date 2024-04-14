@@ -29,8 +29,8 @@ pub mod prelude {
     pub use super::act::{self, Act, AddAct};
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, Modifiers};
+    pub use super::Builtin;
     pub use super::Config;
     pub use super::{Error, Minibuffer, MinibufferPlugin};
     pub use asky::bevy::future_sink;
-    pub use super::Builtin;
 }

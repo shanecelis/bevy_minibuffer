@@ -1,12 +1,13 @@
 //! Illustrates how to interact with an object with minibuffer.
 
+use asky::Number;
 use bevy::prelude::*;
+use bevy_defer::{world, AsyncAccess};
 use bevy_minibuffer::prelude::*;
 use std::f32::consts::TAU;
 use std::future::Future;
-use asky::Number;
-use bevy_defer::{AsyncAccess, world};
-#[path = "common/lib.rs"] mod common;
+#[path = "common/lib.rs"]
+mod common;
 
 // Define a component to designate a rotation speed to an entity.
 #[derive(Component)]
@@ -24,15 +25,9 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Startup, add_builtins)
         .add_systems(Update, rotate_cube)
-        .add_act(Act::new()
-                 .named("stop"),
-                 stop)
-        .add_act(Act::new()
-                 .named("start"),
-                 start)
-        .add_act(Act::new()
-                 .named("speed"),
-                 speed.pipe(future_sink))
+        .add_act(Act::new().named("stop"), stop)
+        .add_act(Act::new().named("start"), start)
+        .add_act(Act::new().named("speed"), speed.pipe(future_sink))
         .run();
 }
 
@@ -61,14 +56,19 @@ fn start(mut query: Query<&mut Rotatable>) {
 }
 
 /// Set the speed of the spinning cube.
-fn speed(mut minibuffer: Minibuffer, query: Query<Entity, With<Rotatable>>) -> impl Future<Output = Result<(), Error>> {
+fn speed(
+    mut minibuffer: Minibuffer,
+    query: Query<Entity, With<Rotatable>>,
+) -> impl Future<Output = Result<(), Error>> {
     let id = query.single();
     async move {
         let speed = minibuffer.prompt(Number::new("speed:")).await?;
         let world = world();
-        world.entity(id)
-             .component::<Rotatable>()
-            .set(move |r| r.speed = speed).await?;
+        world
+            .entity(id)
+            .component::<Rotatable>()
+            .set(move |r| r.speed = speed)
+            .await?;
         Ok(())
     }
 }

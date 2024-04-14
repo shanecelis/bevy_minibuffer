@@ -6,7 +6,7 @@ use crate::{
     Config,
 };
 // use asky::bevy::{AskyState, AskyDelay};
-use asky::bevy::{AskyState};
+use asky::bevy::AskyState;
 use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
 use bevy_input_sequence::{KeyChord, Modifiers};
 use promise_out::{pair::Producer, Promise};
@@ -84,7 +84,11 @@ pub(crate) fn set_minibuffer_state(
         // || delays.iter().next().is_some()
         ;
 
-    next_minibuffer_state.set(if is_active { MinibufferState::Active } else { MinibufferState::Inactive });
+    next_minibuffer_state.set(if is_active {
+        MinibufferState::Active
+    } else {
+        MinibufferState::Inactive
+    });
 }
 
 pub fn is_modifier(key: KeyCode) -> bool {
@@ -102,7 +106,7 @@ pub(crate) fn get_key_chords(
         let chords: &mut Vec<KeyChord> = chords.get_or_insert_with(|| {
             let mods = Modifiers::from_input(&keys);
             keys.get_just_pressed()
-                .filter(|key| ! is_modifier(**key))
+                .filter(|key| !is_modifier(**key))
                 .map(move |key| KeyChord(mods, *key))
                 .collect()
         });

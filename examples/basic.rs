@@ -1,10 +1,11 @@
-use std::time::Duration;
 use asky::{Message, Number};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
 use bevy_minibuffer::act::*;
 use bevy_minibuffer::prelude::*;
-#[path = "common/lib.rs"] mod common;
+use std::time::Duration;
+#[path = "common/lib.rs"]
+mod common;
 
 /// Ask the user for their name. Say hello.
 async fn ask_name(mut asky: Minibuffer) -> Result<(), Error> {
@@ -41,7 +42,7 @@ fn add_acts_with_mutable_world(world: &mut World) {
 /// Add acts using [Commands] with [AddAct].
 fn add_acts(mut commands: Commands) {
     commands.add_act(
-        Act::new().named("ask_age").hotkey(keyseq!{ ctrl-A A }),
+        Act::new().named("ask_age").hotkey(keyseq! { ctrl-A A }),
         ask_age.pipe(future_sink),
     );
 }
@@ -54,7 +55,7 @@ fn main() {
         .add_plugins(common::VideoCaptureSettings {
             title: "Bevy Minibuffer Basic Example".into(),
         })
-    // Add acts directly to an app via [AddAct].
+        // Add acts directly to an app via [AddAct].
         .add_act(
             Act::new()
                 .named("exec_act")
@@ -73,7 +74,6 @@ fn main() {
                 .hotkey(keyseq! { ctrl-H B }),
             list_key_bindings::<RunActEvent>.pipe(future_sink),
         )
-
         .add_act(
             Act::new()
                 .named("describe_key")

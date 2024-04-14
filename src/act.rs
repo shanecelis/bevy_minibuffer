@@ -7,7 +7,8 @@ use crate::{
 };
 use asky::Message;
 use bevy::{ecs::system::SystemId, prelude::*, window::RequestRedraw};
-use bevy_input_sequence::{KeyChord, KeySequence, InputSequenceCache};
+use bevy_defer::world;
+use bevy_input_sequence::{InputSequenceCache, KeyChord, KeySequence};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
@@ -16,7 +17,6 @@ use std::{
 };
 use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
-use bevy_defer::world;
 
 bitflags! {
     /// Act flags
@@ -79,10 +79,14 @@ impl Act {
     }
 
     pub fn register<S, P>(mut self, system: S, world: &mut World) -> Self
-    where S: IntoSystem<(), (), P> + 'static,
+    where
+        S: IntoSystem<(), (), P> + 'static,
     {
         if self.system_id.is_some() {
-            panic!("cannot register act {}; it has already been registered", self.name());
+            panic!(
+                "cannot register act {}; it has already been registered",
+                self.name()
+            );
         }
         let system = IntoSystem::into_system(system);
         let system_id = world.register_system(system);
@@ -272,20 +276,14 @@ pub(crate) fn detect_additions<E>(
     for (id, act) in &query {
         commands.entity(id).with_children(|builder| {
             for hotkey in &act.hotkeys {
-                builder.spawn(KeySequence::new(
-                    RunActEvent(act.clone()),
-                    hotkey.clone(),
-                ));
+                builder.spawn(KeySequence::new(RunActEvent(act.clone()), hotkey.clone()));
             }
         });
     }
 }
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
-pub fn exec_act(
-    mut asky: Minibuffer,
-    acts: Query<&Act>,
-) -> impl Future<Output = ()> {
+pub fn exec_act(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output = ()> {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
@@ -300,7 +298,7 @@ pub fn exec_act(
                 Ok(act) => match act.system_id {
                     Some(_system_id) => {
                         world().send_event(RunActEvent(act)).await;
-                    },
+                    }
                     None => {
                         let _ = asky
                             .prompt(Message::new(format!(
@@ -435,8 +433,7 @@ pub fn describe_key<E: Event + Clone + Display>(
     mut minibuffer: Minibuffer,
 ) -> impl Future<Output = Result<(), crate::Error>> {
     use trie_rs::inc_search::Answer;
-    let trie: Trie<_, _> = cache.trie(keyseqs.iter())
-                                .clone();
+    let trie: Trie<_, _> = cache.trie(keyseqs.iter()).clone();
     async move {
         let mut search = trie.inc_search();
         let mut accum = String::from("Press key: ");
@@ -451,11 +448,11 @@ pub fn describe_key<E: Event + Clone + Display>(
                     }
                     let v = search.value();
                     let msg = match x {
-                        Answer::Match =>
-                            format!("{}is bound to {}", accum, v.unwrap().event),
-                        Answer::PrefixAndMatch =>
-                            format!("{}is bound to {} and more", accum, v.unwrap().event),
-                        Answer::Prefix => accum.clone()
+                        Answer::Match => format!("{}is bound to {}", accum, v.unwrap().event),
+                        Answer::PrefixAndMatch => {
+                            format!("{}is bound to {} and more", accum, v.unwrap().event)
+                        }
+                        Answer::Prefix => accum.clone(),
                     };
                     minibuffer.prompt(Message::new(msg)).await?;
                     if matches!(x, Answer::Match) {

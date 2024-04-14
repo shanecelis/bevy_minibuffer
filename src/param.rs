@@ -1,9 +1,9 @@
 use crate::{
     event::DispatchEvent,
     lookup::{AutoComplete, LookUp},
+    prompt::GetKeyChord,
     ui::PromptContainer,
     MinibufferStyle,
-    prompt::GetKeyChord,
 };
 use asky::{
     bevy::{Asky, AskyStyle, KeyEvent},
@@ -14,17 +14,17 @@ use bevy::{
         component,
         entity::Entity,
         query::With,
-        system::{Query, Res, SystemMeta, SystemParam, SystemState, Commands},
+        system::{Commands, Query, Res, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
     hierarchy::Children,
     utils::Duration,
 };
-use bevy_input_sequence::KeyChord;
 use bevy_crossbeam_event::CrossbeamEventSender;
-use promise_out::{Promise, pair::Producer};
-use std::future::Future;
 use bevy_defer::world;
+use bevy_input_sequence::KeyChord;
+use promise_out::{pair::Producer, Promise};
+use std::future::Future;
 
 /// Minibuffer, a [SystemParam]
 #[derive(Clone)]

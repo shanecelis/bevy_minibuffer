@@ -3,14 +3,12 @@ use crate::{
     event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent},
     lookup::AutoComplete,
     prompt::{
-        self,
-        dispatch_events, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
-        look_up_events, show, CompletionState, PromptState, get_key_chords, MinibufferState,
+        self, dispatch_events, get_key_chords, hide, hide_delayed, hide_prompt_maybe,
+        listen_prompt_active, look_up_events, show, CompletionState, MinibufferState, PromptState,
     },
     ui,
 };
-use bevy_defer::{AsyncPlugin};
-use asky::bevy::{AskyPlugin};
+use asky::bevy::AskyPlugin;
 use bevy::{
     app::{PostUpdate, PreUpdate, Startup, Update},
     ecs::{
@@ -24,6 +22,7 @@ use bevy::{
     utils::default,
 };
 use bevy_crossbeam_event::CrossbeamEventApp;
+use bevy_defer::AsyncPlugin;
 use bevy_input_sequence::AddInputSequenceEvent;
 use std::borrow::Cow;
 

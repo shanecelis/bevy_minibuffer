@@ -1,10 +1,10 @@
-use std::fmt::Display;
-use asky::bevy::future_sink;
 use crate::{
+    act,
     prelude::{keyseq, Act, RunActEvent},
-    act
 };
-use bevy::ecs::{event::Event, world::World, system::IntoSystem};
+use asky::bevy::future_sink;
+use bevy::ecs::{event::Event, system::IntoSystem, world::World};
+use std::fmt::Display;
 
 /// Construct builtin acts
 pub struct Builtin<'w> {
@@ -17,12 +17,12 @@ impl<'w> Builtin<'w> {
     }
 
     pub fn exec_act(&mut self) -> Act {
-            Act::new()
-                .named("exec_act")
-                .hotkey(keyseq! { shift-; })
-                .hotkey(keyseq! { alt-X })
-                .in_exec_act(false)
-                .register(act::exec_act.pipe(future_sink), self.world)
+        Act::new()
+            .named("exec_act")
+            .hotkey(keyseq! { shift-; })
+            .hotkey(keyseq! { alt-X })
+            .in_exec_act(false)
+            .register(act::exec_act.pipe(future_sink), self.world)
     }
 
     pub fn list_acts(&mut self) -> Act {

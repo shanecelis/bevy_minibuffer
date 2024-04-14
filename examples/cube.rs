@@ -17,17 +17,18 @@ struct Rotatable {
 
 fn main() {
     App::new()
-        // .add_plugins(DefaultPlugins)
-        // .add_plugins(MinibufferPlugin::default())
+        // VideoCaptureSettings sets up minibuffer and default plugins.
         .add_plugins(common::VideoCaptureSettings {
             title: "Bevy Minibuffer Cube Example".into(),
         })
+        // .add_plugins(DefaultPlugins)
+        // .add_plugins(MinibufferPlugin::default())
         .add_systems(Startup, setup)
         .add_systems(Startup, add_builtins)
         .add_systems(Update, rotate_cube)
         .add_act(Act::new().named("stop"), stop)
         .add_act(Act::new().named("start"), start)
-        .add_act(Act::new().named("speed"), speed.pipe(future_sink))
+        .add_act(Act::new().named("speed"), speed.pipe(future_result_sink))
         .run();
 }
 
@@ -43,16 +44,16 @@ fn add_builtins(world: &mut World) {
     }
 }
 
-/// Stop the cube spinning.
-fn stop(mut query: Query<&mut Rotatable>) {
-    let mut r = query.single_mut();
-    r.speed = 0.0;
-}
-
 /// Start the cube spinning.
 fn start(mut query: Query<&mut Rotatable>) {
     let mut r = query.single_mut();
     r.speed = 0.3;
+}
+
+/// Stop the cube spinning.
+fn stop(mut query: Query<&mut Rotatable>) {
+    let mut r = query.single_mut();
+    r.speed = 0.0;
 }
 
 /// Set the speed of the spinning cube.

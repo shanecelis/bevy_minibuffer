@@ -78,6 +78,18 @@ impl Act {
         }
     }
 
+    pub fn register<S, P>(mut self, system: S, world: &mut World) -> Self
+    where S: IntoSystem<(), (), P> + 'static,
+    {
+        if self.system_id.is_some() {
+            panic!("cannot register act {}; it has already been registered", self.name());
+        }
+        let system = IntoSystem::into_system(system);
+        let system_id = world.register_system(system);
+        self.system_id = Some(system_id);
+        self
+    }
+
     /// Name the act.
     pub fn named(mut self, name: impl Into<Cow<'static, str>>) -> Self {
         self.name = Some(name.into());

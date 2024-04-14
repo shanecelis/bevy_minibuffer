@@ -13,6 +13,8 @@ pub use plugin::Config;
 pub use plugin::Error;
 pub use plugin::MinibufferPlugin;
 pub use style::MinibufferStyle;
+mod builtin;
+pub use builtin::Builtin;
 
 /// Input, mainly re-exports from [keyseq].
 pub mod input {
@@ -30,4 +32,5 @@ pub mod prelude {
     pub use super::Config;
     pub use super::{Error, Minibuffer, MinibufferPlugin};
     pub use asky::bevy::future_sink;
+    pub use super::Builtin;
 }

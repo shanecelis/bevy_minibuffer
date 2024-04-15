@@ -283,7 +283,7 @@ pub(crate) fn detect_additions<E>(
 }
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
-pub fn exec_act(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output = ()> {
+pub fn exec_act(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output = Result<(), crate::Error>> {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
@@ -297,30 +297,31 @@ pub fn exec_act(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output =
             Ok(act_name) => match acts.resolve(&act_name) {
                 Ok(act) => match act.system_id {
                     Some(_system_id) => {
-                        world().send_event(RunActEvent(act)).await;
+                        world().send_event(RunActEvent(act)).await?;
                     }
                     None => {
-                        let _ = asky
+                        asky
                             .prompt(Message::new(format!(
                                 "Error: No system_id for act {:?}; was it registered?",
                                 act
                             )))
-                            .await;
+                            .await?;
                     }
                 },
                 Err(e) => {
-                    let _ = asky
+                    asky
                         .prompt(Message::new(format!(
                             "Error: Could not resolve act named {:?}: {}",
                             act_name, e
                         )))
-                        .await;
+                        .await?;
                 }
             },
             Err(e) => {
-                let _ = asky.prompt(Message::new(format!("Error: {e}"))).await;
+                asky.prompt(Message::new(format!("Error: {e}"))).await?;
             }
         }
+        Ok(())
     }
 }
 

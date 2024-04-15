@@ -14,10 +14,9 @@ use bevy::{
         component,
         entity::Entity,
         query::With,
-        system::{Commands, Query, Res, SystemMeta, SystemParam, SystemState},
+        system::{Query, Res, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    hierarchy::Children,
     utils::Duration,
 };
 use bevy_crossbeam_event::CrossbeamEventSender;

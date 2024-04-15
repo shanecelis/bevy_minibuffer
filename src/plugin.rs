@@ -22,7 +22,6 @@ use bevy::{
     utils::default,
 };
 use bevy_crossbeam_event::CrossbeamEventApp;
-use bevy_defer::AsyncPlugin;
 use bevy_input_sequence::AddInputSequenceEvent;
 use std::borrow::Cow;
 

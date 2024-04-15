@@ -38,11 +38,11 @@ fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
     commands.add_act(
         Act::new().named("ask_name").hotkey(keyseq!(ctrl-A N)),
-        ask_name.pipe(future_sink),
+        ask_name.pipe(future_result_sink),
     );
     commands.add_act(
         Act::new().named("ask_age").hotkey(keyseq!(ctrl-A A)),
-        ask_age.pipe(future_sink),
+        ask_age.pipe(future_result_sink),
     );
 
     // Add a builtin act.
@@ -53,6 +53,6 @@ fn setup(mut commands: Commands) {
             .hotkey(keyseq!(alt - X)) // For Emacsers a `M-x` key binding
             .in_exec_act(false), // Don't show "exec_act" in its list
         // of acts.
-        act::exec_act.pipe(future_sink),
+        act::exec_act.pipe(future_result_sink),
     );
 }

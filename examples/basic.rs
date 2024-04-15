@@ -31,11 +31,11 @@ async fn ask_age(mut asky: Minibuffer) -> Result<(), Error> {
 
 /// Example of adding acts with an exclusive world system.
 fn add_acts_with_mutable_world(world: &mut World) {
-    let system_id = world.register_system(ask_name.pipe(future_sink));
+    let system_id = world.register_system(ask_name.pipe(future_result_sink));
     world.spawn(
         Act::preregistered(system_id)
             .named("ask_name")
-            .hotkey(keyseq!(1)),
+            .hotkey(keyseq!(ctrl-A N)),
     );
 }
 
@@ -43,7 +43,7 @@ fn add_acts_with_mutable_world(world: &mut World) {
 fn add_acts(mut commands: Commands) {
     commands.add_act(
         Act::new().named("ask_age").hotkey(keyseq! { ctrl-A A }),
-        ask_age.pipe(future_sink),
+        ask_age.pipe(future_result_sink),
     );
 }
 
@@ -56,34 +56,24 @@ fn main() {
             title: "Bevy Minibuffer Basic Example".into(),
         })
         // Add acts directly to an app via [AddAct].
-        .add_act(
-            Act::new()
-                .named("exec_act")
-                .hotkey(keyseq! { shift-; })
-                .hotkey(keyseq! { alt-X })
-                .in_exec_act(false),
-            exec_act.pipe(future_sink),
-        )
-        .add_act(
-            Act::new().named("list_acts").hotkey(keyseq! { ctrl-H A }),
-            list_acts.pipe(future_sink),
-        )
-        .add_act(
-            Act::new()
-                .named("list_key_bindings")
-                .hotkey(keyseq! { ctrl-H B }),
-            list_key_bindings::<RunActEvent>.pipe(future_sink),
-        )
-        .add_act(
-            Act::new()
-                .named("describe_key")
-                .hotkey(keyseq! { ctrl-H K }),
-            act::describe_key::<RunActEvent>.pipe(future_sink),
-        )
         .add_systems(Startup, setup)
+        .add_systems(Startup, add_builtins)
         .add_systems(Startup, add_acts)
         .add_systems(Startup, add_acts_with_mutable_world)
         .run();
+}
+
+/// Add builtin commands.
+fn add_builtins(world: &mut World) {
+    let mut builtin = Builtin::new(world);
+    for act in [
+        builtin.exec_act(),
+        builtin.list_acts(),
+        builtin.list_key_bindings(),
+        builtin.describe_key(),
+    ] {
+        world.spawn(act);
+    }
 }
 
 fn setup(mut commands: Commands) {

@@ -30,17 +30,17 @@ bitflags! {
 }
 
 /// Act, a command in `bevy_minibuffer`
-// #[derive(Debug, Clone, Component, Reflect)]
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Component, Reflect)]
+#[reflect(from_reflect = false)]
 pub struct Act {
-    pub(crate) name: Option<Cow<'static, str>>,
-    pub(crate) hotkeys: Vec<Vec<KeyChord>>,
-    // #[reflect(ignore)]
+    pub name: Cow<'static, str>,
+    pub hotkeys: Vec<Vec<KeyChord>>,
+    #[reflect(ignore)]
     pub(crate) system_id: SystemId,
     // #[reflect(ignore)]
     // pub(crate) system: Option<Box<System<In = (), Out = ()>>>,
     /// Flags for this act
-    // #[reflect(ignore)]
+    #[reflect(ignore)]
     pub flags: ActFlags,
 }
 
@@ -75,14 +75,14 @@ impl ActBuilder {
     pub fn build(mut self, world: &mut World) -> Act
     {
         Act {
-            name: self.name.or_else(|| {
+            name: self.name.unwrap_or_else(|| {
                 let n = self.system.name();
                 if let Some(start) = n.find('(') {
                     if let Some(end) = n.find(&[',', ' ', ')']) {
-                        return Some(n[start + 1..end].to_owned().into());
+                        return n[start + 1..end].to_owned().into();
                     }
                 }
-                Some(n)
+                n
             }),
             hotkeys: self.hotkeys,
             flags: self.flags,
@@ -114,35 +114,16 @@ impl ActBuilder {
 }
 
 impl Act {
-    /// The name of anonymous acts
-    pub const ANONYMOUS: Cow<'static, str> = Cow::Borrowed("*anonymous*");
-
-    /// Create a new [Act].
+    /// Create a new [ActBuilder].
     pub fn new<S, P>(system: S) -> ActBuilder
     where
         S: IntoSystem<(), (), P> + 'static {
         ActBuilder::new(system)
     }
 
-    // pub fn register<S, P>(mut self, system: S, world: &mut World) -> Self
-    // where
-    //     S: IntoSystem<(), (), P> + 'static,
-    // {
-    //     if self.system_id.is_some() {
-    //         panic!(
-    //             "cannot register act {}; it has already been registered",
-    //             self.name()
-    //         );
-    //     }
-    //     let system = IntoSystem::into_system(system);
-    //     let system_id = world.register_system(system);
-    //     self.system_id = Some(system_id);
-    //     self
-    // }
-
     /// Return the name of this act or [Self::ANONYMOUS].
     pub fn name(&self) -> &str {
-        self.name.as_ref().unwrap_or(&Self::ANONYMOUS)
+        &self.name
     }
 }
 
@@ -157,11 +138,7 @@ impl Resolve for Vec<Act> {
     fn resolve(&self, input: &str) -> Result<Act, LookUpError> {
         let mut matches = self.iter().filter(|command| {
             command.flags.contains(ActFlags::ExecAct | ActFlags::Active)
-                && command
-                    .name
-                    .as_ref()
-                    .map(|name| name.starts_with(input))
-                    .unwrap_or(false)
+                && command.name.starts_with(input)
         });
         // Collecting and matching is nice expressively. But manually iterating
         // avoids that allocation.
@@ -190,44 +167,6 @@ impl LookUp for Vec<Act> {
 
     fn longest_prefix(&self, _input: &str) -> Option<String> {
         None
-    }
-}
-
-// impl<T> From<T> for Act
-// where
-//     T: Into<Cow<'static, str>>,
-// {
-//     fn from(v: T) -> Self {
-//         Act {
-//             name: Some(v.into()),
-//             hotkeys: Vec::new(),
-//             system_id: None,
-//             flags: ActFlags::Active | ActFlags::ExecAct,
-//         }
-//     }
-// }
-
-/// Register a system to an act.
-///
-/// ```compile
-/// fn setup_act(act: Act, mut commands: Commands) {
-///     commands.spawn(Act)
-///         .add(Register(my_action));
-/// }
-///
-/// fn my_action(query: Query<&Transform>) {
-///
-/// }
-/// ```
-struct Register<S>(S);
-
-impl<S> Register<S> {
-    /// Create a new Register.
-    pub fn new<Into, Param>(system: Into) -> Self
-    where
-        Into: IntoSystem<(), (), Param, System = S> + 'static,
-    {
-        Self(IntoSystem::into_system(system))
     }
 }
 
@@ -267,16 +206,6 @@ impl AddAct for App {
         self
     }
 }
-
-// impl AddAct for Commands<'_, '_> {
-//     fn add_act(
-//         &mut self,
-//         act: ActBuilder,
-//     ) -> &mut Self {
-//         self.add(act);
-//         self
-//     }
-// }
 
 #[allow(clippy::type_complexity)]
 pub(crate) fn detect_additions<E>(

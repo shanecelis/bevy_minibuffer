@@ -35,14 +35,12 @@ impl Plugin for UniversalPlugin {
         app
             .init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg)
-            .add_act(Act::new()
+            .add_act(Act::new(universal_argument.pipe(future_sink))
                      .named("universal_argument")
-                     .hotkey(keyseq! { ctrl-U }),
-                     universal_argument.pipe(future_sink))
-            .add_act(Act::new()
+                     .hotkey(keyseq! { ctrl-U }))
+            .add_act(Act::new(check_accum.pipe(future_sink))
                      .named("check_accum")
-                     .hotkey(keyseq! { C A }),
-                     check_accum.pipe(future_sink));
+                     .hotkey(keyseq! { C A }));
     }
 }
 

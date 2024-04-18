@@ -60,6 +60,6 @@ impl From<RunActEvent> for DispatchEvent {
 /// Run act for any [RunActEvent].
 pub fn run_acts(mut events: EventReader<RunActEvent>, mut commands: Commands) {
     for e in events.read() {
-        commands.run_system(e.0.system_id.unwrap());
+        commands.run_system(e.0.system_id);
     }
 }

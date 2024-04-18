@@ -75,7 +75,15 @@ impl ActBuilder {
     pub fn build(mut self, world: &mut World) -> Act
     {
         Act {
-            name: self.name,
+            name: self.name.or_else(|| {
+                let n = self.system.name();
+                if let Some(start) = n.find('(') {
+                    if let Some(end) = n.find(&[',', ' ', ')']) {
+                        return Some(n[start + 1..end].to_owned().into());
+                    }
+                }
+                Some(n)
+            }),
             hotkeys: self.hotkeys,
             flags: self.flags,
             system_id: world.register_boxed_system(self.system),
@@ -114,16 +122,6 @@ impl Act {
     where
         S: IntoSystem<(), (), P> + 'static {
         ActBuilder::new(system)
-    }
-
-    /// Create a new [Act] registered with `system_id`.
-    pub fn preregistered(system_id: SystemId) -> Self {
-        Act {
-            name: None,
-            hotkeys: Vec::new(),
-            system_id: Some(system_id),
-            flags: ActFlags::Active | ActFlags::ExecAct,
-        }
     }
 
     // pub fn register<S, P>(mut self, system: S, world: &mut World) -> Self
@@ -195,19 +193,19 @@ impl LookUp for Vec<Act> {
     }
 }
 
-impl<T> From<T> for Act
-where
-    T: Into<Cow<'static, str>>,
-{
-    fn from(v: T) -> Self {
-        Act {
-            name: Some(v.into()),
-            hotkeys: Vec::new(),
-            system_id: None,
-            flags: ActFlags::Active | ActFlags::ExecAct,
-        }
-    }
-}
+// impl<T> From<T> for Act
+// where
+//     T: Into<Cow<'static, str>>,
+// {
+//     fn from(v: T) -> Self {
+//         Act {
+//             name: Some(v.into()),
+//             hotkeys: Vec::new(),
+//             system_id: None,
+//             flags: ActFlags::Active | ActFlags::ExecAct,
+//         }
+//     }
+// }
 
 /// Register a system to an act.
 ///
@@ -233,64 +231,52 @@ impl<S> Register<S> {
     }
 }
 
-impl<S> bevy::ecs::system::EntityCommand for Register<S>
-where
-    S: System<In = (), Out = ()> + Send + 'static,
+impl bevy::ecs::system::Command for ActBuilder
+{
+    fn apply(self, world: &mut World) {
+        let act = self.build(world);
+        world.spawn(act);
+    }
+}
+
+impl bevy::ecs::system::EntityCommand for ActBuilder
 {
     fn apply(self, id: Entity, world: &mut World) {
-        let system_id = world.register_system(self.0);
+        let act = self.build(world);
         let mut entity = world.get_entity_mut(id).unwrap();
-        let mut act = entity.get_mut::<Act>().unwrap();
-        if act.system_id.is_some() {
-            panic!("System already registered to act {:?}.", act);
-        } else {
-            act.system_id = Some(system_id);
-        }
+        entity.insert(act);
     }
 }
 
 /// Add an act extension trait
 pub trait AddAct {
     /// Add an act with the given system.
-    fn add_act<Params>(
+    fn add_act(
         &mut self,
-        act: impl Into<Act>,
-        system: impl IntoSystem<(), (), Params> + 'static,
+        act: ActBuilder,
     ) -> &mut Self;
 }
 
 impl AddAct for App {
-    fn add_act<Params>(
+    fn add_act(
         &mut self,
-        act: impl Into<Act>,
-        system: impl IntoSystem<(), (), Params> + 'static,
+        act: ActBuilder,
     ) -> &mut Self {
-        // Register the system.
-        let mut act = act.into();
-        if act.system_id.is_some() {
-            panic!(
-                "act '{}' already has a system_id; was it added before?",
-                act.name()
-            );
-        }
-        let system_id = self.world.register_system(system);
-        act.system_id = Some(system_id);
+        let act = act.build(&mut self.world);
         self.world.spawn(act);
-
         self
     }
 }
 
-impl AddAct for Commands<'_, '_> {
-    fn add_act<Params>(
-        &mut self,
-        act: impl Into<Act>,
-        system: impl IntoSystem<(), (), Params> + 'static,
-    ) -> &mut Self {
-        self.spawn(act.into()).add(Register::new(system));
-        self
-    }
-}
+// impl AddAct for Commands<'_, '_> {
+//     fn add_act(
+//         &mut self,
+//         act: ActBuilder,
+//     ) -> &mut Self {
+//         self.add(act);
+//         self
+//     }
+// }
 
 #[allow(clippy::type_complexity)]
 pub(crate) fn detect_additions<E>(

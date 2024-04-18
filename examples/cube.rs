@@ -23,25 +23,13 @@ fn main() {
         })
         // .add_plugins(DefaultPlugins)
         // .add_plugins(MinibufferPlugin::default())
+        .add_plugins(Builtin)
         .add_systems(Startup, setup)
-        .add_systems(Startup, add_builtins)
         .add_systems(Update, rotate_cube)
-        .add_act(Act::new().named("stop"), stop)
-        .add_act(Act::new().named("start"), start)
-        .add_act(Act::new().named("speed"), speed.pipe(future_result_sink))
+        .add_act(Act::new(stop))
+        .add_act(Act::new(start))
+        .add_act(Act::new(speed.pipe(future_result_sink)))
         .run();
-}
-
-/// Add builtin commands.
-fn add_builtins(world: &mut World) {
-    let mut builtin = Builtin::new(world);
-    for act in [
-        builtin.exec_act(),
-        builtin.list_acts(),
-        builtin.list_key_bindings(),
-    ] {
-        world.spawn(act);
-    }
 }
 
 /// Start the cube spinning.

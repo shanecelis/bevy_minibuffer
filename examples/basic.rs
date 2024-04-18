@@ -29,22 +29,9 @@ async fn ask_age(mut asky: Minibuffer) -> Result<(), Error> {
     Ok(())
 }
 
-/// Example of adding acts with an exclusive world system.
-fn add_acts_with_mutable_world(world: &mut World) {
-    let system_id = world.register_system(ask_name.pipe(future_result_sink));
-    world.spawn(
-        Act::preregistered(system_id)
-            .named("ask_name")
-            .hotkey(keyseq!(ctrl-A N)),
-    );
-}
-
 /// Add acts using [Commands] with [AddAct].
 fn add_acts(mut commands: Commands) {
-    commands.add_act(
-        Act::new().named("ask_age").hotkey(keyseq! { ctrl-A A }),
-        ask_age.pipe(future_result_sink),
-    );
+    commands.add(Act::new(ask_age.pipe(future_result_sink)).named("ask_age").hotkey(keyseq! { ctrl-A A }));
 }
 
 fn main() {
@@ -57,24 +44,13 @@ fn main() {
         })
         .add_plugins(UniversalPlugin)
         // Add acts directly to an app via [AddAct].
+        .add_plugins(Builtin)
         .add_systems(Startup, setup)
-        .add_systems(Startup, add_builtins)
         .add_systems(Startup, add_acts)
-        .add_systems(Startup, add_acts_with_mutable_world)
+        .add_act(Act::new(ask_name.pipe(future_result_sink))
+            .named("ask_name")
+            .hotkey(keyseq!(ctrl-A N)))
         .run();
-}
-
-/// Add builtin commands.
-fn add_builtins(world: &mut World) {
-    let mut builtin = Builtin::new(world);
-    for act in [
-        builtin.exec_act(),
-        builtin.list_acts(),
-        builtin.list_key_bindings(),
-        builtin.describe_key(),
-    ] {
-        world.spawn(act);
-    }
 }
 
 fn setup(mut commands: Commands) {

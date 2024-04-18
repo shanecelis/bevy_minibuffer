@@ -1,4 +1,5 @@
 //! Minibuffer
+// box_into_inner
 // #![forbid(missing_docs)]
 pub mod act;
 pub mod event;
@@ -15,6 +16,7 @@ pub use plugin::MinibufferPlugin;
 pub use style::MinibufferStyle;
 mod builtin;
 mod sink;
+pub mod universal;
 pub use builtin::Builtin;
 pub use sink::future_result_sink;
 

@@ -134,9 +134,9 @@ impl Minibuffer {
         self.asky.delay(duration)
     }
 
-    pub fn get_chord(&mut self) -> impl Future<Output = Result<Vec<KeyChord>, asky::Error>> {
+    pub fn get_chord(&mut self) -> impl Future<Output = Result<KeyChord, asky::Error>> {
         async {
-            let (promise, waiter) = Producer::<Vec<KeyChord>, asky::Error>::new();
+            let (promise, waiter) = Producer::<KeyChord, asky::Error>::new();
             let world = world();
             world.spawn_bundle(GetKeyChord::new(promise)).await;
             waiter.await

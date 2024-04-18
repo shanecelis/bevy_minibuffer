@@ -6,8 +6,8 @@ use crate::{
     Minibuffer,
 };
 use asky::Message;
-use bevy::{ecs::system::SystemId, prelude::*, window::RequestRedraw};
-use bevy_defer::world;
+use bevy::{ecs::system::{SystemId, BoxedSystem}, prelude::*, window::RequestRedraw};
+use bevy_defer::{world, AsyncAccess};
 use bevy_input_sequence::{InputSequenceCache, KeyChord, KeySequence};
 use bitflags::bitflags;
 use std::{
@@ -30,16 +30,28 @@ bitflags! {
 }
 
 /// Act, a command in `bevy_minibuffer`
-#[derive(Debug, Clone, Component, Reflect)]
+// #[derive(Debug, Clone, Component, Reflect)]
+#[derive(Debug, Clone, Component)]
 pub struct Act {
     pub(crate) name: Option<Cow<'static, str>>,
     pub(crate) hotkeys: Vec<Vec<KeyChord>>,
-    #[reflect(ignore)]
-    pub(crate) system_id: Option<SystemId>,
+    // #[reflect(ignore)]
+    pub(crate) system_id: SystemId,
+    // #[reflect(ignore)]
+    // pub(crate) system: Option<Box<System<In = (), Out = ()>>>,
     /// Flags for this act
-    #[reflect(ignore)]
+    // #[reflect(ignore)]
     pub flags: ActFlags,
 }
+
+pub struct ActBuilder {
+    pub(crate) name: Option<Cow<'static, str>>,
+    pub(crate) hotkeys: Vec<Vec<KeyChord>>,
+    pub(crate) system: BoxedSystem,
+    /// Flags for this act
+    pub flags: ActFlags,
+}
+
 
 impl Display for Act {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -47,62 +59,33 @@ impl Display for Act {
     }
 }
 
-// TODO: Do we need a builder?
-impl Default for Act {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Act {
-    /// The name of anonymous acts
-    pub const ANONYMOUS: Cow<'static, str> = Cow::Borrowed("*anonymous*");
-
+impl ActBuilder {
     /// Create a new [Act].
-    pub fn new() -> Self {
-        Act {
-            name: None,
-            hotkeys: Vec::new(),
-            system_id: None,
-            flags: ActFlags::Active | ActFlags::ExecAct,
-        }
-    }
-
-    /// Create a new [Act] registered with `system_id`.
-    pub fn preregistered(system_id: SystemId) -> Self {
-        Act {
-            name: None,
-            hotkeys: Vec::new(),
-            system_id: Some(system_id),
-            flags: ActFlags::Active | ActFlags::ExecAct,
-        }
-    }
-
-    pub fn register<S, P>(mut self, system: S, world: &mut World) -> Self
+    pub fn new<S, P>(system: S) -> Self
     where
-        S: IntoSystem<(), (), P> + 'static,
-    {
-        if self.system_id.is_some() {
-            panic!(
-                "cannot register act {}; it has already been registered",
-                self.name()
-            );
+        S: IntoSystem<(), (), P> + 'static {
+        ActBuilder {
+            name: None,
+            hotkeys: Vec::new(),
+            system: Box::new(IntoSystem::into_system(system)),
+            flags: ActFlags::Active | ActFlags::ExecAct,
         }
-        let system = IntoSystem::into_system(system);
-        let system_id = world.register_system(system);
-        self.system_id = Some(system_id);
-        self
+    }
+
+    pub fn build(mut self, world: &mut World) -> Act
+    {
+        Act {
+            name: self.name,
+            hotkeys: self.hotkeys,
+            flags: self.flags,
+            system_id: world.register_boxed_system(self.system),
+        }
     }
 
     /// Name the act.
     pub fn named(mut self, name: impl Into<Cow<'static, str>>) -> Self {
         self.name = Some(name.into());
         self
-    }
-
-    /// Return the name of this act or [Self::ANONYMOUS].
-    pub fn name(&self) -> &str {
-        self.name.as_ref().unwrap_or(&Self::ANONYMOUS)
     }
 
     /// Add a hotkey.
@@ -119,6 +102,49 @@ impl Act {
     pub fn in_exec_act(mut self, yes: bool) -> Self {
         self.flags.set(ActFlags::ExecAct, yes);
         self
+    }
+}
+
+impl Act {
+    /// The name of anonymous acts
+    pub const ANONYMOUS: Cow<'static, str> = Cow::Borrowed("*anonymous*");
+
+    /// Create a new [Act].
+    pub fn new<S, P>(system: S) -> ActBuilder
+    where
+        S: IntoSystem<(), (), P> + 'static {
+        ActBuilder::new(system)
+    }
+
+    /// Create a new [Act] registered with `system_id`.
+    pub fn preregistered(system_id: SystemId) -> Self {
+        Act {
+            name: None,
+            hotkeys: Vec::new(),
+            system_id: Some(system_id),
+            flags: ActFlags::Active | ActFlags::ExecAct,
+        }
+    }
+
+    // pub fn register<S, P>(mut self, system: S, world: &mut World) -> Self
+    // where
+    //     S: IntoSystem<(), (), P> + 'static,
+    // {
+    //     if self.system_id.is_some() {
+    //         panic!(
+    //             "cannot register act {}; it has already been registered",
+    //             self.name()
+    //         );
+    //     }
+    //     let system = IntoSystem::into_system(system);
+    //     let system_id = world.register_system(system);
+    //     self.system_id = Some(system_id);
+    //     self
+    // }
+
+    /// Return the name of this act or [Self::ANONYMOUS].
+    pub fn name(&self) -> &str {
+        self.name.as_ref().unwrap_or(&Self::ANONYMOUS)
     }
 }
 
@@ -295,19 +321,9 @@ pub fn exec_act(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output =
         match asky.read(":".to_string(), acts.clone()).await {
             // TODO: Get rid of clone.
             Ok(act_name) => match acts.resolve(&act_name) {
-                Ok(act) => match act.system_id {
-                    Some(_system_id) => {
-                        world().send_event(RunActEvent(act)).await?;
-                    }
-                    None => {
-                        asky
-                            .prompt(Message::new(format!(
-                                "Error: No system_id for act {:?}; was it registered?",
-                                act
-                            )))
-                            .await?;
-                    }
-                },
+                Ok(act) => {
+                    world().send_event(RunActEvent(act)).await?;
+                }
                 Err(e) => {
                     asky
                         .prompt(Message::new(format!(
@@ -441,12 +457,10 @@ pub fn describe_key<E: Event + Clone + Display>(
 
         loop {
             minibuffer.prompt(Message::new(accum.clone())).await?;
-            let chords = minibuffer.get_chord().await?;
-            match search.query_until(&chords) {
-                Ok(x) => {
-                    for chord in chords {
-                        let _ = write!(accum, "{} ", chord);
-                    }
+            let chord = minibuffer.get_chord().await?;
+            match search.query(&chord) {
+                Some(x) => {
+                    let _ = write!(accum, "{} ", chord);
                     let v = search.value();
                     let msg = match x {
                         Answer::Match => format!("{}is bound to {}", accum, v.unwrap().event),
@@ -460,10 +474,8 @@ pub fn describe_key<E: Event + Clone + Display>(
                         break;
                     }
                 }
-                Err(i) => {
-                    for chord in chords.into_iter().take(i + 1) {
-                        let _ = write!(accum, "{} ", chord);
-                    }
+                None => {
+                    let _ = write!(accum, "{} ", chord);
                     let msg = format!("{}is unbound", accum);
                     minibuffer.prompt(Message::new(msg)).await?;
                     break;
@@ -473,3 +485,4 @@ pub fn describe_key<E: Event + Clone + Display>(
         Ok(())
     }
 }
+

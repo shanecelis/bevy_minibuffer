@@ -11,6 +11,7 @@ use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
 use bevy_input_sequence::{KeyChord, Modifiers};
 use promise_out::{pair::Producer, Promise};
 use std::fmt::Debug;
+use std::collections::VecDeque;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum MinibufferState {
@@ -52,10 +53,10 @@ pub struct HideTime {
 
 /// Get a key chord.
 #[derive(Component, Debug)]
-pub(crate) struct GetKeyChord(pub(crate) Option<Producer<Vec<KeyChord>, asky::Error>>);
+pub(crate) struct GetKeyChord(pub(crate) Option<Producer<KeyChord, asky::Error>>);
 
 impl GetKeyChord {
-    pub(crate) fn new(promise: Producer<Vec<KeyChord>, asky::Error>) -> Self {
+    pub(crate) fn new(promise: Producer<KeyChord, asky::Error>) -> Self {
         GetKeyChord(Some(promise))
     }
 }
@@ -99,26 +100,27 @@ pub fn is_modifier(key: KeyCode) -> bool {
 pub(crate) fn get_key_chords(
     mut query: Query<(Entity, &mut GetKeyChord)>,
     keys: Res<ButtonInput<KeyCode>>,
+    mut buffer: Local<VecDeque<KeyChord>>,
     mut commands: Commands,
 ) {
-    let mut chords = None;
-    for (id, mut get_key_chord) in query.iter_mut() {
-        let chords: &mut Vec<KeyChord> = chords.get_or_insert_with(|| {
-            let mods = Modifiers::from_input(&keys);
-            keys.get_just_pressed()
-                .filter(|key| !is_modifier(**key))
-                .map(move |key| KeyChord(mods, *key))
-                .collect()
-        });
-        if !chords.is_empty() {
+    let mods = Modifiers::from_input(&keys);
+    let mut chords: VecDeque<KeyChord> = keys.get_just_pressed()
+                                         .filter(|key| !is_modifier(**key))
+                                         .map(move |key| KeyChord(mods, *key))
+                                         .collect();
+
+    if let Some(chord) = buffer.pop_front().or_else(|| chords.pop_front()) {
+        for (id, mut get_key_chord) in query.iter_mut() {
             if let Some(promise) = get_key_chord.0.take() {
-                promise.resolve(chords.clone());
+                promise.resolve(chord.clone());
             }
             // commands.entity(id).remove::<GetKeyChord>();
             commands.entity(id).despawn();
         }
     }
+    buffer.extend(chords);
 }
+
 /// Hide entities with component [HideTime].
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,

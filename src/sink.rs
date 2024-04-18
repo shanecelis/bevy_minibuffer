@@ -6,7 +6,11 @@ use std::{
     future::Future,
     fmt::Display,
 };
+#[allow(unused_imports)]
+pub use asky::bevy::{future_sink,
+                     option_future_sink};
 
+/// Show error if any in minibuffer.
 pub fn future_result_sink<T: 'static, E: 'static + Display, F: Future<Output = Result<T, E>> + 'static>(
     In(future): In<F>,
     exec: NonSend<AsyncExecutor>,

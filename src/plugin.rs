@@ -1,4 +1,5 @@
 use crate::{
+    universal,
     act,
     event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent},
     lookup::AutoComplete,
@@ -89,8 +90,8 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_crossbeam_event::<DispatchEvent>()
             .add_event::<LookUpEvent>()
             .add_systems(Startup,    ui::spawn_layout)
-            .add_systems(PreUpdate,  (run_acts,
-                                     prompt::set_minibuffer_state))
+            .add_systems(PostUpdate,  (run_acts,
+                                     prompt::set_minibuffer_state).chain())
             .add_systems(Update,     hide_prompt_maybe)
             .add_systems(Update,     act::detect_additions::<RunActEvent>)
             .add_systems(Update,     listen_prompt_active)

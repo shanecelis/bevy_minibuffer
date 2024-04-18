@@ -1,7 +1,7 @@
 use asky::{Message, Number};
 use bevy::prelude::*;
 use bevy::winit::WinitSettings;
-use bevy_minibuffer::act::*;
+use bevy_minibuffer::{act::*, universal::UniversalPlugin};
 use bevy_minibuffer::prelude::*;
 use std::time::Duration;
 #[path = "common/lib.rs"]
@@ -55,6 +55,7 @@ fn main() {
         .add_plugins(common::VideoCaptureSettings {
             title: "Bevy Minibuffer Basic Example".into(),
         })
+        .add_plugins(UniversalPlugin)
         // Add acts directly to an app via [AddAct].
         .add_systems(Startup, setup)
         .add_systems(Startup, add_builtins)

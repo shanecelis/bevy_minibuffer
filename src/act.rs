@@ -8,7 +8,11 @@ use crate::{
 use asky::Message;
 use bevy::{ecs::system::{SystemId, BoxedSystem}, prelude::*, window::RequestRedraw};
 use bevy_defer::{world, AsyncAccess};
-use bevy_input_sequence::{InputSequenceCache, KeyChord, KeySequence};
+use bevy_input_sequence::{
+    cache::InputSequenceCache,
+    KeyChord,
+    input_sequence::KeySequence,
+    action};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
@@ -208,16 +212,14 @@ impl AddAct for App {
 }
 
 #[allow(clippy::type_complexity)]
-pub(crate) fn detect_additions<E>(
-    query: Query<(Entity, &Act), (Added<Act>, Without<KeySequence<E>>)>,
+pub(crate) fn detect_additions(
+    query: Query<(Entity, &Act), (Added<Act>, Without<KeySequence>)>,
     mut commands: Commands,
-) where
-    E: Send + Sync + 'static,
-{
+) {
     for (id, act) in &query {
         commands.entity(id).with_children(|builder| {
             for hotkey in &act.hotkeys {
-                builder.spawn(KeySequence::new(RunActEvent(act.clone()), hotkey.clone()));
+                builder.spawn_empty().add(KeySequence::new(action::send_event(RunActEvent(act.clone())), hotkey.clone()));
             }
         });
     }
@@ -295,14 +297,14 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
 }
 
 /// List key bindings for event `E`.
-pub fn list_key_bindings<E: Event + Display>(
+pub fn list_key_bindings(
     mut asky: Minibuffer,
-    key_bindings: Query<&KeySequence<E>>,
+    key_bindings: Query<&KeySequence>,
 ) -> impl Future<Output = ()> {
     let mut table = Table::new("{:<}\t{:<}");
     table.add_row(Row::new().with_cell("KEY BINDING").with_cell("EVENT"));
 
-    let mut key_bindings: Vec<(String, &E)> = key_bindings
+    let mut key_bindings: Vec<(String, Cow<'static, str>)> = key_bindings
         .iter()
         .map(|k| {
             let binding: String = k.acts.iter().fold(String::new(), |mut output, chord| {
@@ -310,7 +312,7 @@ pub fn list_key_bindings<E: Event + Display>(
                 output
             });
 
-            (binding, &k.event)
+            (binding, "N/A".into())
         })
         .collect();
     key_bindings.sort_by(|a, b| a.0.cmp(&b.0));
@@ -359,9 +361,9 @@ pub fn toggle_visibility(
 }
 
 /// Input a key sequence. This will tell you what it does.
-pub fn describe_key<E: Event + Clone + Display>(
-    keyseqs: Query<&KeySequence<E>>,
-    mut cache: ResMut<InputSequenceCache<E, KeyChord>>,
+pub fn describe_key(
+    keyseqs: Query<&KeySequence>,
+    mut cache: ResMut<InputSequenceCache<KeyChord, ()>>,
     mut minibuffer: Minibuffer,
 ) -> impl Future<Output = Result<(), crate::Error>> {
     use trie_rs::inc_search::Answer;
@@ -378,9 +380,9 @@ pub fn describe_key<E: Event + Clone + Display>(
                     let _ = write!(accum, "{} ", chord);
                     let v = search.value();
                     let msg = match x {
-                        Answer::Match => format!("{}is bound to {}", accum, v.unwrap().event),
+                        Answer::Match => format!("{}is bound to {:?}", accum, v.unwrap().system_id),
                         Answer::PrefixAndMatch => {
-                            format!("{}is bound to {} and more", accum, v.unwrap().event)
+                            format!("{}is bound to {:?} and more", accum, v.unwrap().system_id)
                         }
                         Answer::Prefix => accum.clone(),
                     };

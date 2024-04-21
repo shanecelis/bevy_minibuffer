@@ -10,6 +10,10 @@ use std::fmt;
 // pub struct RunActEvent(pub SystemId);
 pub struct RunActEvent(pub super::act::Act);
 
+/// Run the input sequence system even if the minibuffer is set to inactive.
+#[derive(Clone, Event, Debug)]
+pub struct RunInputSequenceEvent;
+
 impl fmt::Display for RunActEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // write!(f, "RunAct({})", self.0)

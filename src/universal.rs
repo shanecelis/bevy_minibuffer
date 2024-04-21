@@ -1,6 +1,6 @@
 use crate::{
     act::{Act, AddAct},
-    event::RunActEvent,
+    event::{RunActEvent, RunInputSequenceEvent},
     lookup::{LookUp, LookUpError, Resolve},
     prompt::{CompletionState, PromptState},
     Minibuffer,
@@ -9,7 +9,7 @@ use crate::{
 use asky::Message;
 use bevy::{ecs::system::SystemId, prelude::*, window::RequestRedraw};
 use bevy_defer::{world, AsyncAccess};
-use bevy_input_sequence::{InputSequenceCache, KeyChord, KeySequence};
+use bevy_input_sequence::{cache::InputSequenceCache, KeyChord, input_sequence::KeySequence};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
@@ -92,6 +92,7 @@ pub fn universal_argument(mut minibuffer: Minibuffer) -> impl Future<Output = ()
                     let world = world();
                     eprintln!("set accum {accum}");
                     let _ = world.resource::<UniversalArg>().set(move |r| {r.0 = Some(accum)}).await;
+                    let _ = world.send_event(RunInputSequenceEvent).await;
                     return;
                 },
             };

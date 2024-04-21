@@ -1,7 +1,7 @@
 use crate::{
     universal,
     act,
-    event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent},
+    event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent, RunInputSequenceEvent},
     lookup::AutoComplete,
     prompt::{
         self, dispatch_events, get_key_chords, hide, hide_delayed, hide_prompt_maybe,
@@ -14,7 +14,7 @@ use bevy::{
     app::{PostUpdate, PreUpdate, Startup, Update},
     ecs::{
         reflect::AppTypeRegistry,
-        schedule::{common_conditions::in_state, OnEnter, OnExit},
+        schedule::{Condition, common_conditions::{in_state, on_event}, OnEnter, OnExit, SystemSet, IntoSystemSetConfigs},
         system::Resource,
     },
     prelude::IntoSystemConfigs,
@@ -23,7 +23,7 @@ use bevy::{
     utils::default,
 };
 use bevy_crossbeam_event::CrossbeamEventApp;
-use bevy_input_sequence::AddInputSequenceEvent;
+use bevy_input_sequence::{InputSequencePlugin};
 use std::borrow::Cow;
 
 /// Minibuffer plugin
@@ -66,6 +66,17 @@ pub enum Error {
     Async(#[from] bevy_defer::AsyncFailure),
 }
 
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+enum MinibufferSet {
+    Input,
+    Process,
+    Output
+}
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+struct InputSet;
+
+
 #[rustfmt::skip]
 impl bevy::app::Plugin for MinibufferPlugin {
     fn build(&self, app: &mut bevy::app::App) {
@@ -78,7 +89,9 @@ impl bevy::app::Plugin for MinibufferPlugin {
         }
         app
             .add_plugins(AskyPlugin)
-            .add_key_sequence_event_run_if::<RunActEvent, _>(in_state(MinibufferState::Inactive))
+            // .add_key_sequence_event_run_if::<RunActEvent, _>(in_state(MinibufferState::Inactive).or_else(on_event::<RunInputSequenceEvent>()))
+            .add_plugins(InputSequencePlugin::empty()
+            .run_in_set(Update, InputSet))
             .init_state::<MinibufferState>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
@@ -88,17 +101,29 @@ impl bevy::app::Plugin for MinibufferPlugin {
                 ..default()
             })
             .add_crossbeam_event::<DispatchEvent>()
+            .add_event::<RunInputSequenceEvent>()
             .add_event::<LookUpEvent>()
-            .add_systems(Startup,    ui::spawn_layout)
-            .add_systems(PostUpdate,  (run_acts,
-                                     prompt::set_minibuffer_state).chain())
-            .add_systems(Update,     hide_prompt_maybe)
-            .add_systems(Update,     act::detect_additions::<RunActEvent>)
-            .add_systems(Update,     listen_prompt_active)
-            .add_systems(Update,     get_key_chords)
-            .add_systems(Update,     asky::bevy::asky_system::<AutoComplete<asky::Text>>)
-            .add_systems(PostUpdate, (dispatch_events, look_up_events).chain())
-            // .add_systems(Update,    mouse_scroll)
+            .add_systems(Startup, ui::spawn_layout)
+            .add_systems(Update,
+                         (hide_prompt_maybe,
+                          act::detect_additions,
+                          asky::bevy::asky_system::<AutoComplete<asky::Text>>,
+                          listen_prompt_active)
+                         .in_set(MinibufferSet::Process))
+            .add_systems(Update, get_key_chords.in_set(MinibufferSet::Input))
+            .configure_sets(Update,
+                            (InputSet).after(MinibufferSet::Input))
+
+            .configure_sets(Update, (
+                // (MinibufferSet::Input, MinibufferSet::Process, MinibufferSet::Output).chain(),
+                InputSet.after(MinibufferSet::Input),
+                InputSet.run_if(in_state(MinibufferState::Inactive).or_else(on_event::<RunInputSequenceEvent>())),
+            ))
+            .add_systems(PostUpdate,
+                         ((run_acts,
+                           prompt::set_minibuffer_state).chain(),
+                          (dispatch_events, look_up_events).chain())
+                         .in_set(MinibufferSet::Output))
             .add_systems(OnEnter(PromptState::Finished),    hide_delayed::<ui::PromptContainer>)
             .add_systems(OnEnter(PromptState::Visible),     show::<ui::PromptContainer>)
             .add_systems(OnEnter(PromptState::Invisible),   hide::<ui::PromptContainer>)

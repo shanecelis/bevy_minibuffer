@@ -33,18 +33,18 @@ impl Builtin {
     }
 
     pub fn list_key_bindings(&self) -> ActBuilder {
-        self.list_bindings::<RunActEvent>()
+        self.list_bindings()
             .named("list_key_bindings")
     }
 
     /// Create a new command that lists bindings for event `E`.
-    pub fn list_bindings<E: Event + Clone + Display>(&self) -> ActBuilder {
-        ActBuilder::new(act::list_key_bindings::<E>.pipe(future_sink))
+    pub fn list_bindings(&self) -> ActBuilder {
+        ActBuilder::new(act::list_key_bindings.pipe(future_sink))
             .hotkey(keyseq! { ctrl-H B })
     }
 
     pub fn describe_key(&self) -> ActBuilder {
-        ActBuilder::new(act::describe_key::<RunActEvent>.pipe(future_result_sink))
+        ActBuilder::new(act::describe_key.pipe(future_result_sink))
             .named("describe_key")
             .hotkey(keyseq! { ctrl-H K })
     }

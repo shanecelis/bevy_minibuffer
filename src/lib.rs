@@ -30,12 +30,12 @@ pub mod input {
 
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
-    pub use super::act::{self, Act, AddAct, ActBuilder};
+    pub use super::act::{self, Act, ActBuilder, AddAct};
     pub use super::event::RunActEvent;
+    pub use super::future_result_sink;
     pub use super::input::{key, keyseq, Modifiers};
     pub use super::Builtin;
     pub use super::Config;
     pub use super::{Error, Minibuffer, MinibufferPlugin};
     pub use asky::bevy::future_sink;
-    pub use super::future_result_sink;
 }

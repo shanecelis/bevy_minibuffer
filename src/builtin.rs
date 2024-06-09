@@ -1,10 +1,9 @@
 use crate::{
-    act,
+    act, future_result_sink,
     prelude::{keyseq, ActBuilder},
-    future_result_sink,
 };
 use asky::bevy::future_sink;
-use bevy::ecs::{system::IntoSystem};
+use bevy::ecs::system::IntoSystem;
 
 /// Construct builtin acts
 // pub struct Builtin<'w> {
@@ -32,14 +31,12 @@ impl Builtin {
     }
 
     pub fn list_key_bindings(&self) -> ActBuilder {
-        self.list_bindings()
-            .named("list_key_bindings")
+        self.list_bindings().named("list_key_bindings")
     }
 
     /// Create a new command that lists bindings for event `E`.
     pub fn list_bindings(&self) -> ActBuilder {
-        ActBuilder::new(act::list_key_bindings.pipe(future_sink))
-            .hotkey(keyseq! { ctrl-H B })
+        ActBuilder::new(act::list_key_bindings.pipe(future_sink)).hotkey(keyseq! { ctrl-H B })
     }
 
     pub fn describe_key(&self) -> ActBuilder {
@@ -51,7 +48,6 @@ impl Builtin {
 
 impl bevy::app::Plugin for Builtin {
     fn build(&self, app: &mut bevy::app::App) {
-
         for act_builder in [
             self.exec_act(),
             self.list_acts(),

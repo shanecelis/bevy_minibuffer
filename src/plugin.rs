@@ -13,7 +13,10 @@ use bevy::{
     app::{PostUpdate, Startup, Update},
     ecs::{
         reflect::AppTypeRegistry,
-        schedule::{Condition, common_conditions::{in_state, on_event}, OnEnter, OnExit, SystemSet, IntoSystemSetConfigs},
+        schedule::{
+            common_conditions::{in_state, on_event},
+            Condition, IntoSystemSetConfigs, OnEnter, OnExit, SystemSet,
+        },
         system::Resource,
     },
     prelude::IntoSystemConfigs,
@@ -22,7 +25,7 @@ use bevy::{
     utils::default,
 };
 use bevy_crossbeam_event::CrossbeamEventApp;
-use bevy_input_sequence::{InputSequencePlugin};
+use bevy_input_sequence::InputSequencePlugin;
 use std::borrow::Cow;
 
 /// Minibuffer plugin
@@ -65,17 +68,15 @@ pub enum Error {
     Async(#[from] bevy_defer::AsyncFailure),
 }
 
-
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 enum MinibufferSet {
     Input,
     Process,
-    Output
+    Output,
 }
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 struct InputSet;
-
 
 #[rustfmt::skip]
 impl bevy::app::Plugin for MinibufferPlugin {

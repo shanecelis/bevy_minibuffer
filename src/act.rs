@@ -6,12 +6,13 @@ use crate::{
     Minibuffer,
 };
 use asky::Message;
-use bevy::{ecs::system::{SystemId, BoxedSystem}, prelude::*, window::RequestRedraw};
-use bevy_defer::{world};
-use bevy_input_sequence::{
-    KeyChord,
-    input_sequence::KeySequence,
-    action};
+use bevy::{
+    ecs::system::{BoxedSystem, SystemId},
+    prelude::*,
+    window::RequestRedraw,
+};
+use bevy_defer::world;
+use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
@@ -49,17 +50,14 @@ pub struct Act {
 
 #[derive(Resource, Default)]
 pub struct ActCache {
-    trie: Option<Trie<KeyChord, Act>>
+    trie: Option<Trie<KeyChord, Act>>,
 }
 
 impl ActCache {
     /// Retrieve the cached trie without iterating through `sequences`. Or if
     /// the cache has been invalidated, build and cache a new trie using the
     /// `sequences` iterator.
-    pub fn trie<'a>(
-        &mut self,
-        acts: impl Iterator<Item = &'a Act>,
-    ) -> &Trie<KeyChord, Act> {
+    pub fn trie<'a>(&mut self, acts: impl Iterator<Item = &'a Act>) -> &Trie<KeyChord, Act> {
         self.trie.get_or_insert_with(|| {
             let mut builder: TrieBuilder<KeyChord, Act> = TrieBuilder::new();
             for act in acts {
@@ -84,7 +82,6 @@ pub struct ActBuilder {
     pub flags: ActFlags,
 }
 
-
 impl Display for Act {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name())
@@ -95,7 +92,8 @@ impl ActBuilder {
     /// Create a new [Act].
     pub fn new<S, P>(system: S) -> Self
     where
-        S: IntoSystem<(), (), P> + 'static {
+        S: IntoSystem<(), (), P> + 'static,
+    {
         ActBuilder {
             name: None,
             hotkeys: Vec::new(),
@@ -104,8 +102,7 @@ impl ActBuilder {
         }
     }
 
-    pub fn build(self, world: &mut World) -> Act
-    {
+    pub fn build(self, world: &mut World) -> Act {
         Act {
             name: self.name.unwrap_or_else(|| {
                 let n = self.system.name();
@@ -150,7 +147,8 @@ impl Act {
     #[allow(clippy::new_ret_no_self)]
     pub fn new<S, P>(system: S) -> ActBuilder
     where
-        S: IntoSystem<(), (), P> + 'static {
+        S: IntoSystem<(), (), P> + 'static,
+    {
         ActBuilder::new(system)
     }
 
@@ -203,16 +201,14 @@ impl LookUp for Vec<Act> {
     }
 }
 
-impl bevy::ecs::system::Command for ActBuilder
-{
+impl bevy::ecs::system::Command for ActBuilder {
     fn apply(self, world: &mut World) {
         let act = self.build(world);
         world.spawn(act);
     }
 }
 
-impl bevy::ecs::system::EntityCommand for ActBuilder
-{
+impl bevy::ecs::system::EntityCommand for ActBuilder {
     fn apply(self, id: Entity, world: &mut World) {
         let act = self.build(world);
         let mut entity = world.get_entity_mut(id).unwrap();
@@ -223,17 +219,11 @@ impl bevy::ecs::system::EntityCommand for ActBuilder
 /// Add an act extension trait
 pub trait AddAct {
     /// Add an act with the given system.
-    fn add_act(
-        &mut self,
-        act: ActBuilder,
-    ) -> &mut Self;
+    fn add_act(&mut self, act: ActBuilder) -> &mut Self;
 }
 
 impl AddAct for App {
-    fn add_act(
-        &mut self,
-        act: ActBuilder,
-    ) -> &mut Self {
+    fn add_act(&mut self, act: ActBuilder) -> &mut Self {
         let act = act.build(&mut self.world);
         self.world.spawn(act);
         self
@@ -248,14 +238,20 @@ pub(crate) fn detect_additions(
     for (id, act) in &query {
         commands.entity(id).with_children(|builder| {
             for hotkey in &act.hotkeys {
-                builder.spawn_empty().add(KeySequence::new(action::send_event(RunActEvent(act.clone())), hotkey.clone()));
+                builder.spawn_empty().add(KeySequence::new(
+                    action::send_event(RunActEvent(act.clone())),
+                    hotkey.clone(),
+                ));
             }
         });
     }
 }
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
-pub fn exec_act(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output = Result<(), crate::Error>> {
+pub fn exec_act(
+    mut asky: Minibuffer,
+    acts: Query<&Act>,
+) -> impl Future<Output = Result<(), crate::Error>> {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
@@ -271,12 +267,11 @@ pub fn exec_act(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output =
                     world().send_event(RunActEvent(act)).await?;
                 }
                 Err(e) => {
-                    asky
-                        .prompt(Message::new(format!(
-                            "Error: Could not resolve act named {:?}: {}",
-                            act_name, e
-                        )))
-                        .await?;
+                    asky.prompt(Message::new(format!(
+                        "Error: Could not resolve act named {:?}: {}",
+                        act_name, e
+                    )))
+                    .await?;
                 }
             },
             Err(e) => {
@@ -326,10 +321,7 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
 }
 
 /// List key bindings for event `E`.
-pub fn list_key_bindings(
-    mut asky: Minibuffer,
-    acts: Query<&Act>,
-) -> impl Future<Output = ()> {
+pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output = ()> {
     let mut table = Table::new("{:<}\t{:<}");
     table.add_row(Row::new().with_cell("KEY BINDING").with_cell("EVENT"));
 
@@ -431,4 +423,3 @@ pub fn describe_key(
         Ok(())
     }
 }
-

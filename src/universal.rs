@@ -1,48 +1,54 @@
 use crate::{
     act::{Act, AddAct},
     event::{RunActEvent, RunInputSequenceEvent},
-    Minibuffer,
     prelude::{future_sink, keyseq},
+    Minibuffer,
 };
 use asky::Message;
-use bevy::{prelude::*};
+use bevy::prelude::*;
 use bevy_defer::{world, AsyncAccess};
-use bevy_input_sequence::{KeyChord};
-use std::{
-    fmt::{Debug},
-    future::Future,
-};
+use bevy_input_sequence::KeyChord;
+use std::{fmt::Debug, future::Future};
 
 pub struct UniversalPlugin;
 
 impl Plugin for UniversalPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-        app
-            .init_resource::<UniversalArg>()
+        app.init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg)
-            .add_act(Act::new(universal_argument.pipe(future_sink))
-                     .named("universal_argument")
-                     .hotkey(keyseq! { ctrl-U })
-                     .in_exec_act(false))
-            .add_act(Act::new(check_accum.pipe(future_sink))
-                     .named("check_accum")
-                     .hotkey(keyseq! { C A }));
+            .add_act(
+                Act::new(universal_argument.pipe(future_sink))
+                    .named("universal_argument")
+                    .hotkey(keyseq! { ctrl-U })
+                    .in_exec_act(false),
+            )
+            .add_act(
+                Act::new(check_accum.pipe(future_sink))
+                    .named("check_accum")
+                    .hotkey(keyseq! { C A }),
+            );
     }
 }
 
-pub fn check_accum(arg: Res<UniversalArg>,
-                   mut minibuffer: Minibuffer) -> impl Future<Output = ()> {
+pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) -> impl Future<Output = ()> {
     let accum = arg.0;
     async move {
         let _ = match accum {
-            Some(x) => minibuffer.prompt(Message::new(format!("Univeral argument {x}"))).await,
-            None => minibuffer.prompt(Message::new("No universal argument set")).await,
+            Some(x) => {
+                minibuffer
+                    .prompt(Message::new(format!("Univeral argument {x}")))
+                    .await
+            }
+            None => {
+                minibuffer
+                    .prompt(Message::new("No universal argument set"))
+                    .await
+            }
         };
     }
 }
 
-fn clear_arg(mut event: EventReader<RunActEvent>,
-             mut arg: ResMut<UniversalArg>) {
+fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>) {
     if let Some(act) = event.read().next() {
         if act.0.name != "exec_act" {
             eprintln!("clear arg for {act}");
@@ -59,7 +65,9 @@ pub fn universal_argument(mut minibuffer: Minibuffer) -> impl Future<Output = ()
     async move {
         let mut accum = 0;
         loop {
-            let Ok(KeyChord(_mods, key)) = minibuffer.get_chord().await else { break };
+            let Ok(KeyChord(_mods, key)) = minibuffer.get_chord().await else {
+                break;
+            };
             let digit = match key {
                 Digit0 => 0,
                 Digit1 => 1,
@@ -75,10 +83,13 @@ pub fn universal_argument(mut minibuffer: Minibuffer) -> impl Future<Output = ()
                 _ => {
                     let world = world();
                     eprintln!("set accum {accum}");
-                    let _ = world.resource::<UniversalArg>().set(move |r| {r.0 = Some(accum)}).await;
+                    let _ = world
+                        .resource::<UniversalArg>()
+                        .set(move |r| r.0 = Some(accum))
+                        .await;
                     let _ = world.send_event(RunInputSequenceEvent).await;
                     return;
-                },
+                }
             };
             if digit >= 0 {
                 accum = accum * 10 + digit;

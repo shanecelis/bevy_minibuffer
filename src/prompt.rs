@@ -10,8 +10,8 @@ use asky::bevy::AskyState;
 use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
 use bevy_input_sequence::{KeyChord, Modifiers};
 use promise_out::{pair::Producer, Promise};
-use std::fmt::Debug;
 use std::collections::VecDeque;
+use std::fmt::Debug;
 
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum MinibufferState {
@@ -104,10 +104,11 @@ pub(crate) fn get_key_chords(
     mut commands: Commands,
 ) {
     let mods = Modifiers::from_input(&keys);
-    let mut chords: VecDeque<KeyChord> = keys.get_just_pressed()
-                                         .filter(|key| !is_modifier(**key))
-                                         .map(move |key| KeyChord(mods, *key))
-                                         .collect();
+    let mut chords: VecDeque<KeyChord> = keys
+        .get_just_pressed()
+        .filter(|key| !is_modifier(**key))
+        .map(move |key| KeyChord(mods, *key))
+        .collect();
 
     if let Some(chord) = buffer.pop_front().or_else(|| chords.pop_front()) {
         for (id, mut get_key_chord) in query.iter_mut() {

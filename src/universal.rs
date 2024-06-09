@@ -9,7 +9,7 @@ use crate::{
 use asky::Message;
 use bevy::{ecs::system::SystemId, prelude::*, window::RequestRedraw};
 use bevy_defer::{world, AsyncAccess};
-use bevy_input_sequence::{cache::InputSequenceCache, KeyChord, input_sequence::KeySequence};
+use bevy_input_sequence::{KeyChord, input_sequence::KeySequence};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
@@ -19,17 +19,8 @@ use std::{
 use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
 
-trait ActPlugin: Plugin {
-    fn filter_acts<F>(&mut self, f: F) -> &mut Self
-    where F: FnMut(Act) -> bool;
-}
-
 pub struct UniversalPlugin;
-// #[derive(Default)]
-// pub struct UniversalPlugin {
-//     act_filter: Option<Box<dyn FnMut(Act) -> bool>>,
 
-// }
 impl Plugin for UniversalPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         app
@@ -37,16 +28,13 @@ impl Plugin for UniversalPlugin {
             .add_systems(bevy::app::Last, clear_arg)
             .add_act(Act::new(universal_argument.pipe(future_sink))
                      .named("universal_argument")
-                     .hotkey(keyseq! { ctrl-U }))
+                     .hotkey(keyseq! { ctrl-U })
+                     .in_exec_act(false))
             .add_act(Act::new(check_accum.pipe(future_sink))
                      .named("check_accum")
                      .hotkey(keyseq! { C A }));
     }
 }
-
-// impl ActPlugin for UniversalPlugin {
-
-// }
 
 pub fn check_accum(arg: Res<UniversalArg>,
                    mut minibuffer: Minibuffer) -> impl Future<Output = ()> {
@@ -62,8 +50,10 @@ pub fn check_accum(arg: Res<UniversalArg>,
 fn clear_arg(mut event: EventReader<RunActEvent>,
              mut arg: ResMut<UniversalArg>) {
     if let Some(act) = event.read().next() {
-        eprintln!("clear arg for {act}");
-        arg.0 = None;
+        if act.0.name != "exec_act" {
+            eprintln!("clear arg for {act}");
+            arg.0 = None;
+        }
     }
 }
 

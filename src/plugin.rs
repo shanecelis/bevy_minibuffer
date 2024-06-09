@@ -73,6 +73,7 @@ enum MinibufferSet {
     Process,
     Output
 }
+
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 struct InputSet;
 
@@ -89,12 +90,12 @@ impl bevy::app::Plugin for MinibufferPlugin {
         }
         app
             .add_plugins(AskyPlugin)
-            // .add_key_sequence_event_run_if::<RunActEvent, _>(in_state(MinibufferState::Inactive).or_else(on_event::<RunInputSequenceEvent>()))
             .add_plugins(InputSequencePlugin::empty()
             .run_in_set(Update, InputSet))
             .init_state::<MinibufferState>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
+            .init_resource::<act::ActCache>()
             .insert_resource(self.config.clone())
             .insert_resource(crate::MinibufferStyle {
                 text_style: Some(self.config.text_style.clone()),
@@ -103,6 +104,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_crossbeam_event::<DispatchEvent>()
             .add_event::<RunInputSequenceEvent>()
             .add_event::<LookUpEvent>()
+            .add_event::<RunActEvent>()
             .add_systems(Startup, ui::spawn_layout)
             .add_systems(Update,
                          (hide_prompt_maybe,

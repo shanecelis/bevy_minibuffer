@@ -9,7 +9,6 @@ use asky::Message;
 use bevy::{ecs::system::{SystemId, BoxedSystem}, prelude::*, window::RequestRedraw};
 use bevy_defer::{world, AsyncAccess};
 use bevy_input_sequence::{
-    cache::InputSequenceCache,
     KeyChord,
     input_sequence::KeySequence,
     action};
@@ -41,11 +40,38 @@ pub struct Act {
     pub hotkeys: Vec<Vec<KeyChord>>,
     #[reflect(ignore)]
     pub(crate) system_id: SystemId,
-    // #[reflect(ignore)]
-    // pub(crate) system: Option<Box<System<In = (), Out = ()>>>,
     /// Flags for this act
     #[reflect(ignore)]
     pub flags: ActFlags,
+}
+
+#[derive(Resource, Default)]
+pub struct ActCache {
+    trie: Option<Trie<KeyChord, Act>>
+}
+
+impl ActCache {
+    /// Retrieve the cached trie without iterating through `sequences`. Or if
+    /// the cache has been invalidated, build and cache a new trie using the
+    /// `sequences` iterator.
+    pub fn trie<'a>(
+        &mut self,
+        acts: impl Iterator<Item = &'a Act>,
+    ) -> &Trie<KeyChord, Act> {
+        self.trie.get_or_insert_with(|| {
+            let mut builder: TrieBuilder<KeyChord, Act> = TrieBuilder::new();
+            for act in acts {
+                for hotkey in &act.hotkeys {
+                    builder.insert(hotkey.clone(), act.clone());
+                }
+            }
+            builder.build()
+        })
+    }
+
+    pub fn invalidate(&mut self) {
+        self.trie = None;
+    }
 }
 
 pub struct ActBuilder {
@@ -299,20 +325,21 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
 /// List key bindings for event `E`.
 pub fn list_key_bindings(
     mut asky: Minibuffer,
-    key_bindings: Query<&KeySequence>,
+    acts: Query<&Act>,
 ) -> impl Future<Output = ()> {
     let mut table = Table::new("{:<}\t{:<}");
     table.add_row(Row::new().with_cell("KEY BINDING").with_cell("EVENT"));
 
-    let mut key_bindings: Vec<(String, Cow<'static, str>)> = key_bindings
+    let mut key_bindings: Vec<(String, Cow<'static, str>)> = acts
         .iter()
-        .map(|k| {
-            let binding: String = k.acts.iter().fold(String::new(), |mut output, chord| {
-                let _ = write!(output, "{} ", chord);
-                output
-            });
-
-            (binding, "N/A".into())
+        .flat_map(|act| {
+            act.hotkeys.iter().map(|hotkey| {
+                let binding = hotkey.iter().fold(String::new(), |mut output, chord| {
+                    let _ = write!(output, "{} ", chord);
+                    output
+                });
+                (binding, act.name.clone())
+            })
         })
         .collect();
     key_bindings.sort_by(|a, b| a.0.cmp(&b.0));
@@ -320,7 +347,6 @@ pub fn list_key_bindings(
         table.add_row(Row::new().with_cell(binding).with_cell(format!("{}", e)));
     }
     let msg = format!("{}", table);
-    // eprintln!("{}", &msg);
     async move {
         let _ = asky.prompt(Message::new(msg)).await;
     }
@@ -362,12 +388,12 @@ pub fn toggle_visibility(
 
 /// Input a key sequence. This will tell you what it does.
 pub fn describe_key(
-    keyseqs: Query<&KeySequence>,
-    mut cache: ResMut<InputSequenceCache<KeyChord, ()>>,
+    acts: Query<&Act>,
+    mut cache: ResMut<ActCache>,
     mut minibuffer: Minibuffer,
 ) -> impl Future<Output = Result<(), crate::Error>> {
     use trie_rs::inc_search::Answer;
-    let trie: Trie<_, _> = cache.trie(keyseqs.iter()).clone();
+    let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
     async move {
         let mut search = trie.inc_search();
         let mut accum = String::from("Press key: ");
@@ -380,9 +406,9 @@ pub fn describe_key(
                     let _ = write!(accum, "{} ", chord);
                     let v = search.value();
                     let msg = match x {
-                        Answer::Match => format!("{}is bound to {:?}", accum, v.unwrap().system_id),
+                        Answer::Match => format!("{}is bound to {:?}", accum, v.unwrap().name),
                         Answer::PrefixAndMatch => {
-                            format!("{}is bound to {:?} and more", accum, v.unwrap().system_id)
+                            format!("{}is bound to {:?} and more", accum, v.unwrap().name)
                         }
                         Answer::Prefix => accum.clone(),
                     };

@@ -8,10 +8,11 @@ bevy = "0.13"
 bitflags = "2.3.1"
 futures-lite = "1.13.0"
 promise_out = "1.0.0"
-trie-rs = "0.3"
+trie-rs = "0.4.2"
 colored = { version = "2.0.0", features = [ "no-color" ] }
 # bevy-input-sequence = { git = "https://github.com/shanecelis/bevy-input-sequence.git", branch = "dev" }
-bevy-input-sequence = { path = "../bevy-input-sequence" }
+# bevy-input-sequence = { path = "../bevy-input-sequence" }
+bevy-input-sequence = "0.4.0"
 keyseq = { version = "0.2.3", features = [ "bevy" ]}
 asky = { git = "https://github.com/shanecelis/asky.git", branch = "bevy_defer", default-features = false, features = ["bevy"] }
 # asky = { default-features = false, features = ["bevy"], path = "../asky" }

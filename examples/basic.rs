@@ -36,7 +36,7 @@ fn add_acts(mut commands: Commands) {
 
 fn main() {
     App::new()
-        .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
+        // .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
         // .add_plugins(DefaultPlugins)
         // .add_plugins(MinibufferPlugin::default())
         .add_plugins(common::VideoCaptureSettings {

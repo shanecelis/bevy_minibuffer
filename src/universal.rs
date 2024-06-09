@@ -1,23 +1,17 @@
 use crate::{
     act::{Act, AddAct},
     event::{RunActEvent, RunInputSequenceEvent},
-    lookup::{LookUp, LookUpError, Resolve},
-    prompt::{CompletionState, PromptState},
     Minibuffer,
     prelude::{future_sink, keyseq},
 };
 use asky::Message;
-use bevy::{ecs::system::SystemId, prelude::*, window::RequestRedraw};
+use bevy::{prelude::*};
 use bevy_defer::{world, AsyncAccess};
-use bevy_input_sequence::{KeyChord, input_sequence::KeySequence};
-use bitflags::bitflags;
+use bevy_input_sequence::{KeyChord};
 use std::{
-    borrow::Cow,
-    fmt::{self, Debug, Display, Write},
+    fmt::{Debug},
     future::Future,
 };
-use tabular::{Row, Table};
-use trie_rs::map::{Trie, TrieBuilder};
 
 pub struct UniversalPlugin;
 
@@ -38,7 +32,7 @@ impl Plugin for UniversalPlugin {
 
 pub fn check_accum(arg: Res<UniversalArg>,
                    mut minibuffer: Minibuffer) -> impl Future<Output = ()> {
-    let accum = arg.0.clone();
+    let accum = arg.0;
     async move {
         let _ = match accum {
             Some(x) => minibuffer.prompt(Message::new(format!("Univeral argument {x}"))).await,
@@ -65,7 +59,7 @@ pub fn universal_argument(mut minibuffer: Minibuffer) -> impl Future<Output = ()
     async move {
         let mut accum = 0;
         loop {
-            let Ok(KeyChord(mods, key)) = minibuffer.get_chord().await else { break };
+            let Ok(KeyChord(_mods, key)) = minibuffer.get_chord().await else { break };
             let digit = match key {
                 Digit0 => 0,
                 Digit1 => 1,

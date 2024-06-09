@@ -7,7 +7,7 @@ use crate::{
 };
 use asky::Message;
 use bevy::{ecs::system::{SystemId, BoxedSystem}, prelude::*, window::RequestRedraw};
-use bevy_defer::{world, AsyncAccess};
+use bevy_defer::{world};
 use bevy_input_sequence::{
     KeyChord,
     input_sequence::KeySequence,
@@ -29,6 +29,8 @@ bitflags! {
         const Active       = 0b00000001;
         /// Act is shown in [crate::act::exec_act].
         const ExecAct      = 0b00000010;
+        /// Act usually runs another act like exec_act.
+        const Adverb       = 0b00000100;
     }
 }
 
@@ -102,13 +104,13 @@ impl ActBuilder {
         }
     }
 
-    pub fn build(mut self, world: &mut World) -> Act
+    pub fn build(self, world: &mut World) -> Act
     {
         Act {
             name: self.name.unwrap_or_else(|| {
                 let n = self.system.name();
                 if let Some(start) = n.find('(') {
-                    if let Some(end) = n.find(&[',', ' ', ')']) {
+                    if let Some(end) = n.find([',', ' ', ')']) {
                         return n[start + 1..end].to_owned().into();
                     }
                 }
@@ -145,6 +147,7 @@ impl ActBuilder {
 
 impl Act {
     /// Create a new [ActBuilder].
+    #[allow(clippy::new_ret_no_self)]
     pub fn new<S, P>(system: S) -> ActBuilder
     where
         S: IntoSystem<(), (), P> + 'static {

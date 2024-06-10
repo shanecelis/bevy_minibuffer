@@ -38,13 +38,13 @@ fn start(mut query: Query<&mut Rotatable>) {
     r.speed = 0.3;
 }
 
-/// Stop the cube spinning.
+/// Stop the cube spinning. No input.
 fn stop(mut query: Query<&mut Rotatable>) {
     let mut r = query.single_mut();
     r.speed = 0.0;
 }
 
-/// Set the speed of the spinning cube.
+/// Set the speed of the spinning cube with input.
 fn speed(
     mut minibuffer: Minibuffer,
     query: Query<Entity, With<Rotatable>>,

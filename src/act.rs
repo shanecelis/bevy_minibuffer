@@ -74,6 +74,7 @@ impl ActCache {
     }
 }
 
+#[derive(Debug)]
 pub struct ActBuilder {
     pub(crate) name: Option<Cow<'static, str>>,
     pub(crate) hotkeys: Vec<Vec<KeyChord>>,
@@ -216,19 +217,19 @@ impl bevy::ecs::system::EntityCommand for ActBuilder {
     }
 }
 
-/// Add an act extension trait
-pub trait AddAct {
-    /// Add an act with the given system.
-    fn add_act(&mut self, act: ActBuilder) -> &mut Self;
-}
+// /// Add an act extension trait
+// pub trait AddAct {
+//     /// Add an act with the given system.
+//     fn add_act(&mut self, act: ActBuilder) -> &mut Self;
+// }
 
-impl AddAct for App {
-    fn add_act(&mut self, act: ActBuilder) -> &mut Self {
-        let act = act.build(&mut self.world);
-        self.world.spawn(act);
-        self
-    }
-}
+// impl AddAct for App {
+//     fn add_act(&mut self, act: ActBuilder) -> &mut Self {
+//         let act = act.build(&mut self.world);
+//         self.world.spawn(act);
+//         self
+//     }
+// }
 
 #[allow(clippy::type_complexity)]
 pub(crate) fn detect_additions(

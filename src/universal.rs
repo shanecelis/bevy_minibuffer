@@ -1,5 +1,5 @@
 use crate::{
-    act::{Act, AddAct},
+    act::{Act, ActBuilder},
     event::{RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
     Minibuffer,
@@ -8,25 +8,65 @@ use asky::Message;
 use bevy::prelude::*;
 use bevy_defer::{world, AsyncAccess};
 use bevy_input_sequence::KeyChord;
-use std::{fmt::Debug, future::Future};
+use std::{fmt::Debug, future::Future, sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}};
 
-pub struct UniversalPlugin;
+pub struct UniversalPlugin {
+    pub acts: ActsPlugin
+}
 
-impl Plugin for UniversalPlugin {
+pub struct ActsPlugin {
+    acts: RwLock<Vec<ActBuilder>>,
+}
+
+impl ActsPlugin {
+    fn new(v: Vec<ActBuilder>) -> Self {
+        ActsPlugin {
+            acts: RwLock::new(v)
+        }
+    }
+
+    fn get(&self) -> RwLockReadGuard<Vec<ActBuilder>> {
+        self.acts.read().unwrap()
+    }
+
+    fn get_mut(&self) -> RwLockWriteGuard<Vec<ActBuilder>> {
+        self.acts.write().unwrap()
+    }
+
+    fn clear(&self) {
+        let _ = self.get_mut().drain(..);
+    }
+}
+
+impl Plugin for ActsPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-        app.init_resource::<UniversalArg>()
-            .add_systems(bevy::app::Last, clear_arg)
-            .add_act(
+        for act in self.acts.write().unwrap().drain(..) {
+            let act = act.build(&mut app.world);
+            app.world.spawn(act);
+        }
+    }
+}
+
+impl Default for UniversalPlugin {
+    fn default() -> Self {
+        Self {
+            acts: ActsPlugin::new(vec![
                 Act::new(universal_argument.pipe(future_sink))
                     .named("universal_argument")
                     .hotkey(keyseq! { ctrl-U })
                     .in_exec_act(false),
-            )
-            .add_act(
                 Act::new(check_accum.pipe(future_sink))
                     .named("check_accum")
-                    .hotkey(keyseq! { C A }),
-            );
+                    .hotkey(keyseq! { C A })])
+        }
+    }
+}
+
+impl Plugin for UniversalPlugin {
+    fn build(&self, app: &mut bevy::app::App) {
+        app.init_resource::<UniversalArg>()
+            .add_systems(bevy::app::Last, clear_arg);
+        self.acts.build(app);
     }
 }
 
@@ -99,4 +139,22 @@ pub fn universal_argument(mut minibuffer: Minibuffer) -> impl Future<Output = ()
             eprintln!("accum {accum}");
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn check_acts() {
+        let plugin = UniversalPlugin::default();
+        assert_eq!(plugin.acts.get().len(), 2);
+    }
+
+    #[test]
+    fn check_drain_read() {
+        let plugin = UniversalPlugin::default();
+        let _ = plugin.acts.get_mut().drain(..);
+        assert_eq!(plugin.acts.get().len(), 0);
+    }
+
 }

@@ -46,19 +46,18 @@ fn main() {
         .add_plugins(common::VideoCaptureSettings {
             title: "Bevy Minibuffer Basic Example".into(),
         })
-        .add_plugins(UniversalPlugin)
-        // Add acts directly to an app via [AddAct].
+        .add_plugins(UniversalPlugin::default())
         .add_plugins(Builtin)
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)
-        .add_act(
-            Act::new(ask_name.pipe(future_result_sink))
-                .named("ask_name")
-                .hotkey(keyseq!(ctrl-A N)),
-        )
         .run();
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
+    commands.add(
+            Act::new(ask_name.pipe(future_result_sink))
+                .named("ask_name")
+                .hotkey(keyseq!(ctrl-A N)));
+
 }

@@ -21,6 +21,8 @@ use std::{
 };
 use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
+mod acts;
+pub use acts::ActsPlugin;
 
 bitflags! {
     /// Act flags

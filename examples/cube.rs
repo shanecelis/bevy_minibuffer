@@ -26,9 +26,11 @@ fn main() {
         .add_plugins(Builtin)
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
-        .add_act(Act::new(stop))
-        .add_act(Act::new(start))
-        .add_act(Act::new(speed.pipe(future_result_sink)))
+        .add_plugins(ActsPlugin::new([
+        Act::new(stop),
+        Act::new(start),
+        Act::new(speed.pipe(future_result_sink)),
+            ]))
         .run();
 }
 

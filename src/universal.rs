@@ -1,5 +1,5 @@
 use crate::{
-    act::{Act, ActBuilder},
+    act::{Act, ActBuilder, ActsPlugin},
     event::{RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
     Minibuffer,
@@ -12,39 +12,6 @@ use std::{fmt::Debug, future::Future, sync::{RwLock, RwLockReadGuard, RwLockWrit
 
 pub struct UniversalPlugin {
     pub acts: ActsPlugin
-}
-
-pub struct ActsPlugin {
-    acts: RwLock<Vec<ActBuilder>>,
-}
-
-impl ActsPlugin {
-    fn new(v: Vec<ActBuilder>) -> Self {
-        ActsPlugin {
-            acts: RwLock::new(v)
-        }
-    }
-
-    fn get(&self) -> RwLockReadGuard<Vec<ActBuilder>> {
-        self.acts.read().unwrap()
-    }
-
-    fn get_mut(&self) -> RwLockWriteGuard<Vec<ActBuilder>> {
-        self.acts.write().unwrap()
-    }
-
-    fn clear(&self) {
-        let _ = self.get_mut().drain(..);
-    }
-}
-
-impl Plugin for ActsPlugin {
-    fn build(&self, app: &mut bevy::app::App) {
-        for act in self.acts.write().unwrap().drain(..) {
-            let act = act.build(&mut app.world);
-            app.world.spawn(act);
-        }
-    }
 }
 
 impl Default for UniversalPlugin {
@@ -66,6 +33,7 @@ impl Plugin for UniversalPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         app.init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
+        /// XXX: This is kind of funky.
         self.acts.build(app);
     }
 }

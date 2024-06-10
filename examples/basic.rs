@@ -1,8 +1,7 @@
 use asky::{Message, Number};
 use bevy::prelude::*;
-use bevy::winit::WinitSettings;
 use bevy_minibuffer::prelude::*;
-use bevy_minibuffer::{act::*, universal::UniversalPlugin};
+use bevy_minibuffer::universal::UniversalPlugin;
 use std::time::Duration;
 #[path = "common/lib.rs"]
 mod common;

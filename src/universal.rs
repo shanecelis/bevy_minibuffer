@@ -1,5 +1,5 @@
 use crate::{
-    act::{Act, ActBuilder, ActsPlugin},
+    act::{Act, ActsPlugin},
     event::{RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
     Minibuffer,
@@ -11,7 +11,6 @@ use bevy_input_sequence::KeyChord;
 use std::{
     fmt::Debug,
     future::Future,
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 pub struct UniversalPlugin {
@@ -38,7 +37,7 @@ impl Plugin for UniversalPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         app.init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
-        /// XXX: This is kind of funky.
+        // XXX: This is kind of funky.
         self.acts.build(app);
     }
 }

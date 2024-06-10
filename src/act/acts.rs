@@ -1,18 +1,6 @@
-use crate::{
-    act::{Act, ActBuilder},
-    event::{RunActEvent, RunInputSequenceEvent},
-    prelude::{future_sink, keyseq},
-    Minibuffer,
-};
-use asky::Message;
+use crate::act::ActBuilder;
 use bevy::prelude::*;
-use bevy_defer::{world, AsyncAccess};
-use bevy_input_sequence::KeyChord;
-use std::{
-    fmt::Debug,
-    future::Future,
-    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
-};
+use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 pub struct ActsPlugin {
     /// Why use RwLock? Because `Plugin` must be `Send` and `ActBuilder` is not
@@ -58,6 +46,7 @@ impl Plugin for ActsPlugin {
 
 #[cfg(test)]
 mod tests {
+    use crate::prelude::*;
     use super::*;
 
     fn act1() {}

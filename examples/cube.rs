@@ -27,10 +27,10 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
         .add_plugins(ActsPlugin::new([
-        Act::new(stop),
-        Act::new(start),
-        Act::new(speed.pipe(future_result_sink)),
-            ]))
+            Act::new(stop),
+            Act::new(start),
+            Act::new(speed.pipe(future_result_sink)),
+        ]))
         .run();
 }
 

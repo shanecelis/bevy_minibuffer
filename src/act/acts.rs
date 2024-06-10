@@ -8,7 +8,11 @@ use asky::Message;
 use bevy::prelude::*;
 use bevy_defer::{world, AsyncAccess};
 use bevy_input_sequence::KeyChord;
-use std::{fmt::Debug, future::Future, sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}};
+use std::{
+    fmt::Debug,
+    future::Future,
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 pub struct ActsPlugin {
     /// Why use RwLock? Because `Plugin` must be `Send` and `ActBuilder` is not
@@ -20,7 +24,7 @@ pub struct ActsPlugin {
 impl ActsPlugin {
     pub fn new<I: IntoIterator<Item = ActBuilder>>(v: I) -> Self {
         ActsPlugin {
-            acts: RwLock::new(v.into_iter().collect())
+            acts: RwLock::new(v.into_iter().collect()),
         }
     }
 
@@ -56,8 +60,7 @@ impl Plugin for ActsPlugin {
 mod tests {
     use super::*;
 
-    fn act1() {
-    }
+    fn act1() {}
     #[test]
     fn check_acts() {
         let plugin = ActsPlugin::default();
@@ -70,5 +73,4 @@ mod tests {
         plugin.get_mut().push(Act::new(act1));
         assert_eq!(plugin.get().len(), 1);
     }
-
 }

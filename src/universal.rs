@@ -8,10 +8,14 @@ use asky::Message;
 use bevy::prelude::*;
 use bevy_defer::{world, AsyncAccess};
 use bevy_input_sequence::KeyChord;
-use std::{fmt::Debug, future::Future, sync::{RwLock, RwLockReadGuard, RwLockWriteGuard}};
+use std::{
+    fmt::Debug,
+    future::Future,
+    sync::{RwLock, RwLockReadGuard, RwLockWriteGuard},
+};
 
 pub struct UniversalPlugin {
-    pub acts: ActsPlugin
+    pub acts: ActsPlugin,
 }
 
 impl Default for UniversalPlugin {
@@ -24,7 +28,8 @@ impl Default for UniversalPlugin {
                     .in_exec_act(false),
                 Act::new(check_accum.pipe(future_sink))
                     .named("check_accum")
-                    .hotkey(keyseq! { C A })])
+                    .hotkey(keyseq! { C A }),
+            ]),
         }
     }
 }
@@ -124,5 +129,4 @@ mod tests {
         let _ = plugin.acts.get_mut().drain(..);
         assert_eq!(plugin.acts.get().len(), 0);
     }
-
 }

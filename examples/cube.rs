@@ -23,7 +23,7 @@ fn main() {
         })
         // .add_plugins(DefaultPlugins)
         // .add_plugins(MinibufferPlugin::default())
-        .add_plugins(Builtin)
+        .add_plugins(Builtin::default())
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
         .add_plugins(ActsPlugin::new([

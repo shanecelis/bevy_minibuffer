@@ -11,8 +11,7 @@ use bevy::{
     prelude::*,
     window::RequestRedraw,
 };
-use bevy_defer::world;
-use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
+use bevy_input_sequence::{action, input_sequence::{KeySequence}, KeyChord};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
@@ -159,6 +158,14 @@ impl Act {
     pub fn name(&self) -> &str {
         &self.name
     }
+
+    pub fn build_keyseqs(&self, world: &mut World) -> Vec<KeySequence> {
+        self.hotkeys.iter().map(|hotkey|
+                               KeySequence::new(
+                                   action::send_event(RunActEvent(self.clone())),
+                                   hotkey.clone(),
+                               ).build(world)).collect()
+    }
 }
 
 impl AsRef<str> for Act {
@@ -207,54 +214,63 @@ impl LookUp for Vec<Act> {
 impl bevy::ecs::system::Command for ActBuilder {
     fn apply(self, world: &mut World) {
         let act = self.build(world);
-        world.spawn(act);
+        let keyseqs = act.build_keyseqs(world);
+        world.spawn(act)
+             .with_children(|builder| {
+                 for keyseq in keyseqs {
+                     builder.spawn(keyseq);
+                 }
+             });
+
+        // for hotkey in &act.hotkeys {
+        //     let keyseq = KeySequence::new(
+        //         action::send_event(RunActEvent(act.clone())),
+        //         hotkey.clone(),
+        //     );
+        //     apply_to_entity(keyseq, id, world);
+        //     // <InputSequenceBuilder<KeyChord, ()> as EntityCommand>::apply(keyseq, id, world);
+        // }
     }
 }
 
 impl bevy::ecs::system::EntityCommand for ActBuilder {
     fn apply(self, id: Entity, world: &mut World) {
         let act = self.build(world);
+        let keyseqs = act.build_keyseqs(world);
         let mut entity = world.get_entity_mut(id).unwrap();
-        entity.insert(act);
+
+        entity.insert(act)
+              .with_children(|builder| {
+                 for keyseq in keyseqs {
+                     builder.spawn(keyseq);
+                 }
+              });
     }
 }
 
-// /// Add an act extension trait
-// pub trait AddAct {
-//     /// Add an act with the given system.
-//     fn add_act(&mut self, act: ActBuilder) -> &mut Self;
-// }
-
-// impl AddAct for App {
-//     fn add_act(&mut self, act: ActBuilder) -> &mut Self {
-//         let act = act.build(&mut self.world);
-//         self.world.spawn(act);
-//         self
+// #[allow(clippy::type_complexity)]
+// pub(crate) fn detect_additions(
+//     query: Query<(Entity, &Act), (Added<Act>, Without<KeySequence>)>,
+//     mut commands: Commands,
+// ) {
+//     for (id, act) in &query {
+//         commands.entity(id).with_children(|builder| {
+//             for hotkey in &act.hotkeys {
+//                 builder.spawn_empty().add(KeySequence::new(
+//                     action::send_event(RunActEvent(act.clone())),
+//                     hotkey.clone(),
+//                 ));
+//             }
+//         });
 //     }
 // }
-
-#[allow(clippy::type_complexity)]
-pub(crate) fn detect_additions(
-    query: Query<(Entity, &Act), (Added<Act>, Without<KeySequence>)>,
-    mut commands: Commands,
-) {
-    for (id, act) in &query {
-        commands.entity(id).with_children(|builder| {
-            for hotkey in &act.hotkeys {
-                builder.spawn_empty().add(KeySequence::new(
-                    action::send_event(RunActEvent(act.clone())),
-                    hotkey.clone(),
-                ));
-            }
-        });
-    }
-}
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 pub fn exec_act(
     mut asky: Minibuffer,
     acts: Query<&Act>,
 ) -> impl Future<Output = Result<(), crate::Error>> {
+    use bevy_defer::world;
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {

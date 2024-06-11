@@ -1,5 +1,5 @@
 use crate::{
-    act::{Act, ActsPlugin},
+    act::{Act, ActsPlugin, ActFlags},
     event::{RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
     Minibuffer,
@@ -62,7 +62,8 @@ pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) -> impl F
 
 fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>) {
     if let Some(act) = event.read().next() {
-        if act.0.name != "exec_act" {
+        // if act.0.name != "exec_act" {
+        if !act.flags.contains(ActFlags::Adverb) {
             eprintln!("clear arg for {act}");
             arg.0 = None;
         }

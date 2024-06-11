@@ -28,7 +28,7 @@ async fn ask_age(mut asky: Minibuffer) -> Result<(), Error> {
     Ok(())
 }
 
-/// Add acts using [Commands] with [AddAct].
+/// Add acts using [Commands].
 fn add_acts(mut commands: Commands) {
     commands.add(
         Act::new(ask_age.pipe(future_result_sink))
@@ -46,7 +46,7 @@ fn main() {
             title: "Bevy Minibuffer Basic Example".into(),
         })
         .add_plugins(UniversalPlugin::default())
-        .add_plugins(Builtin)
+        .add_plugins(Builtin::default())
         .add_systems(Startup, setup)
         .add_systems(Startup, add_acts)
         .run();

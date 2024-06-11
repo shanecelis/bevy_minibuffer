@@ -108,7 +108,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_systems(Startup, ui::spawn_layout)
             .add_systems(Update,
                          (hide_prompt_maybe,
-                          act::detect_additions,
+                          // act::detect_additions,
                           asky::bevy::asky_system::<AutoComplete<asky::Text>>,
                           listen_prompt_active)
                          .in_set(MinibufferSet::Process))

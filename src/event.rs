@@ -1,12 +1,15 @@
 //! Events
-use bevy::ecs::{
-    event::{Event, EventReader},
-    system::Commands,
+use bevy::{
+    prelude::Deref,
+    ecs::{
+        event::{Event, EventReader},
+        system::Commands,
+    }
 };
 use std::fmt;
 
 /// Request a one-shot system be run.
-#[derive(Clone, Event, Debug)]
+#[derive(Clone, Event, Debug, Deref)]
 // pub struct RunActEvent(pub SystemId);
 pub struct RunActEvent(pub super::act::Act);
 

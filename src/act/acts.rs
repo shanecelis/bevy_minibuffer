@@ -39,7 +39,13 @@ impl Plugin for ActsPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         for act in self.acts.write().unwrap().drain(..) {
             let act = act.build(&mut app.world);
-            app.world.spawn(act);
+            let keyseqs = act.build_keyseqs(&mut app.world);
+            app.world.spawn(act)
+             .with_children(|builder| {
+                 for keyseq in keyseqs {
+                     builder.spawn(keyseq);
+                 }
+             });
         }
     }
 }

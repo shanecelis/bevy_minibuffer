@@ -22,6 +22,7 @@ use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
 mod acts;
 pub use acts::ActsPlugin;
+use bevy_defer::AsyncWorld;
 
 bitflags! {
     /// Act flags
@@ -211,7 +212,7 @@ impl LookUp for Vec<Act> {
     }
 }
 
-impl bevy::ecs::system::Command for ActBuilder {
+impl bevy::ecs::world::Command for ActBuilder {
     fn apply(self, world: &mut World) {
         let act = self.build(world);
         let keyseqs = act.build_keyseqs(world);
@@ -270,7 +271,6 @@ pub fn exec_act(
     mut asky: Minibuffer,
     acts: Query<&Act>,
 ) -> impl Future<Output = Result<(), crate::Error>> {
-    use bevy_defer::world;
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
@@ -283,7 +283,7 @@ pub fn exec_act(
             // TODO: Get rid of clone.
             Ok(act_name) => match acts.resolve(&act_name) {
                 Ok(act) => {
-                    world().send_event(RunActEvent(act)).await?;
+                    AsyncWorld::new().send_event(RunActEvent(act))?;
                 }
                 Err(e) => {
                     asky.prompt(Message::new(format!(

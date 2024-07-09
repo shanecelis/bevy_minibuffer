@@ -92,7 +92,7 @@ pub(crate) fn spawn_layout(mut commands: Commands) {
                                 overflow: Overflow::clip_y(),
                                 ..default()
                             },
-                            background_color: Color::rgb(0.10, 0.10, 0.10).into(),
+                            background_color: Color::srgb(0.10, 0.10, 0.10).into(),
                             ..default()
                         })
                         .insert(CompletionContainer)

@@ -2,7 +2,7 @@
 
 use asky::Number;
 use bevy::prelude::*;
-use bevy_defer::{world, AsyncAccess};
+use bevy_defer::{AsyncWorld, AsyncAccess};
 use bevy_minibuffer::prelude::*;
 use std::f32::consts::TAU;
 use std::future::Future;
@@ -54,12 +54,11 @@ fn speed(
     let id = query.single();
     async move {
         let speed = minibuffer.prompt(Number::new("speed:")).await?;
-        let world = world();
+        let world = AsyncWorld::new();
         world
             .entity(id)
             .component::<Rotatable>()
-            .set(move |r| r.speed = speed)
-            .await?;
+            .set(move |r| r.speed = speed)?;
         Ok(())
     }
 }

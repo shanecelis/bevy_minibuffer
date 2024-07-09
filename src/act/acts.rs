@@ -38,9 +38,10 @@ impl Default for ActsPlugin {
 impl Plugin for ActsPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         for act in self.acts.write().unwrap().drain(..) {
-            let act = act.build(&mut app.world);
-            let keyseqs = act.build_keyseqs(&mut app.world);
-            app.world.spawn(act)
+            let world = app.world_mut();
+            let act = act.build(world);
+            let keyseqs = act.build_keyseqs(world);
+            world.spawn(act)
              .with_children(|builder| {
                  for keyseq in keyseqs {
                      builder.spawn(keyseq);

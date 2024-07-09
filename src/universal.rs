@@ -6,7 +6,7 @@ use crate::{
 };
 use asky::Message;
 use bevy::prelude::*;
-use bevy_defer::{world, AsyncAccess};
+use bevy_defer::{AsyncWorld, AsyncAccess};
 use bevy_input_sequence::KeyChord;
 use std::{
     fmt::Debug,
@@ -94,13 +94,12 @@ pub fn universal_argument(mut minibuffer: Minibuffer) -> impl Future<Output = ()
                 Digit9 => 9,
                 Minus => -1,
                 _ => {
-                    let world = world();
+                    let world = AsyncWorld::new();
                     eprintln!("set accum {accum}");
                     let _ = world
                         .resource::<UniversalArg>()
-                        .set(move |r| r.0 = Some(accum))
-                        .await;
-                    let _ = world.send_event(RunInputSequenceEvent).await;
+                        .set(move |r| r.0 = Some(accum));
+                    let _ = world.send_event(RunInputSequenceEvent);
                     return;
                 }
             };

@@ -11,11 +11,16 @@ use crate::{
 use asky::bevy::AskyPlugin;
 use bevy::{
     app::{PostUpdate, Startup, Update},
+    state::{
+        app::AppExtStates,
+        // OnEnter, OnExit,
+        condition::{in_state},
+    },
     ecs::{
         reflect::AppTypeRegistry,
         schedule::{
-            common_conditions::{in_state, on_event},
-            Condition, IntoSystemSetConfigs, OnEnter, OnExit, SystemSet,
+            Condition, IntoSystemSetConfigs, SystemSet,
+            // on_event,
         },
         system::Resource,
     },
@@ -23,6 +28,7 @@ use bevy::{
     reflect::Reflect,
     text::TextStyle,
     utils::default,
+    prelude::{OnEnter, OnExit, on_event}
 };
 use bevy_crossbeam_event::CrossbeamEventApp;
 use bevy_input_sequence::InputSequencePlugin;
@@ -65,7 +71,7 @@ pub enum Error {
     Asky(#[from] asky::Error),
     /// An async error
     #[error("async error {0}")]
-    Async(#[from] bevy_defer::AsyncFailure),
+    Async(#[from] bevy_defer::AccessError),
 }
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -82,7 +88,7 @@ struct InputSet;
 impl bevy::app::Plugin for MinibufferPlugin {
     fn build(&self, app: &mut bevy::app::App) {
 
-        if let Some(type_registry) = app.world.get_resource_mut::<AppTypeRegistry>() {
+        if let Some(type_registry) = app.world_mut().get_resource_mut::<AppTypeRegistry>() {
             let mut type_registry = type_registry.write();
             type_registry.register::<PromptState>();
             type_registry.register::<CompletionState>();

@@ -13,10 +13,14 @@ use promise_out::{pair::Producer, Promise};
 use std::collections::VecDeque;
 use std::fmt::Debug;
 
+/// The state of... something???
+/// XXX: What is this?
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum MinibufferState {
+    /// Inactive
     #[default]
     Inactive,
+    /// Active
     Active,
 }
 
@@ -92,6 +96,7 @@ pub(crate) fn set_minibuffer_state(
     });
 }
 
+/// Returns true if [KeyCode] is a modifier key.
 pub fn is_modifier(key: KeyCode) -> bool {
     let mods = Modifiers::from(key);
     !mods.is_empty()

@@ -134,6 +134,7 @@ impl Minibuffer {
         self.asky.delay(duration)
     }
 
+    /// Get the next key chord.
     pub fn get_chord(&mut self) -> impl Future<Output = Result<KeyChord, asky::Error>> {
         async {
             let (promise, waiter) = Producer::<KeyChord, asky::Error>::new();

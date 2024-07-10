@@ -1,3 +1,4 @@
+//! A universal argument, accepts a numerical prefix.
 use crate::{
     act::{Act, ActsPlugin, ActFlags},
     event::{RunActEvent, RunInputSequenceEvent},
@@ -13,7 +14,11 @@ use std::{
     future::Future,
 };
 
+/// Universal argument plugin
+///
+/// Adds act "universal_argument" and resource [UniversalArg].
 pub struct UniversalPlugin {
+    /// Acts
     pub acts: ActsPlugin,
 }
 
@@ -42,6 +47,7 @@ impl Plugin for UniversalPlugin {
     }
 }
 
+/// XXX: This shouldn't be here. It should be in an example.
 pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) -> impl Future<Output = ()> {
     let accum = arg.0;
     async move {
@@ -62,7 +68,6 @@ pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) -> impl F
 
 fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>) {
     if let Some(act) = event.read().next() {
-        // if act.0.name != "exec_act" {
         if !act.flags.contains(ActFlags::Adverb) {
             eprintln!("clear arg for {act}");
             arg.0 = None;
@@ -70,10 +75,12 @@ fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>)
     }
 }
 
+/// This resources stores the last given universal argument. It is cleared after
+/// any act---that is not specifically marked [ActFlags::Adverb]---runs.
 #[derive(Debug, Clone, Resource, Default, Reflect)]
 pub struct UniversalArg(Option<i32>);
 
-pub fn universal_argument(mut minibuffer: Minibuffer) -> impl Future<Output = ()> {
+fn universal_argument(mut minibuffer: Minibuffer) -> impl Future<Output = ()> {
     use bevy::prelude::KeyCode::*;
     async move {
         let mut accum = 0;

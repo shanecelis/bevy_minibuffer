@@ -2,6 +2,9 @@ use crate::act::ActBuilder;
 use bevy::prelude::*;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+/// Houses a collection of acts.
+///
+/// Acts may be inspected and modified before adding to app.
 pub struct ActsPlugin {
     /// Why use RwLock? Because `Plugin` must be `Send` and `ActBuilder` is not
     /// `Clone`. In `build(&self)` we want to consume the acts but we only have
@@ -10,20 +13,24 @@ pub struct ActsPlugin {
 }
 
 impl ActsPlugin {
+    /// Create a new plugin with a set of acts.
     pub fn new<I: IntoIterator<Item = ActBuilder>>(v: I) -> Self {
         ActsPlugin {
             acts: RwLock::new(v.into_iter().collect()),
         }
     }
 
+    /// Get the current acts readonly.
     pub fn get(&self) -> RwLockReadGuard<Vec<ActBuilder>> {
         self.acts.read().unwrap()
     }
 
+    /// Get the current acts mutable.
     pub fn get_mut(&self) -> RwLockWriteGuard<Vec<ActBuilder>> {
         self.acts.write().unwrap()
     }
 
+    /// Clear all the acts.
     pub fn clear(&self) {
         let _ = self.get_mut().drain(..);
     }

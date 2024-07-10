@@ -41,8 +41,11 @@ bitflags! {
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(from_reflect = false)]
 pub struct Act {
+    /// An act's name
     pub name: Cow<'static, str>,
+    /// Hot keys
     pub hotkeys: Vec<Vec<KeyChord>>,
+    /// What system runs when act is called
     #[reflect(ignore)]
     pub(crate) system_id: SystemId,
     /// Flags for this act
@@ -50,6 +53,7 @@ pub struct Act {
     pub flags: ActFlags,
 }
 
+/// A cache that maps hotkeys to [Act]s.
 #[derive(Resource, Default)]
 pub struct ActCache {
     trie: Option<Trie<KeyChord, Act>>,
@@ -71,15 +75,18 @@ impl ActCache {
         })
     }
 
+    /// Invalidate the cache.
     pub fn invalidate(&mut self) {
         self.trie = None;
     }
 }
 
+/// Builds an act.
 #[derive(Debug)]
 pub struct ActBuilder {
     pub(crate) name: Option<Cow<'static, str>>,
-    pub(crate) hotkeys: Vec<Vec<KeyChord>>,
+    /// Hotkeys
+    pub hotkeys: Vec<Vec<KeyChord>>,
     pub(crate) system: BoxedSystem,
     /// Flags for this act
     pub flags: ActFlags,
@@ -105,6 +112,7 @@ impl ActBuilder {
         }
     }
 
+    /// Build [Act].
     pub fn build(self, world: &mut World) -> Act {
         Act {
             name: self.name.unwrap_or_else(|| {
@@ -160,6 +168,7 @@ impl Act {
         &self.name
     }
 
+    /// Build the [KeySequence]s.
     pub fn build_keyseqs(&self, world: &mut World) -> Vec<KeySequence> {
         self.hotkeys.iter().map(|hotkey|
                                KeySequence::new(

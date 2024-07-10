@@ -5,7 +5,9 @@ use crate::{
 use asky::bevy::future_sink;
 use bevy::ecs::system::IntoSystem;
 
+/// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key.
 pub struct Builtin {
+    /// Set of builtin acts
     pub acts: ActsPlugin
 }
 

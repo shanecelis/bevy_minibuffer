@@ -8,7 +8,7 @@ use trie_rs::{iter::KeysExt, map};
 use crate::event::*;
 use crate::Error;
 use asky::{
-    bevy::KeyEvent, style::Style, utils::renderer::Renderer, OnTick, Printable, SetValue, Tick,
+    bevy::KeyEvent, style::Style, utils::renderer::Renderer, OnTick, Printable, Tick,
     Typeable, Valuable,
 };
 
@@ -161,7 +161,7 @@ pub struct AutoComplete<T> {
 
 impl<T> AutoComplete<T>
 where
-    T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
+    T: Typeable<KeyEvent> + Valuable + AsMut<String>,
     <T as Valuable>::Output: AsRef<str>,
 {
     /// Wrap a prompt in autocomplete.
@@ -196,7 +196,7 @@ impl<T: Tick> Tick for AutoComplete<T> {
 
 impl<T> Typeable<KeyEvent> for AutoComplete<T>
 where
-    T: Typeable<KeyEvent> + Valuable + SetValue<Output = String>,
+    T: Typeable<KeyEvent> + Valuable + AsMut<String>,
     <T as Valuable>::Output: AsRef<str>,
     // L::Item: Display
 {
@@ -215,7 +215,7 @@ where
                             Incomplete(_v) => {
                                 if let Some(new_input) = self.look_up.longest_prefix(input.as_ref())
                                 {
-                                    let _ = self.inner.set_value(new_input);
+                                    *self.inner.as_mut() = new_input;
                                 }
                             }
                             Minibuffer(_e) => (), //Err(format!("Error: {:?}", e).into()),

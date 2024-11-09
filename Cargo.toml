@@ -14,7 +14,7 @@ bevy-input-sequence = "0.5.0"
 keyseq = { version = "0.3", features = [ "bevy" ]}
 asky = { version = "0.1.1", default-features = false, features = ["bevy"] }
 text-style = { version = "0.4.0", default-features = false, features = [ "bevy" ] }
-bevy_crossbeam_event = "0.5.0"
+bevy_crossbeam_event = "0.6.0"
 tabular = "0.2.0"
 thiserror = "1.0.58"
 bevy_defer = "0.12"
@@ -26,6 +26,7 @@ bevy-inspector-egui = "0.25"
 [patch.crates-io]
 text-style = { path = "../text-style-rs" }
 # text-style = { git = "https://github.com/shanecelis/text_style.git", branch = "feature/colored", features = [ "crossterm", "bevy" ] }
-bevy_crossbeam_event = { git = "https://github.com/johanhelsing/bevy_crossbeam_event.git" }
+# bevy_crossbeam_event = { git = "https://github.com/johanhelsing/bevy_crossbeam_event.git" }
 asky = { path = "../asky" }
 # asky = { git = "https://github.com/shanecelis/asky.git", branch = "bevy_defer", default-features = false, features = ["bevy"] }
+promise_out = { path = "../promise_out" }

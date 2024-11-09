@@ -1,4 +1,3 @@
-use asky::Message;
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 
@@ -8,13 +7,13 @@ mod common;
 /// Ask the user for their name. Say hello.
 async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
     let first_name = minibuffer
-        .prompt(asky::Text::new("What's your first name?"))
+        .prompt::<TextField>("What's your first name?")
         .await?;
     let last_name = minibuffer
-        .prompt(asky::Text::new("What's your last name?"))
+        .prompt::<TextField>("What's your last name?")
         .await?;
     minibuffer
-        .prompt(Message::new(format!("Hello, {first_name} {last_name}!")))
+        .message(format!("Hello, {first_name} {last_name}!"))
         .await?;
     Ok(())
 }

@@ -27,6 +27,8 @@ pub mod input {
 
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
+    pub use bevy_asky as asky;
+    pub use asky::prompt::*;
     pub use super::act::{self, Act, ActBuilder, ActsPlugin};
     pub use super::event::RunActEvent;
     pub use super::{future_sink, future_result_sink};

@@ -103,6 +103,8 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .init_state::<CompletionState>()
             .init_resource::<act::ActCache>()
             .insert_resource(self.config.clone())
+            // TODO: Remove this
+            .add_event::<DispatchEvent>()
             // .add_crossbeam_event::<DispatchEvent>()
             .add_event::<RunInputSequenceEvent>()
             .add_event::<LookUpEvent>()

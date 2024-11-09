@@ -25,6 +25,7 @@ impl bevy::app::Plugin for VideoCaptureSettings {
                     ..default()
                 },
             },
-        });
+        })
+            .add_plugins(bevy_defer::AsyncPlugin::default_settings());
     }
 }

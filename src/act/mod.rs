@@ -1,11 +1,10 @@
 //! acts, or commands
 use crate::{
     event::RunActEvent,
-    lookup::{LookUp, LookUpError, Resolve},
+    //lookup::{LookUp, LookUpError, Resolve},
     prompt::{CompletionState, PromptState},
     Minibuffer,
 };
-use asky::Message;
 use bevy::{
     ecs::system::{BoxedSystem, SystemId},
     prelude::*,
@@ -184,42 +183,42 @@ impl AsRef<str> for Act {
     }
 }
 
-impl Resolve for Vec<Act> {
-    type Item = Act;
-    fn resolve(&self, input: &str) -> Result<Act, LookUpError> {
-        let mut matches = self.iter().filter(|command| {
-            command.flags.contains(ActFlags::ExecAct | ActFlags::Active)
-                && command.name.starts_with(input)
-        });
-        // Collecting and matching is nice expressively. But manually iterating
-        // avoids that allocation.
-        if let Some(first) = matches.next() {
-            if input == first.name() {
-                Ok(first.clone())
-            } else if let Some(second) = matches.next() {
-                let mut result = vec![first.name().to_string(), second.name().to_string()];
-                for item in matches {
-                    result.push(item.name().to_string());
-                }
-                Err(LookUpError::Incomplete(result))
-            } else {
-                Err(LookUpError::Incomplete(vec![first.name().to_string()]))
-            }
-        } else {
-            Err(LookUpError::Message("no matches".into()))
-        }
-    }
-}
+// impl Resolve for Vec<Act> {
+//     type Item = Act;
+//     fn resolve(&self, input: &str) -> Result<Act, LookUpError> {
+//         let mut matches = self.iter().filter(|command| {
+//             command.flags.contains(ActFlags::ExecAct | ActFlags::Active)
+//                 && command.name.starts_with(input)
+//         });
+//         // Collecting and matching is nice expressively. But manually iterating
+//         // avoids that allocation.
+//         if let Some(first) = matches.next() {
+//             if input == first.name() {
+//                 Ok(first.clone())
+//             } else if let Some(second) = matches.next() {
+//                 let mut result = vec![first.name().to_string(), second.name().to_string()];
+//                 for item in matches {
+//                     result.push(item.name().to_string());
+//                 }
+//                 Err(LookUpError::Incomplete(result))
+//             } else {
+//                 Err(LookUpError::Incomplete(vec![first.name().to_string()]))
+//             }
+//         } else {
+//             Err(LookUpError::Message("no matches".into()))
+//         }
+//     }
+// }
 
-impl LookUp for Vec<Act> {
-    fn look_up(&self, input: &str) -> Result<(), LookUpError> {
-        self.resolve(input).map(|_| ())
-    }
+// impl LookUp for Vec<Act> {
+//     fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+//         self.resolve(input).map(|_| ())
+//     }
 
-    fn longest_prefix(&self, _input: &str) -> Option<String> {
-        None
-    }
-}
+//     fn longest_prefix(&self, _input: &str) -> Option<String> {
+//         None
+//     }
+// }
 
 impl bevy::ecs::world::Command for ActBuilder {
     fn apply(self, world: &mut World) {
@@ -288,24 +287,25 @@ pub fn exec_act(
     }
     let acts: Trie<u8, Act> = builder.build();
     async move {
-        match asky.read(":".to_string(), acts.clone()).await {
-            // TODO: Get rid of clone.
-            Ok(act_name) => match acts.resolve(&act_name) {
-                Ok(act) => {
-                    AsyncWorld::new().send_event(RunActEvent(act))?;
-                }
-                Err(e) => {
-                    asky.prompt(Message::new(format!(
-                        "Error: Could not resolve act named {:?}: {}",
-                        act_name, e
-                    )))
-                    .await?;
-                }
-            },
-            Err(e) => {
-                asky.prompt(Message::new(format!("Error: {e}"))).await?;
-            }
-        }
+        todo!();
+        // match asky.read(":".to_string(), acts.clone()).await {
+        //     // TODO: Get rid of clone.
+        //     Ok(act_name) => match acts.resolve(&act_name) {
+        //         Ok(act) => {
+        //             AsyncWorld::new().send_event(RunActEvent(act))?;
+        //         }
+        //         Err(e) => {
+        //             asky.prompt(Message::new(format!(
+        //                 "Error: Could not resolve act named {:?}: {}",
+        //                 act_name, e
+        //             )))
+        //             .await?;
+        //         }
+        //     },
+        //     Err(e) => {
+        //         asky.prompt(Message::new(format!("Error: {e}"))).await?;
+        //     }
+        // }
         Ok(())
     }
 }
@@ -344,7 +344,7 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
     let msg = format!("{}", table);
     // eprintln!("{}", &msg);
     async move {
-        let _ = asky.prompt(Message::new(msg)).await;
+        let _ = asky.message(&msg).await;
     }
 }
 
@@ -371,7 +371,7 @@ pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future
     }
     let msg = format!("{}", table);
     async move {
-        let _ = asky.prompt(Message::new(msg)).await;
+        let _ = asky.message(msg).await;
     }
 }
 
@@ -422,7 +422,7 @@ pub fn describe_key(
         let mut accum = String::from("Press key: ");
 
         loop {
-            minibuffer.prompt(Message::new(accum.clone())).await?;
+            minibuffer.message(accum.clone()).await?;
             let chord = minibuffer.get_chord().await?;
             match search.query(&chord) {
                 Some(x) => {
@@ -435,7 +435,7 @@ pub fn describe_key(
                         }
                         Answer::Prefix => accum.clone(),
                     };
-                    minibuffer.prompt(Message::new(msg)).await?;
+                    minibuffer.message(msg).await?;
                     if matches!(x, Answer::Match) {
                         break;
                     }
@@ -443,7 +443,7 @@ pub fn describe_key(
                 None => {
                     let _ = write!(accum, "{} ", chord);
                     let msg = format!("{}is unbound", accum);
-                    minibuffer.prompt(Message::new(msg)).await?;
+                    minibuffer.message(msg).await?;
                     break;
                 }
             }

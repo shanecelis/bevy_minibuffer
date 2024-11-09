@@ -6,27 +6,16 @@ edition = "2021"
 [dependencies]
 bevy = "0.14"
 bitflags = "2.3.1"
-futures-lite = "1.13.0"
-promise_out = "1.0.0"
 trie-rs = "0.4.2"
-colored = { version = "2.0.0", features = [ "no-color" ] }
 bevy-input-sequence = "0.5.0"
 keyseq = { version = "0.3", features = [ "bevy" ]}
-asky = { version = "0.1.1", default-features = false, features = ["bevy"] }
-text-style = { version = "0.4.0", default-features = false, features = [ "bevy" ] }
-bevy_crossbeam_event = "0.6.0"
+bevy_asky = { path = "../bevy_asky", features = [ "async" ] }
+futures = { version = "0.3.30", optional = false }
 tabular = "0.2.0"
 thiserror = "1.0.58"
 bevy_defer = "0.12"
 
 [dev-dependencies]
 bevy-inspector-egui = "0.25"
-# bevy_editor_pls = { path = "../bevy_editor_pls/crates/bevy_" }
 
 [patch.crates-io]
-text-style = { path = "../text-style-rs" }
-# text-style = { git = "https://github.com/shanecelis/text_style.git", branch = "feature/colored", features = [ "crossterm", "bevy" ] }
-# bevy_crossbeam_event = { git = "https://github.com/johanhelsing/bevy_crossbeam_event.git" }
-asky = { path = "../asky" }
-# asky = { git = "https://github.com/shanecelis/asky.git", branch = "bevy_defer", default-features = false, features = ["bevy"] }
-promise_out = { path = "../promise_out" }

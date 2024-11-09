@@ -1,16 +1,11 @@
 //! Lookup and autocompletion
 use bevy::input::keyboard::KeyCode;
-use bevy_crossbeam_event::CrossbeamEventSender;
 use std::borrow::Cow;
 use std::io;
 use trie_rs::{iter::KeysExt, map};
 
 use crate::event::*;
 use crate::Error;
-use asky::{
-    bevy::KeyEvent, style::Style, utils::renderer::Renderer, OnTick, Printable, Tick,
-    Typeable, Valuable,
-};
 
 /// Look up error
 ///

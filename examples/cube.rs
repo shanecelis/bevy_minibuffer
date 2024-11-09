@@ -1,6 +1,6 @@
 //! Illustrates how to interact with an object with minibuffer.
 
-use asky::Number;
+use bevy_asky::Number;
 use bevy::prelude::*;
 use bevy_defer::{AsyncWorld, AsyncAccess};
 use bevy_minibuffer::prelude::*;

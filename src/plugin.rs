@@ -1,14 +1,15 @@
 use crate::{
     act,
     event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent, RunInputSequenceEvent},
-    lookup::AutoComplete,
+    // lookup::AutoComplete,
     prompt::{
-        self, dispatch_events, get_key_chords, hide, hide_delayed, hide_prompt_maybe,
-        listen_prompt_active, look_up_events, show, CompletionState, MinibufferState, PromptState,
+        self, dispatch_events, get_key_chords,
+        hide, hide_delayed, hide_prompt_maybe,
+        listen_prompt_active, look_up_events, show, CompletionState, MinibufferState, PromptState, KeyChordEvent
     },
     ui,
 };
-use asky::bevy::AskyPlugin;
+use bevy_asky::AskyPlugin;
 use bevy::{
     app::{PostUpdate, Startup, Update},
     state::{
@@ -30,7 +31,6 @@ use bevy::{
     utils::default,
     prelude::{OnEnter, OnExit, on_event}
 };
-use bevy_crossbeam_event::CrossbeamEventApp;
 use bevy_input_sequence::InputSequencePlugin;
 use std::borrow::Cow;
 
@@ -68,7 +68,7 @@ pub enum Error {
     Message(Cow<'static, str>),
     /// An [asky] error
     #[error("asky {0}")]
-    Asky(#[from] asky::Error),
+    Asky(#[from] bevy_asky::Error),
     /// An async error
     #[error("async error {0}")]
     Async(#[from] bevy_defer::AccessError),
@@ -103,19 +103,16 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .init_state::<CompletionState>()
             .init_resource::<act::ActCache>()
             .insert_resource(self.config.clone())
-            .insert_resource(crate::MinibufferStyle {
-                text_style: Some(self.config.text_style.clone()),
-                ..default()
-            })
-            .add_crossbeam_event::<DispatchEvent>()
+            // .add_crossbeam_event::<DispatchEvent>()
             .add_event::<RunInputSequenceEvent>()
             .add_event::<LookUpEvent>()
             .add_event::<RunActEvent>()
+            .add_event::<KeyChordEvent>()
             .add_systems(Startup, ui::spawn_layout)
             .add_systems(Update,
                          (hide_prompt_maybe,
                           // act::detect_additions,
-                          asky::bevy::asky_system::<AutoComplete<asky::Text>>,
+                          //asky::bevy::asky_system::<AutoComplete<asky::Text>>,
                           listen_prompt_active)
                          .in_set(MinibufferSet::Process))
             .add_systems(Update, get_key_chords.in_set(MinibufferSet::Input))

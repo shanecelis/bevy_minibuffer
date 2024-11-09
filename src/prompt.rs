@@ -5,13 +5,12 @@ use crate::{
     ui::{completion_item, ScrollingList},
     Config,
 };
-// use asky::bevy::{AskyState, AskyDelay};
-use asky::bevy::AskyPromptState;
 use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
 use bevy_input_sequence::{KeyChord, Modifiers};
-use promise_out::{pair::Producer, Promise};
 use std::collections::VecDeque;
 use std::fmt::Debug;
+use bevy_asky::prelude::*;
+use bevy_defer::sync::oneshot::Sender;
 
 /// The state of... something???
 /// XXX: What is this?
@@ -55,15 +54,18 @@ pub struct HideTime {
     pub timer: Timer,
 }
 
-/// Get a key chord.
+// /// Get a key chord.
 #[derive(Component, Debug)]
-pub(crate) struct GetKeyChord(pub(crate) Option<Producer<KeyChord, asky::Error>>);
+pub(crate) struct GetKeyChord;
 
-impl GetKeyChord {
-    pub(crate) fn new(promise: Producer<KeyChord, asky::Error>) -> Self {
-        GetKeyChord(Some(promise))
-    }
-}
+#[derive(Event, Debug)]
+pub(crate) struct KeyChordEvent(pub(crate) KeyChord);
+
+// impl GetKeyChord {
+//     pub(crate) fn new(promise: Sender<Result<KeyChord, Error>>) -> Self {
+//         GetKeyChord(Some(promise))
+//     }
+// }
 
 /// Make component visible.
 pub fn show<T: Component>(
@@ -78,12 +80,13 @@ pub fn show<T: Component>(
 
 /// Check components to determine MinibufferState's state.
 pub(crate) fn set_minibuffer_state(
-    query: Query<&AskyPromptState>,
+    query: Query<Entity, With<Focusable>>,
+    focus: Focus,
     key_chords: Query<&GetKeyChord>,
     mut next_minibuffer_state: ResMut<NextState<MinibufferState>>,
 ) {
-    let is_active = query.iter().any(|x| matches!(x, AskyPromptState::Waiting))
-        || key_chords.iter().next().is_some();
+    let is_active = query.iter().any(|x| focus.is_focused(x));
+        //|| key_chords.iter().next().is_some();
 
     next_minibuffer_state.set(if is_active {
         MinibufferState::Active
@@ -99,7 +102,7 @@ pub fn is_modifier(key: KeyCode) -> bool {
 }
 
 pub(crate) fn get_key_chords(
-    mut query: Query<(Entity, &mut GetKeyChord)>,
+    mut query: Query<Entity, With<GetKeyChord>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut buffer: Local<VecDeque<KeyChord>>,
     mut commands: Commands,
@@ -112,12 +115,13 @@ pub(crate) fn get_key_chords(
         .collect();
 
     if let Some(chord) = buffer.pop_front().or_else(|| chords.pop_front()) {
-        for (id, mut get_key_chord) in query.iter_mut() {
-            if let Some(promise) = get_key_chord.0.take() {
-                promise.resolve(chord.clone());
-            }
-            // commands.entity(id).remove::<GetKeyChord>();
-            commands.entity(id).despawn();
+        for id in query.iter_mut() {
+            commands.trigger_targets(KeyChordEvent(chord.clone()), id);
+            // if let Some(promise) = get_key_chord.0.take() {
+            //     promise.resolve(chord.clone());
+            // }
+            commands.entity(id).remove::<GetKeyChord>();
+            // commands.entity(id).despawn();
         }
     }
     buffer.extend(chords);
@@ -287,7 +291,7 @@ pub(crate) fn listen_prompt_active(
 
 #[cfg(test)]
 mod tests {
-    use crate::lookup::LookUp;
+    // use crate::lookup::LookUp;
     // use crate::prompt::Parse;
 
     // #[derive(Debug)]
@@ -314,14 +318,14 @@ mod tests {
     //     assert_eq!(a.0, "Tom");
     // }
 
-    #[test]
-    fn test_lookup() {
-        use trie_rs::Trie;
-        let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
-        assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");
-        let lookup: &dyn LookUp = &trie;
-        assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
-        assert_eq!(lookup.longest_prefix("b"), None);
-        // let lookup: &dyn LookUp = &trie;
-    }
+    // #[test]
+    // fn test_lookup() {
+    //     use trie_rs::Trie;
+    //     let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
+    //     assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");
+    //     let lookup: &dyn LookUp = &trie;
+    //     assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
+    //     assert_eq!(lookup.longest_prefix("b"), None);
+    //     // let lookup: &dyn LookUp = &trie;
+    // }
 }

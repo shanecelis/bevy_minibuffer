@@ -1,7 +1,5 @@
 use crate::Minibuffer;
 #[allow(unused_imports)]
-pub use asky::bevy::{future_sink, option_future_sink};
-use asky::Message;
 use bevy::ecs::system::In;
 use bevy_defer::{AsyncExecutor, NonSend};
 use std::{fmt::Display, future::Future};
@@ -18,7 +16,16 @@ pub fn future_result_sink<
 ) {
     exec.spawn(async move {
         if let Err(e) = future.await {
-            let _ = minibuffer.prompt(Message::new(format!("error {e}"))).await;
+            todo!();
+            // let _ = minibuffer.prompt(Message::new(format!("error {e}"))).await;
         }
     });
+}
+
+/// Execute a future.
+pub fn future_sink<F: Future<Output = ()> + 'static>(
+    In(future): In<F>,
+    exec: NonSend<AsyncExecutor>,
+) {
+    exec.spawn(future);
 }

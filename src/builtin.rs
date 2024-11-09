@@ -1,8 +1,7 @@
 use crate::{
-    act, future_result_sink,
+    act, future_sink, future_result_sink,
     prelude::{keyseq, ActBuilder, ActsPlugin},
 };
-use asky::bevy::future_sink;
 use bevy::ecs::system::IntoSystem;
 
 /// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key.

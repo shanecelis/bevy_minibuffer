@@ -5,7 +5,6 @@ use crate::{
     prelude::{future_sink, keyseq},
     Minibuffer,
 };
-use asky::Message;
 use bevy::prelude::*;
 use bevy_defer::{AsyncWorld, AsyncAccess};
 use bevy_input_sequence::KeyChord;
@@ -54,12 +53,12 @@ pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) -> impl F
         let _ = match accum {
             Some(x) => {
                 minibuffer
-                    .prompt(Message::new(format!("Univeral argument {x}")))
+                    .message(format!("Univeral argument {x}"))
                     .await
             }
             None => {
                 minibuffer
-                    .prompt(Message::new("No universal argument set"))
+                    .message("No universal argument set")
                     .await
             }
         };

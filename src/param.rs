@@ -89,7 +89,7 @@ impl Minibuffer {
         <T as Construct>::Props: Send,
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
-        self.asky.prompt::<T, bevy_asky::view::color::View>(props, self.dest)
+        self.asky.prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(self.dest))
     }
 
     /// Leave a message in the minibuffer.

@@ -25,6 +25,7 @@ fn main() {
         .add_plugins(common::VideoCaptureSettings {
             title: "Bevy Minibuffer Simplest Example".into(),
         })
+        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
         .run();
 }

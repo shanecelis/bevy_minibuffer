@@ -85,8 +85,8 @@ pub(crate) fn set_minibuffer_state(
     key_chords: Query<&GetKeyChord>,
     mut next_minibuffer_state: ResMut<NextState<MinibufferState>>,
 ) {
-    let is_active = query.iter().any(|x| focus.is_focused(x));
-        //|| key_chords.iter().next().is_some();
+    let is_active = query.iter().any(|x| focus.is_focused(x))
+        || key_chords.iter().next().is_some();
 
     next_minibuffer_state.set(if is_active {
         MinibufferState::Active

@@ -87,15 +87,13 @@ struct InputSet;
 #[rustfmt::skip]
 impl bevy::app::Plugin for MinibufferPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-
-        if let Some(type_registry) = app.world_mut().get_resource_mut::<AppTypeRegistry>() {
-            let mut type_registry = type_registry.write();
-            type_registry.register::<PromptState>();
-            type_registry.register::<CompletionState>();
-            type_registry.register::<Config>();
-        }
         app
+            .register_type::<PromptState>()
+            .register_type::<CompletionState>()
+            .register_type::<Config>()
+            .register_type::<act::Act>()
             .add_plugins(AskyPlugin)
+            .add_plugins(bevy_asky::view::color::plugin)
             .add_plugins(InputSequencePlugin::empty()
             .run_in_set(Update, InputSet))
             .init_state::<MinibufferState>()

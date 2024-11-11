@@ -54,12 +54,10 @@ pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) -> impl F
             Some(x) => {
                 minibuffer
                     .message(format!("Univeral argument {x}"))
-                    .await
             }
             None => {
                 minibuffer
                     .message("No universal argument set")
-                    .await
             }
         };
     }

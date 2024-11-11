@@ -39,6 +39,9 @@ The default functionality should be a blank slate that does nothing if no comman
 `bevy_minibuffer` commands are called `Act`s to avoid confusion because bevy
 already has its own `Command` struct.
 
+# TODO
+- [ ] Use a real cursor/selection highlight that doesn't [fail on wrap](https://discord.com/channels/691052431525675048/1305257817057398825/1305257817057398825).
+
 # Design Quetions
 ## Re: No windows antigoal
 The minibuffer can show more than one line of text, but what to do if its asked

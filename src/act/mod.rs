@@ -344,7 +344,7 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
     let msg = format!("{}", table);
     // eprintln!("{}", &msg);
     async move {
-        let _ = asky.message(&msg).await;
+         asky.message(&msg);
     }
 }
 
@@ -371,7 +371,7 @@ pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future
     }
     let msg = format!("{}", table);
     async move {
-        let _ = asky.message(msg).await;
+        asky.message(msg);
     }
 }
 
@@ -422,7 +422,7 @@ pub fn describe_key(
         let mut accum = String::from("Press key: ");
 
         loop {
-            minibuffer.message(accum.clone()).await?;
+            minibuffer.message(accum.clone());
             let chord = minibuffer.get_chord().await?;
             match search.query(&chord) {
                 Some(x) => {
@@ -435,7 +435,7 @@ pub fn describe_key(
                         }
                         Answer::Prefix => accum.clone(),
                     };
-                    minibuffer.message(msg).await?;
+                    minibuffer.message(msg);
                     if matches!(x, Answer::Match) {
                         break;
                     }
@@ -443,7 +443,7 @@ pub fn describe_key(
                 None => {
                     let _ = write!(accum, "{} ", chord);
                     let msg = format!("{}is unbound", accum);
-                    minibuffer.message(msg).await?;
+                    minibuffer.message(msg);
                     break;
                 }
             }

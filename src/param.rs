@@ -12,12 +12,12 @@ use bevy::{
         system::{Query, Res, SystemMeta, SystemParam, SystemState, Resource},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Deref, Reflect, Trigger},
+    prelude::{Deref, Reflect, Trigger, TextBundle, TextStyle},
     utils::Duration,
 };
 use bevy_defer::AsyncWorld;
 use bevy_input_sequence::KeyChord;
-use std::fmt::Debug;
+use std::{borrow::Cow, fmt::Debug};
 use bevy_asky::prelude::*;
 use futures::{channel::oneshot, Future};
 
@@ -79,7 +79,27 @@ unsafe impl SystemParam for Minibuffer {
     }
 }
 
+#[derive(Component, Debug, Reflect)]
+struct Message;
+impl Construct for Message {
+    type Props = Cow<'static, str>;
+
+    fn construct(
+        context: &mut ConstructContext,
+        props: Self::Props,
+    ) -> Result<Self, ConstructError> {
+        // Our requirements.
+        let mut commands = context.world.commands();
+        commands
+            .entity(context.id)
+            .insert(TextBundle::from_section(props, TextStyle::default()));
+        context.world.flush();
+        Ok(Message)
+    }
+}
+
 impl Minibuffer {
+
     /// Prompt the user for input.
     pub fn prompt<T: Construct + Component + Submitter>(
         &mut self,
@@ -93,18 +113,19 @@ impl Minibuffer {
     }
 
     /// Leave a message in the minibuffer.
-    pub fn message(&mut self, msg: impl AsRef<str>) -> impl Future<Output = Result<(), Error>> {
-        bevy::prelude::warn!("MSG: {}", msg.as_ref());
-        async move {
-            Ok(())
-        }
+    pub fn message(&mut self, msg: impl Into<String>) {
+        let msg = msg.into();
+
+        let dest = self.dest;
+        let async_world = AsyncWorld::new();
+        async_world.apply_command(move |world: &mut World| {
+            let mut commands = world.commands();
+            Dest::ReplaceChildren(dest).entity_commands(&mut commands)
+                .construct::<Message>(msg);
+        });
+        // self.dest
+        // self.asky.prompt::<Message, bevy_asky::view::color::View>(msg.as_ref(), Dest::ReplaceChildren(self.dest))
     }
-    // pub fn prompt<T: Typeable<KeyEvent> + Valuable + Send + Sync + 'static>(
-    //     &mut self,
-    //     prompt: T,
-    // ) -> impl Future<Output = Result<T::Output, Error>> + '_ {
-    //     self.prompt_styled(prompt, self.style.clone().into())
-    // }
 
     /// Read input from user that must match a [LookUp].
     // pub fn read<L>(

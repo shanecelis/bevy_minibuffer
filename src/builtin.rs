@@ -1,5 +1,5 @@
 use crate::{
-    act, future_sink, future_result_sink,
+    act::{self, PluginOnce}, future_sink, future_result_sink,
     prelude::{keyseq, ActBuilder, ActsPlugin},
 };
 use bevy::ecs::system::IntoSystem;
@@ -34,8 +34,8 @@ impl Default for Builtin {
     }
 }
 
-impl bevy::app::Plugin for Builtin {
-    fn build(&self, app: &mut bevy::app::App) {
+impl PluginOnce for Builtin {
+    fn build(self, app: &mut bevy::app::App) {
         self.acts.build(app);
     }
 }

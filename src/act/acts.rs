@@ -1,39 +1,41 @@
-use crate::act::ActBuilder;
+use crate::act::{ActBuilder, PluginOnce, PluginOnceShim};
 use bevy::prelude::*;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Houses a collection of acts.
 ///
 /// Acts may be inspected and modified before adding to app.
+#[derive(Debug, Deref, DerefMut)]
 pub struct ActsPlugin {
-    /// Why use RwLock? Because `Plugin` must be `Send` and `ActBuilder` is not
-    /// `Clone`. In `build(&self)` we want to consume the acts but we only have
-    /// `&self` so this is our workaround.
-    acts: RwLock<Vec<ActBuilder>>,
+    // Why use RwLock? Because `Plugin` must be `Send` and `ActBuilder` is not
+    // `Clone`. In `build(&self)` we want to consume the acts but we only have
+    // `&self` so this is our workaround.
+    acts: Vec<ActBuilder>,
 }
+
 
 impl ActsPlugin {
     /// Create a new plugin with a set of acts.
     pub fn new<I: IntoIterator<Item = ActBuilder>>(v: I) -> Self {
         ActsPlugin {
-            acts: RwLock::new(v.into_iter().collect()),
+            acts: v.into_iter().collect(),
         }
     }
 
-    /// Get the current acts readonly.
-    pub fn get(&self) -> RwLockReadGuard<Vec<ActBuilder>> {
-        self.acts.read().unwrap()
-    }
+    // /// Get the current acts readonly.
+    // pub fn get(&self) -> RwLockReadGuard<Vec<ActBuilder>> {
+    //     self.acts.read().unwrap()
+    // }
 
-    /// Get the current acts mutable.
-    pub fn get_mut(&self) -> RwLockWriteGuard<Vec<ActBuilder>> {
-        self.acts.write().unwrap()
-    }
+    // /// Get the current acts mutable.
+    // pub fn get_mut(&self) -> RwLockWriteGuard<Vec<ActBuilder>> {
+    //     self.acts.write().unwrap()
+    // }
 
-    /// Clear all the acts.
-    pub fn clear(&self) {
-        let _ = self.get_mut().drain(..);
-    }
+    // /// Clear all the acts.
+    // pub fn clear(&self) {
+    //     let _ = self.get_mut().drain(..);
+    // }
 }
 
 impl Default for ActsPlugin {
@@ -42,38 +44,30 @@ impl Default for ActsPlugin {
     }
 }
 
-impl Plugin for ActsPlugin {
-    fn build(&self, app: &mut bevy::app::App) {
-        for act in self.acts.write().unwrap().drain(..) {
-            let world = app.world_mut();
-            let act = act.build(world);
-            let keyseqs = act.build_keyseqs(world);
-            world.spawn(act)
-             .with_children(|builder| {
-                 for keyseq in keyseqs {
-                     builder.spawn(keyseq);
-                 }
-             });
+impl PluginOnce for ActsPlugin {
+    fn build(mut self, app: &mut bevy::app::App) {
+        for act in self.acts.drain(..) {
+            PluginOnce::build(act, app);
         }
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::prelude::*;
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use crate::prelude::*;
+//     use super::*;
 
-    fn act1() {}
-    #[test]
-    fn check_acts() {
-        let plugin = ActsPlugin::default();
-        assert_eq!(plugin.get().len(), 0);
-    }
+//     fn act1() {}
+//     #[test]
+//     fn check_acts() {
+//         let plugin = ActsPlugin::default();
+//         assert_eq!(plugin.get().len(), 0);
+//     }
 
-    #[test]
-    fn check_drain_read() {
-        let plugin = ActsPlugin::default();
-        plugin.get_mut().push(Act::new(act1));
-        assert_eq!(plugin.get().len(), 1);
-    }
-}
+//     #[test]
+//     fn check_drain_read() {
+//         let plugin = ActsPlugin::default();
+//         plugin.get_mut().push(Act::new(act1));
+//         assert_eq!(plugin.get().len(), 1);
+//     }
+// }

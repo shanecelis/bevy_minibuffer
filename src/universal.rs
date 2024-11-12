@@ -1,6 +1,6 @@
 //! A universal argument, accepts a numerical prefix.
 use crate::{
-    act::{Act, ActsPlugin, ActFlags},
+    act::{Act, ActsPlugin, ActFlags, PluginOnce},
     event::{RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
     Minibuffer,
@@ -37,8 +37,8 @@ impl Default for UniversalPlugin {
     }
 }
 
-impl Plugin for UniversalPlugin {
-    fn build(&self, app: &mut bevy::app::App) {
+impl PluginOnce for UniversalPlugin {
+    fn build(mut self, app: &mut bevy::app::App) {
         app.init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
         // XXX: This is kind of funky.
@@ -123,13 +123,13 @@ mod tests {
     #[test]
     fn check_acts() {
         let plugin = UniversalPlugin::default();
-        assert_eq!(plugin.acts.get().len(), 2);
+        assert_eq!(plugin.acts.len(), 2);
     }
 
     #[test]
     fn check_drain_read() {
-        let plugin = UniversalPlugin::default();
-        let _ = plugin.acts.get_mut().drain(..);
-        assert_eq!(plugin.acts.get().len(), 0);
+        let mut plugin = UniversalPlugin::default();
+        let _ = plugin.acts.drain(..);
+        assert_eq!(plugin.acts.len(), 0);
     }
 }

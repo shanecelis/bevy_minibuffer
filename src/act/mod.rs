@@ -3,8 +3,10 @@ use crate::{
     event::RunActEvent,
     //lookup::{LookUp, LookUpError, Resolve},
     prompt::{CompletionState, PromptState},
-    Minibuffer,
+    prelude::Minibuffer,
 };
+// #[cfg(feature = "async")]
+// use crate::Minibuffer;
 use bevy::{
     ecs::system::{BoxedSystem, SystemId},
     prelude::*,
@@ -23,6 +25,7 @@ use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
 mod acts;
 pub use acts::ActsPlugin;
+#[cfg(feature = "async")]
 use bevy_defer::AsyncWorld;
 
 bitflags! {
@@ -158,6 +161,11 @@ impl ActBuilder {
 pub trait PluginOnce {
     /// Build the plugin.
     fn build(self, app: &mut App);
+
+    /// Convert into a standard plugin.
+    fn into_plugin(self) -> PluginOnceShim<Self> where Self: Sized {
+        self.into()
+    }
 }
 
 /// A plugin for [ActBuilder], which must consumes `self` to build, so this
@@ -322,6 +330,7 @@ impl bevy::ecs::system::EntityCommand for ActBuilder {
 // }
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
+#[cfg(feature = "async")]
 pub fn exec_act(
     mut asky: Minibuffer,
     acts: Query<&Act>,
@@ -358,7 +367,7 @@ pub fn exec_act(
 }
 
 /// List acts currently operant.
-pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output = ()> {
+pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) {
     let mut table = Table::new("{:<}\t{:<}");
     table.add_row(Row::new().with_cell("ACT").with_cell("KEY BINDING"));
     let mut acts: Vec<_> = acts.iter().collect();
@@ -389,14 +398,11 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output 
         }
     }
     let msg = format!("{}", table);
-    // eprintln!("{}", &msg);
-    async move {
-         asky.message(&msg);
-    }
+    asky.message(&msg);
 }
 
 /// List key bindings for event `E`.
-pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future<Output = ()> {
+pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) {
     let mut table = Table::new("{:<}\t{:<}");
     table.add_row(Row::new().with_cell("KEY BINDING").with_cell("EVENT"));
 
@@ -417,9 +423,7 @@ pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) -> impl Future
         table.add_row(Row::new().with_cell(binding).with_cell(format!("{}", e)));
     }
     let msg = format!("{}", table);
-    async move {
-        asky.message(msg);
-    }
+    asky.message(msg);
 }
 
 /// Toggle visibility
@@ -457,6 +461,7 @@ pub fn toggle_visibility(
 }
 
 /// Input a key sequence. This will tell you what it does.
+#[cfg(feature = "async")]
 pub fn describe_key(
     acts: Query<&Act>,
     mut cache: ResMut<ActCache>,

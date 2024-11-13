@@ -1,4 +1,5 @@
 use crate::{
+    Dest,
     Message,
     event::DispatchEvent,
     // lookup::{AutoComplete, LookUp},
@@ -100,7 +101,8 @@ impl Minibuffer {
         let async_world = AsyncWorld::new();
         async_world.apply_command(move |world: &mut World| {
             let mut commands = world.commands();
-            Dest::ReplaceChildren(dest).entity_commands(&mut commands)
+            Dest::ReplaceChildren(dest)
+                .entity_commands(&mut commands)
                 .construct::<Message>(msg);
         });
         // self.dest

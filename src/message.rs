@@ -16,11 +16,9 @@ use bevy::{
     prelude::{Deref, Reflect, Trigger, TextBundle, TextStyle},
     utils::Duration,
 };
-use bevy_defer::AsyncWorld;
 use bevy_input_sequence::KeyChord;
 use std::{borrow::Cow, fmt::Debug};
 use bevy_asky::prelude::*;
-use futures::{channel::oneshot, Future};
 
 /// A message marker to put a text message in the minibuffer.
 #[derive(Component, Debug, Reflect)]

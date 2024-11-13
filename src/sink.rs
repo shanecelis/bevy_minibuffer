@@ -1,6 +1,6 @@
 use crate::Minibuffer;
 #[allow(unused_imports)]
-use bevy::ecs::system::In;
+use bevy::{prelude::warn, ecs::system::In};
 use bevy_defer::{AsyncExecutor, NonSend};
 use std::{fmt::Display, future::Future};
 
@@ -16,8 +16,8 @@ pub fn future_result_sink<
 ) {
     exec.spawn(async move {
         if let Err(e) = future.await {
-            todo!();
-            // let _ = minibuffer.prompt(Message::new(format!("error {e}"))).await;
+            warn!("error {e}");
+            // minibuffer.message(format!("error {e}"));
         }
     });
 }

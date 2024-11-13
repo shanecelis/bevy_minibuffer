@@ -29,7 +29,7 @@ impl Default for UniversalPlugin {
                     .named("universal_argument")
                     .hotkey(keyseq! { ctrl-U })
                     .in_exec_act(false),
-                Act::new(check_accum.pipe(future_sink))
+                Act::new(check_accum)
                     .named("check_accum")
                     .hotkey(keyseq! { C A }),
             ]),
@@ -47,26 +47,23 @@ impl PluginOnce for UniversalPlugin {
 }
 
 /// XXX: This shouldn't be here. It should be in an example.
-pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) -> impl Future<Output = ()> {
-    let accum = arg.0;
-    async move {
-        let _ = match accum {
-            Some(x) => {
-                minibuffer
-                    .message(format!("Univeral argument {x}"))
-            }
-            None => {
-                minibuffer
-                    .message("No universal argument set")
-            }
-        };
+pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
+    match arg.0 {
+        Some(x) => {
+            minibuffer
+                .message(format!("Univeral argument {x}"))
+        }
+        None => {
+            minibuffer
+                .message("No universal argument set")
+        }
     }
 }
 
 fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>) {
     if let Some(act) = event.read().next() {
         if !act.flags.contains(ActFlags::Adverb) {
-            eprintln!("clear arg for {act}");
+            // eprintln!("clear arg for {act}");
             arg.0 = None;
         }
     }

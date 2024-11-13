@@ -22,12 +22,13 @@ fn ask_name(mut minibuffer: Minibuffer) {
 }
 
 fn main() {
+    let video_settings = common::VideoCaptureSettings {
+        title: "Bevy Minibuffer Simplest Example".into()
+    };
     App::new()
-        // .add_plugins(DefaultPlugins)
-        // .add_plugins(MinibufferPlugin::default())
-        .add_plugins(common::VideoCaptureSettings {
-            title: "Bevy Minibuffer Simplest Example".into(),
-        })
+        // .add_plugins((DefaultPlugins, MinibufferPlugins))
+        .add_plugins((DefaultPlugins.set(video_settings.window_plugin()),
+                      MinibufferPlugins.set(video_settings.minibuffer_plugin())))
         // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
         .run();

@@ -5,17 +5,20 @@ pub struct VideoCaptureSettings {
     pub title: String,
 }
 
-impl Plugin for VideoCaptureSettings {
-    fn build(&self, app: &mut bevy::app::App) {
-        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+impl VideoCaptureSettings {
+    pub fn window_plugin(&self) -> WindowPlugin {
+        WindowPlugin {
             primary_window: Some(Window {
                 resolution: [400., 400.].into(),
                 title: self.title.clone(),
                 ..Default::default()
             }),
             ..Default::default()
-        }))
-        .add_plugins(MinibufferPlugin {
+        }
+    }
+
+    pub fn minibuffer_plugin(&self) -> MinibufferPlugin {
+        MinibufferPlugin {
             config: Config {
                 // auto_hide: true,
                 auto_hide: false,
@@ -25,7 +28,14 @@ impl Plugin for VideoCaptureSettings {
                     ..default()
                 },
             },
-        })
-        .add_plugins(bevy_defer::AsyncPlugin::default_settings());
+        }
+    }
+}
+
+impl Plugin for VideoCaptureSettings {
+    fn build(&self, app: &mut bevy::app::App) {
+        app
+            .add_plugins((DefaultPlugins.set(self.window_plugin()),
+                          MinibufferPlugins.set(self.minibuffer_plugin())));
     }
 }

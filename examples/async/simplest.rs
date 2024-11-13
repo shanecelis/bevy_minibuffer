@@ -1,16 +1,16 @@
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 
-#[path = "common/lib.rs"]
+#[path = "../common/lib.rs"]
 mod common;
 
 /// Ask the user for their name. Say hello.
 async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
     let first_name = minibuffer
-        .prompt::<TextField>("What's your first name?")
+        .prompt::<TextField>("What's your first name? ")
         .await?;
     let last_name = minibuffer
-        .prompt::<TextField>("What's your last name?")
+        .prompt::<TextField>("What's your last name? ")
         .await?;
     minibuffer
         .message(format!("Hello, {first_name} {last_name}!"));
@@ -22,7 +22,7 @@ fn main() {
         // .add_plugins(DefaultPlugins)
         // .add_plugins(MinibufferPlugin::default())
         .add_plugins(common::VideoCaptureSettings {
-            title: "Bevy Minibuffer Simplest Example".into(),
+            title: "Bevy Minibuffer Async Simplest Example".into(),
         })
         .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, setup)

@@ -1,6 +1,7 @@
 //! A sync version of the Minibuffer parameter.
 use crate::{
     Message,
+    Dest,
     event::DispatchEvent,
     // lookup::{AutoComplete, LookUp},
     prompt::{KeyChordEvent, GetKeyChord},
@@ -18,11 +19,9 @@ use bevy::{
     prelude::{Deref, Reflect, Trigger, TextBundle, TextStyle, DespawnRecursiveExt},
     utils::Duration,
 };
-use bevy_defer::AsyncWorld;
 use bevy_input_sequence::KeyChord;
 use std::{borrow::Cow, fmt::Debug};
 use bevy_asky::{prelude::*, sync::AskyCommands};
-use futures::{channel::oneshot, Future};
 
 // #[derive(Resource, Debug, Reflect, Deref)]
 // pub struct MinibufferDest(Entity);
@@ -121,21 +120,7 @@ impl<'w, 's> Minibuffer<'w, 's> {
     // }
 
     /// Get the next key chord.
-    pub fn get_chord(&mut self) -> impl Future<Output = Result<KeyChord, Error>> {
-        async {
-            let (promise, waiter) = oneshot::channel::<Result<KeyChord, Error>>();
-            let mut promise = Some(promise);
-            let async_world = AsyncWorld::new();
-            async_world.apply_command(move |world: &mut World| {
-                let mut commands = world.commands();
-                commands.spawn(GetKeyChord)
-                    .observe(move |trigger: Trigger<KeyChordEvent>| {
-                        if let Some(promise) = promise.take() {
-                            promise.send(Ok(trigger.event().0.clone())).expect("send");
-                        }
-                    });
-            });
-            waiter.await?
-        }
+    pub fn get_chord(&mut self) -> EntityCommands {
+        self.commands.spawn(GetKeyChord)
     }
 }

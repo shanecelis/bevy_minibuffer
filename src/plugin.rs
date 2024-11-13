@@ -41,6 +41,8 @@ pub struct MinibufferPlugin {
     pub config: Config,
 }
 
+/// Minibuffer plugins, includes [bevy_defer::AsyncPlugin] with default settings
+/// if "async" feature is present.
 pub struct MinibufferPlugins;
 
 impl PluginGroup for MinibufferPlugins {
@@ -83,6 +85,7 @@ pub enum Error {
     #[error("asky {0}")]
     Asky(#[from] bevy_asky::Error),
     /// An async error
+    #[cfg(feature = "async")]
     #[error("async error {0}")]
     Async(#[from] bevy_defer::AccessError),
 }

@@ -20,10 +20,10 @@ impl Default for Builtin {
                     .hotkey(keyseq! { shift-; })
                     .hotkey(keyseq! { alt-X })
                     .in_exec_act(false),
-                ActBuilder::new(act::list_acts.pipe(future_sink))
+                ActBuilder::new(act::list_acts)
                     .named("list_acts")
                     .hotkey(keyseq! { ctrl-H A }),
-                ActBuilder::new(act::list_key_bindings.pipe(future_sink))
+                ActBuilder::new(act::list_key_bindings)
                     .named("list_key_bindings")
                     .hotkey(keyseq! { ctrl-H B }),
                 ActBuilder::new(act::describe_key.pipe(future_result_sink))

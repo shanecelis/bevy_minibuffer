@@ -10,7 +10,6 @@ use bevy_input_sequence::{KeyChord, Modifiers};
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use bevy_asky::prelude::*;
-use bevy_defer::sync::oneshot::Sender;
 
 /// The state of... something???
 /// XXX: What is this?

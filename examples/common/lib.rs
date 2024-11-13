@@ -5,7 +5,7 @@ pub struct VideoCaptureSettings {
     pub title: String,
 }
 
-impl bevy::app::Plugin for VideoCaptureSettings {
+impl Plugin for VideoCaptureSettings {
     fn build(&self, app: &mut bevy::app::App) {
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -26,6 +26,6 @@ impl bevy::app::Plugin for VideoCaptureSettings {
                 },
             },
         })
-            .add_plugins(bevy_defer::AsyncPlugin::default_settings());
+        .add_plugins(bevy_defer::AsyncPlugin::default_settings());
     }
 }

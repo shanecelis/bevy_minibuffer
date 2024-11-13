@@ -1,4 +1,6 @@
+//! A sync version of the Minibuffer parameter.
 use crate::{
+    Message,
     event::DispatchEvent,
     // lookup::{AutoComplete, LookUp},
     prompt::{KeyChordEvent, GetKeyChord},
@@ -13,90 +15,25 @@ use bevy::{
         world::{unsafe_world_cell::UnsafeWorldCell, World},
         prelude::Commands,
     },
-    prelude::{Deref, Reflect, Trigger, TextBundle, TextStyle},
+    prelude::{Deref, Reflect, Trigger, TextBundle, TextStyle, DespawnRecursiveExt},
     utils::Duration,
 };
 use bevy_defer::AsyncWorld;
 use bevy_input_sequence::KeyChord;
 use std::{borrow::Cow, fmt::Debug};
-use bevy_asky::prelude::*;
+use bevy_asky::{prelude::*, sync::AskyCommands};
 use futures::{channel::oneshot, Future};
 
 // #[derive(Resource, Debug, Reflect, Deref)]
 // pub struct MinibufferDest(Entity);
 
 /// Minibuffer, a [SystemParam]
-#[derive(Clone)]
-pub struct Minibuffer {
-    asky: Asky,
-    dest: Entity,
-    // dest: Res<'w, MinibufferDest>,
-    // channel: CrossbeamEventSender<DispatchEvent>,
-}
-
-unsafe impl SystemParam for Minibuffer {
-    type State = (
-        // Asky,
-        Entity,
-        // CrossbeamEventSender<DispatchEvent>,
-    );
-    type Item<'w, 's> = Minibuffer;
-
-    #[allow(clippy::type_complexity)]
-    fn init_state(world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
-        let mut state: SystemState<(
-            // Asky,
-            Query<Entity, With<PromptContainer>>,
-            // Option<Res<MinibufferStyle>>,
-            // Res<CrossbeamEventSender<DispatchEvent>>,
-        )> = SystemState::new(world);
-        let (//asky,
-             query,
-             //res,
-             //channel
-        ) = state.get_mut(world);
-        (
-            // asky,
-            query.single(),
-            // res.map(|x| x.clone()),
-            // channel.clone(),
-        )
-    }
-
-    #[inline]
-    unsafe fn get_param<'w, 's>(
-        state: &'s mut Self::State,
-        _system_meta: &SystemMeta,
-        _world: UnsafeWorldCell<'w>,
-        _change_tick: bevy::ecs::component::Tick,
-    ) -> Self::Item<'w, 's> {
-        let state = state.clone();
-        Minibuffer {
-            asky: Asky::default(),
-            dest: state.0,
-            // style: state.2.unwrap_or_default(),
-            // channel: state.3,
-        }
-    }
-}
-
-#[derive(Component, Debug, Reflect)]
-struct Message;
-impl Construct for Message {
-    type Props = Cow<'static, str>;
-
-    fn construct(
-        context: &mut ConstructContext,
-        props: Self::Props,
-    ) -> Result<Self, ConstructError> {
-        // Our requirements.
-        let mut commands = context.world.commands();
-        commands
-            .entity(context.id)
-            .insert(TextBundle::from_section(props, TextStyle::default()));
-        context.world.flush();
-        Ok(Message)
-    }
+#[derive(SystemParam)]
+pub struct Minibuffer<'w, 's> {
+    /// The query for where the Minibuffer contents go. Expected to be singular.
+    pub dest: Query<'w, 's, Entity, With<PromptContainer>>,
+    /// Commands
+    pub commands: Commands<'w, 's>
 }
 
 /// I don't know the entity without a query or something.
@@ -123,33 +60,28 @@ impl Construct for Message {
 //     }
 // }
 
-impl Minibuffer {
+impl<'w, 's> Minibuffer<'w, 's> {
 
     /// Prompt the user for input.
     pub fn prompt<T: Construct + Component + Submitter>(
         &mut self,
         props: impl Into<T::Props>,
-    ) -> impl Future<Output = Result<T::Out, Error>>
+    ) -> EntityCommands
     where
         <T as Construct>::Props: Send,
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
-        self.asky.prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(self.dest))
+        let dest = self.dest.single();
+        self.commands.prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(dest))
     }
 
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
         let msg = msg.into();
 
-        let dest = self.dest;
-        let async_world = AsyncWorld::new();
-        async_world.apply_command(move |world: &mut World| {
-            let mut commands = world.commands();
-            Dest::ReplaceChildren(dest).entity_commands(&mut commands)
-                .construct::<Message>(msg);
-        });
-        // self.dest
-        // self.asky.prompt::<Message, bevy_asky::view::color::View>(msg.as_ref(), Dest::ReplaceChildren(self.dest))
+        let dest = self.dest.single();
+        Dest::ReplaceChildren(dest).entity_commands(&mut self.commands)
+            .construct::<Message>(msg);
     }
 
     /// Read input from user that must match a [LookUp].
@@ -179,8 +111,8 @@ impl Minibuffer {
 
     /// Clear the minibuffer.
     pub fn clear(&mut self) {
-        let world = AsyncWorld::new();
-        world.entity(self.dest).despawn_descendants()
+        let dest = self.dest.single();
+        self.commands.entity(dest).despawn_descendants();
     }
 
     // Wait a certain duration.

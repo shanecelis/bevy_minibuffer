@@ -11,7 +11,7 @@ use crate::{
 };
 use bevy_asky::AskyPlugin;
 use bevy::{
-    app::{PostUpdate, Startup, Update},
+    app::{PostUpdate, Startup, Update, PluginGroupBuilder},
     state::{
         app::AppExtStates,
         // OnEnter, OnExit,
@@ -29,7 +29,7 @@ use bevy::{
     reflect::Reflect,
     text::TextStyle,
     utils::default,
-    prelude::{OnEnter, OnExit, on_event}
+    prelude::{OnEnter, OnExit, on_event, PluginGroup}
 };
 use bevy_input_sequence::InputSequencePlugin;
 use std::borrow::Cow;
@@ -39,6 +39,19 @@ use std::borrow::Cow;
 pub struct MinibufferPlugin {
     /// Configuration
     pub config: Config,
+}
+
+pub struct MinibufferPlugins;
+
+impl PluginGroup for MinibufferPlugins {
+    fn build(self) -> PluginGroupBuilder {
+        let group = PluginGroupBuilder::start::<Self>()
+            .add(MinibufferPlugin::default());
+        #[cfg(feature = "async")]
+        let group = group
+            .add(bevy_defer::AsyncPlugin::default_settings());
+        group
+    }
 }
 
 /// Minibuffer config

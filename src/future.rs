@@ -1,4 +1,5 @@
 use crate::{
+    Message,
     event::DispatchEvent,
     // lookup::{AutoComplete, LookUp},
     prompt::{KeyChordEvent, GetKeyChord},
@@ -22,16 +23,14 @@ use std::{borrow::Cow, fmt::Debug};
 use bevy_asky::prelude::*;
 use futures::{channel::oneshot, Future};
 
-// #[derive(Resource, Debug, Reflect, Deref)]
-// pub struct MinibufferDest(Entity);
-
-/// Minibuffer, a [SystemParam]
+/// Minibuffer, a [SystemParam] for async.
+///
+/// This is distinct from the [crate::sync::Minibuffer] because it does not have
+/// any lifetimes which allow it to be captured by a closure.
 #[derive(Clone)]
 pub struct Minibuffer {
     asky: Asky,
     dest: Entity,
-    // dest: Res<'w, MinibufferDest>,
-    // channel: CrossbeamEventSender<DispatchEvent>,
 }
 
 unsafe impl SystemParam for Minibuffer {
@@ -80,49 +79,6 @@ unsafe impl SystemParam for Minibuffer {
     }
 }
 
-#[derive(Component, Debug, Reflect)]
-struct Message;
-impl Construct for Message {
-    type Props = Cow<'static, str>;
-
-    fn construct(
-        context: &mut ConstructContext,
-        props: Self::Props,
-    ) -> Result<Self, ConstructError> {
-        // Our requirements.
-        let mut commands = context.world.commands();
-        commands
-            .entity(context.id)
-            .insert(TextBundle::from_section(props, TextStyle::default()));
-        context.world.flush();
-        Ok(Message)
-    }
-}
-
-/// I don't know the entity without a query or something.
-// pub trait MinibufferCommands {
-
-//     fn prompt<T: Construct + Component + Submitter> (
-//         &mut self,
-//         props: impl Into<T::Props>,
-//     ) -> EntityCommands
-//     where
-//         <T as Construct>::Props: Send,
-//         <T as Submitter>::Out: Clone + Debug + Send + Sync;
-// }
-
-// impl<'w, 's> MinibufferCommands for Commands<'w, 's> {
-//     fn prompt<T: Construct + Component + Submitter> (
-//         &mut self,
-//         props: impl Into<T::Props>,
-//     ) -> EntityCommands
-//     where
-//         <T as Construct>::Props: Send,
-//         <T as Submitter>::Out: Clone + Debug + Send + Sync {
-
-//     }
-// }
-
 impl Minibuffer {
 
     /// Prompt the user for input.
@@ -140,7 +96,6 @@ impl Minibuffer {
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
         let msg = msg.into();
-
         let dest = self.dest;
         let async_world = AsyncWorld::new();
         async_world.apply_command(move |world: &mut World| {

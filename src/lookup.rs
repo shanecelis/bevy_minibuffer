@@ -28,7 +28,8 @@ pub enum LookUpError {
 ///
 /// This trait is object-safe.
 pub trait LookUp {
-    /// Look up the `input`.
+    /// Look up the `input`. If it matches exactly, this returns `Ok(())`.
+    /// Otherwise it returns [LookUpError], which can include its partial matches.
     fn look_up(&self, input: &str) -> Result<(), LookUpError>;
     /// Return the longest prefix for `input`.
     fn longest_prefix(&self, input: &str) -> Option<String>;
@@ -37,7 +38,7 @@ pub trait LookUp {
 /// Resolve the input to a particular kind of item.
 ///
 /// This trait is not object-safe.
-pub trait Resolve: LookUp {
+pub trait Resolve {
     /// The type this resolves to.
     type Item: Send;
     /// Resolve the `input` or provide an error.

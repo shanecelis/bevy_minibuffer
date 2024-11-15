@@ -79,7 +79,7 @@ pub fn exec_act(
         }
     }
     let acts: Trie<u8, Act> = builder.build();
-    minibuffer.resolve(":", acts.clone())
+    minibuffer.read(":", acts.clone())
         .observe(move |trigger: Trigger<AskyEvent<String>>,
                  // query: Query<&AutoComplete>,
                  mut writer: EventWriter<RunActEvent>,

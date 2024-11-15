@@ -6,7 +6,7 @@ use std::time::Duration;
 mod common;
 
 /// Ask the user for their name. Say hello.
-async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
+async fn ask_name(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let first_name = minibuffer
         .prompt::<TextField>("What's your first name?")
         .await?;
@@ -18,10 +18,10 @@ async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
 }
 
 // Ask the user for their age.
-async fn ask_age(mut minibuffer: Minibuffer) -> Result<(), Error> {
-    let age = minibuffer.prompt::<Number<u8>>("What's your age?").await?;
+async fn ask_age(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
+    let age = minibuffer.prompt::<Number<u8>>("What's your age? ").await?;
     // minibuffer.delay(Duration::from_secs(2)).await;
-    // minibuffer.message(format!("You are {age} years old."));
+    minibuffer.message(format!("You are {age} years old."));
     Ok(())
 }
 
@@ -51,7 +51,7 @@ fn main() {
         // .add_plugins((DefaultPlugins, MinibufferPlugins))
         .add_plugins((DefaultPlugins.set(video_settings.window_plugin()),
                       MinibufferPlugins.set(video_settings.minibuffer_plugin())))
-        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
+        // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         // .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
         .add_plugins(UniversalPlugin::default().into_plugin())
         // Add builtin commands.

@@ -28,9 +28,9 @@ pub use message::Message;
 pub use bevy_asky::Dest;
 
 #[cfg(feature = "async")]
-pub use future::Minibuffer;
-#[cfg(not(feature = "async"))]
+pub use future::MinibufferAsync;
 pub use sync::Minibuffer;
+
 /// Input, mainly re-exports from [keyseq].
 pub mod input {
     pub use keyseq::{
@@ -53,5 +53,7 @@ pub mod prelude {
     pub use super::Config;
     pub use super::{Error, MinibufferPlugin, MinibufferPlugins};
     pub use super::Minibuffer;
+    #[cfg(feature = "async")]
+    pub use super::MinibufferAsync;
     pub use super::Dest;
 }

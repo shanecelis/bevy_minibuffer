@@ -2,7 +2,7 @@ use crate::{
     act::{self, PluginOnce}, future_sink, future_result_sink,
     prelude::{keyseq, ActBuilder, ActsPlugin},
 };
-use bevy::ecs::system::IntoSystem;
+use bevy::{app::App, ecs::system::IntoSystem};
 
 /// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key.
 pub struct Builtin {
@@ -35,7 +35,7 @@ impl Default for Builtin {
 }
 
 impl PluginOnce for Builtin {
-    fn build(self, app: &mut bevy::app::App) {
+    fn build(self, app: &mut App) {
         self.acts.build(app);
     }
 }

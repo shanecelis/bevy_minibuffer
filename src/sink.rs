@@ -1,4 +1,4 @@
-use crate::Minibuffer;
+use crate::MinibufferAsync as Minibuffer;
 #[allow(unused_imports)]
 use bevy::{prelude::warn, ecs::system::In};
 use bevy_defer::{AsyncExecutor, NonSend};

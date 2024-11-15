@@ -1,9 +1,9 @@
 use crate::{
     act,
-    event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent, RunInputSequenceEvent},
+    event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent, RunInputSequenceEvent, dispatch_events},
     // lookup::AutoComplete,
     prompt::{
-        self, dispatch_events, get_key_chords,
+        self, get_key_chords,
         hide, hide_delayed, hide_prompt_maybe,
         listen_prompt_active, look_up_events, show, CompletionState, MinibufferState, PromptState, KeyChordEvent
     },
@@ -108,6 +108,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .register_type::<CompletionState>()
             .register_type::<Config>()
             .register_type::<act::Act>()
+            .add_plugins(crate::event::plugin)
             .add_plugins(AskyPlugin)
             .add_plugins(bevy_asky::view::color::plugin)
             .add_plugins(InputSequencePlugin::empty()
@@ -117,9 +118,6 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .init_state::<CompletionState>()
             .init_resource::<act::ActCache>()
             .insert_resource(self.config.clone())
-            // TODO: Remove this
-            .add_event::<DispatchEvent>()
-            // .add_crossbeam_event::<DispatchEvent>()
             .add_event::<RunInputSequenceEvent>()
             .add_event::<LookUpEvent>()
             .add_event::<RunActEvent>()
@@ -141,8 +139,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
                 InputSet.run_if(in_state(MinibufferState::Inactive).or_else(on_event::<RunInputSequenceEvent>())),
             ))
             .add_systems(PostUpdate,
-                         ((run_acts,
-                           prompt::set_minibuffer_state).chain(),
+                         ((run_acts, prompt::set_minibuffer_state).chain(),
                           (dispatch_events, look_up_events).chain())
                          .in_set(MinibufferSet::Output))
             .add_systems(OnEnter(PromptState::Finished),    hide_delayed::<ui::PromptContainer>)

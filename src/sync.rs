@@ -22,6 +22,10 @@ use bevy::{
 use bevy_input_sequence::KeyChord;
 use std::{borrow::Cow, fmt::Debug};
 use bevy_asky::{prelude::*, sync::AskyCommands};
+#[cfg(feature = "async")]
+use futures::{channel::oneshot, Future};
+#[cfg(feature = "async")]
+use bevy_defer::AsyncWorld;
 
 // #[derive(Resource, Debug, Reflect, Deref)]
 // pub struct MinibufferDest(Entity);
@@ -74,13 +78,29 @@ impl<'w, 's> Minibuffer<'w, 's> {
         self.commands.prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(dest))
     }
 
+    #[cfg(feature = "async")]
+    /// Prompt the user for input.
+    pub fn prompt_async<T: Construct + Component + Submitter>(
+        &mut self,
+        props: impl Into<T::Props>,
+    ) -> impl Future<Output = Result<T::Out, Error>>
+    where
+        <T as Construct>::Props: Send,
+        <T as Submitter>::Out: Clone + Debug + Send + Sync,
+    {
+        let dest = self.dest.single();
+        Asky::default().prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(dest))
+    }
+
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
         let msg = msg.into();
 
         let dest = self.dest.single();
-        Dest::ReplaceChildren(dest).entity_commands(&mut self.commands)
-            .construct::<Message>(msg);
+        if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut self.commands) {
+            commands
+                .construct::<Message>(msg);
+        }
     }
 
     /// Read input from user that must match a [LookUp].
@@ -122,5 +142,25 @@ impl<'w, 's> Minibuffer<'w, 's> {
     /// Get the next key chord.
     pub fn get_chord(&mut self) -> EntityCommands {
         self.commands.spawn(GetKeyChord)
+    }
+
+    #[cfg(feature = "async")]
+    /// Get the next key chord.
+    pub fn get_chord_async(&mut self) -> impl Future<Output = Result<KeyChord, Error>> {
+        async {
+            let (promise, waiter) = oneshot::channel::<Result<KeyChord, Error>>();
+            let mut promise = Some(promise);
+            let async_world = AsyncWorld::new();
+            async_world.apply_command(move |world: &mut World| {
+                let mut commands = world.commands();
+                commands.spawn(GetKeyChord)
+                    .observe(move |trigger: Trigger<KeyChordEvent>| {
+                        if let Some(promise) = promise.take() {
+                            promise.send(Ok(trigger.event().0.clone())).expect("send");
+                        }
+                    });
+            });
+            waiter.await?
+        }
     }
 }

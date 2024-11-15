@@ -1,12 +1,24 @@
 //! Events
 use bevy::{
-    prelude::Deref,
+    prelude::*,
     ecs::{
         event::{Event, EventReader},
         system::Commands,
     }
 };
+use crate::Minibuffer;
 use std::fmt;
+#[cfg(feature = "async")]
+use bevy_crossbeam_event::CrossbeamEventApp;
+
+pub(crate) fn plugin(app: &mut App) {
+#[cfg(feature = "async")]
+    app
+        .add_crossbeam_event::<DispatchEvent>();
+#[cfg(not(feature = "async"))]
+    app
+        .add_event::<DispatchEvent>();
+}
 
 /// Request a one-shot system be run.
 #[derive(Clone, Event, Debug, Deref)]
@@ -51,6 +63,8 @@ pub enum DispatchEvent {
     LookUpEvent(LookUpEvent),
     /// Send a start act event.
     RunActEvent(RunActEvent),
+    /// Emit a message.
+    EmitMessage(String),
 }
 
 impl From<LookUpEvent> for DispatchEvent {
@@ -61,6 +75,28 @@ impl From<LookUpEvent> for DispatchEvent {
 impl From<RunActEvent> for DispatchEvent {
     fn from(e: RunActEvent) -> Self {
         Self::RunActEvent(e)
+    }
+}
+
+pub(crate) fn dispatch_events(
+    mut dispatch_events: EventReader<DispatchEvent>,
+    mut look_up_events: EventWriter<LookUpEvent>,
+    mut request_act_events: EventWriter<RunActEvent>,
+    mut minibuffer: Minibuffer,
+) {
+    use crate::event::DispatchEvent::*;
+    for e in dispatch_events.read() {
+        match e {
+            LookUpEvent(l) => {
+                look_up_events.send(l.clone());
+            }
+            RunActEvent(s) => {
+                request_act_events.send(s.clone());
+            }
+            EmitMessage(s) => {
+                minibuffer.message(s);
+            }
+        }
     }
 }
 

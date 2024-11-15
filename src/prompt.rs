@@ -214,23 +214,6 @@ fn completion_set(
     }
 }
 
-pub(crate) fn dispatch_events(
-    mut dispatch_events: EventReader<DispatchEvent>,
-    mut look_up_events: EventWriter<LookUpEvent>,
-    mut request_act_events: EventWriter<RunActEvent>,
-) {
-    use crate::event::DispatchEvent::*;
-    for e in dispatch_events.read() {
-        match e {
-            LookUpEvent(l) => {
-                look_up_events.send(l.clone());
-            }
-            RunActEvent(s) => {
-                request_act_events.send(s.clone());
-            }
-        }
-    }
-}
 pub(crate) fn look_up_events(
     mut look_up_events: EventReader<LookUpEvent>,
     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,

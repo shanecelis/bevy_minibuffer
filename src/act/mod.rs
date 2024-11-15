@@ -3,7 +3,7 @@ use crate::{
     event::RunActEvent,
     //lookup::{LookUp, LookUpError, Resolve},
     prompt::{CompletionState, PromptState},
-    prelude::Minibuffer,
+    prelude::{Minibuffer, MinibufferAsync},
 };
 // #[cfg(feature = "async")]
 // use crate::Minibuffer;
@@ -465,7 +465,7 @@ pub fn toggle_visibility(
 pub fn describe_key(
     acts: Query<&Act>,
     mut cache: ResMut<ActCache>,
-    mut minibuffer: Minibuffer,
+    mut minibuffer: MinibufferAsync,
 ) -> impl Future<Output = Result<(), crate::Error>> {
     use trie_rs::inc_search::Answer;
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();

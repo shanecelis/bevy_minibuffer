@@ -23,24 +23,26 @@ use bevy_input_sequence::KeyChord;
 use std::{borrow::Cow, fmt::Debug};
 use bevy_asky::prelude::*;
 use futures::{channel::oneshot, Future};
+use bevy_crossbeam_event::CrossbeamEventSender;
 
-/// Minibuffer, a [SystemParam] for async.
+/// MinibufferAsync, a [SystemParam] for async.
 ///
-/// This is distinct from the [crate::sync::Minibuffer] because it does not have
+/// This is distinct from the [crate::sync::MinibufferAsync] because it does not have
 /// any lifetimes which allow it to be captured by a closure.
 #[derive(Clone)]
-pub struct Minibuffer {
+pub struct MinibufferAsync {
     asky: Asky,
     dest: Entity,
+    sender: CrossbeamEventSender<DispatchEvent>,
 }
 
-unsafe impl SystemParam for Minibuffer {
+unsafe impl SystemParam for MinibufferAsync {
     type State = (
         // Asky,
         Entity,
-        // CrossbeamEventSender<DispatchEvent>,
+        CrossbeamEventSender<DispatchEvent>,
     );
-    type Item<'w, 's> = Minibuffer;
+    type Item<'w, 's> = MinibufferAsync;
 
     #[allow(clippy::type_complexity)]
     fn init_state(world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
@@ -48,18 +50,18 @@ unsafe impl SystemParam for Minibuffer {
             // Asky,
             Query<Entity, With<PromptContainer>>,
             // Option<Res<MinibufferStyle>>,
-            // Res<CrossbeamEventSender<DispatchEvent>>,
+            Res<CrossbeamEventSender<DispatchEvent>>,
         )> = SystemState::new(world);
         let (//asky,
              query,
              //res,
-             //channel
+             channel
         ) = state.get_mut(world);
         (
             // asky,
             query.single(),
             // res.map(|x| x.clone()),
-            // channel.clone(),
+            channel.clone(),
         )
     }
 
@@ -71,16 +73,16 @@ unsafe impl SystemParam for Minibuffer {
         _change_tick: bevy::ecs::component::Tick,
     ) -> Self::Item<'w, 's> {
         let state = state.clone();
-        Minibuffer {
+        MinibufferAsync {
             asky: Asky::default(),
             dest: state.0,
             // style: state.2.unwrap_or_default(),
-            // channel: state.3,
+            sender: state.1,
         }
     }
 }
 
-impl Minibuffer {
+impl MinibufferAsync {
 
     /// Prompt the user for input.
     pub fn prompt<T: Construct + Component + Submitter>(
@@ -97,14 +99,16 @@ impl Minibuffer {
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
         let msg = msg.into();
-        let dest = self.dest;
-        let async_world = AsyncWorld::new();
-        async_world.apply_command(move |world: &mut World| {
-            let mut commands = world.commands();
-            Dest::ReplaceChildren(dest)
-                .entity_commands(&mut commands)
-                .construct::<Message>(msg);
-        });
+        self.sender.send(DispatchEvent::EmitMessage(msg));
+        // let dest = self.dest;
+        // let async_world = AsyncWorld::new();
+        // async_world.apply_command(move |world: &mut World| {
+        //     let mut commands = world.commands();
+        //     if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut commands) {
+        //         commands
+        //             .construct::<Message>(msg);
+        //     }
+        // });
         // self.dest
         // self.asky.prompt::<Message, bevy_asky::view::color::View>(msg.as_ref(), Dest::ReplaceChildren(self.dest))
     }
@@ -127,7 +131,7 @@ impl Minibuffer {
     //             Message(s) => Err(s),
     //             // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
     //             Incomplete(_v) => Err("Incomplete".into()),
-    //             Minibuffer(e) => Err(format!("Error: {:?}", e).into()),
+    //             MinibufferAsync(e) => Err(format!("Error: {:?}", e).into()),
     //         },
     //     });
     //     let text = AutoComplete::new(text, lookup, self.channel.clone());

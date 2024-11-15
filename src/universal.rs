@@ -3,7 +3,7 @@ use crate::{
     act::{Act, ActsPlugin, ActFlags, PluginOnce},
     event::{RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
-    Minibuffer,
+    Minibuffer, MinibufferAsync,
 };
 use bevy::prelude::*;
 use bevy_defer::{AsyncWorld, AsyncAccess};
@@ -74,7 +74,7 @@ fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>)
 #[derive(Debug, Clone, Resource, Default, Reflect)]
 pub struct UniversalArg(Option<i32>);
 
-fn universal_argument(mut minibuffer: Minibuffer) -> impl Future<Output = ()> {
+fn universal_argument(mut minibuffer: MinibufferAsync) -> impl Future<Output = ()> {
     use bevy::prelude::KeyCode::*;
     async move {
         let mut accum = 0;

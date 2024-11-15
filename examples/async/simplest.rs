@@ -5,7 +5,7 @@ use bevy_minibuffer::prelude::*;
 mod common;
 
 /// Ask the user for their name. Say hello.
-async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
+async fn ask_name(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let first_name = minibuffer
         .prompt::<TextField>("What's your first name? ")
         .await?;
@@ -18,13 +18,14 @@ async fn ask_name(mut minibuffer: Minibuffer) -> Result<(), Error> {
 }
 
 fn main() {
+    let video_settings = common::VideoCaptureSettings {
+        title: "Bevy Minibuffer Simplest Async Example".into()
+    };
     App::new()
-        // .add_plugins(DefaultPlugins)
-        // .add_plugins(MinibufferPlugin::default())
-        .add_plugins(common::VideoCaptureSettings {
-            title: "Bevy Minibuffer Async Simplest Example".into(),
-        })
-        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
+        // .add_plugins((DefaultPlugins, MinibufferPlugins))
+        .add_plugins((DefaultPlugins.set(video_settings.window_plugin()),
+                      MinibufferPlugins.set(video_settings.minibuffer_plugin())))
+        // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
         .run();
 }

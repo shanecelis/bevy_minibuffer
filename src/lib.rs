@@ -1,5 +1,5 @@
 //! Minibuffer
-#![forbid(missing_docs)]
+// #![forbid(missing_docs)]
 pub mod act;
 pub mod event;
 pub mod lookup;

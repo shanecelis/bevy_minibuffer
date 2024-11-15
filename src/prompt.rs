@@ -11,6 +11,16 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use bevy_asky::prelude::*;
 
+pub(crate) fn plugin(app: &mut App) {
+    app
+        .register_type::<MinibufferState>()
+        .register_type::<PromptState>()
+        .register_type::<CompletionState>()
+        .register_type::<HideTime>()
+        .register_type::<GetKeyChord>()
+        ;
+}
+
 /// The state of... something???
 /// XXX: What is this?
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
@@ -54,10 +64,10 @@ pub struct HideTime {
 }
 
 // /// Get a key chord.
-#[derive(Component, Debug)]
+#[derive(Component, Debug, Reflect)]
 pub(crate) struct GetKeyChord;
 
-#[derive(Event, Debug)]
+#[derive(Event, Debug, Reflect)]
 pub(crate) struct KeyChordEvent(pub(crate) KeyChord);
 
 // impl GetKeyChord {

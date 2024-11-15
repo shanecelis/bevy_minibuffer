@@ -109,6 +109,8 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .register_type::<Config>()
             .register_type::<act::Act>()
             .add_plugins(crate::event::plugin)
+            .add_plugins(crate::prompt::plugin)
+            .add_plugins(crate::autocomplete::plugin)
             .add_plugins(AskyPlugin)
             .add_plugins(bevy_asky::view::color::plugin)
             .add_plugins(InputSequencePlugin::empty()

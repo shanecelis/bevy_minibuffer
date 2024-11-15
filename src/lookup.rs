@@ -37,7 +37,7 @@ pub trait LookUp {
 /// Resolve the input to a particular kind of item.
 ///
 /// This trait is not object-safe.
-pub trait Resolve {
+pub trait Resolve: LookUp {
     /// The type this resolves to.
     type Item: Send;
     /// Resolve the `input` or provide an error.

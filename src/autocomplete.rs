@@ -1,9 +1,10 @@
 //! Provides autocomplete.
 use crate::{
     prelude::*,
-    lookup::LookUp,
+    event::LookUpEvent,
+    lookup::{LookUp, Resolve, LookUpError},
 };
-use bevy_asky::{Submitter, string_cursor::*, construct::*, focus::{FocusParam, Focusable}};
+use bevy_asky::{Submitter, view::color, string_cursor::*, construct::*, focus::{FocusParam, Focusable}};
 use bevy::{
     ecs::world::{Command},
     ecs::system::{EntityCommands},
@@ -44,11 +45,13 @@ use std::borrow::Cow;
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Component)]
-pub struct AutoComplete {
-    look_up: Box<dyn LookUp + Send + Sync>,
-    show_completions: bool,
-}
+#[derive(Component, Deref)]
+pub struct AutoComplete(Box<dyn LookUp + Send + Sync>);
+// #[derive(Component)]
+// pub enum AutoComplete<T = ()> {
+//     LookUp(Box<dyn LookUp + Send + Sync>),
+//     Resolve(Box<dyn Resolve<Item = T> + Send + Sync>)
+// }
 
 impl AutoComplete
 {
@@ -57,14 +60,18 @@ impl AutoComplete
     where
         L: LookUp + Send + Sync + 'static,
     {
-        Self {
-            look_up: Box::new(look_up),
-            show_completions: false,
-        }
+        Self(Box::new(look_up))
     }
 
+    // pub fn from_resolve<R>(resolve: R) -> Self
+    // where
+    //     R: Resolve<Item = T> + Send + Sync + 'static,
+    // {
+    //     Self::Resolve(Box::new(resolve))
+    // }
+
     /// Construct an autocomplete UI element.
-    pub fn construct<L: LookUp + Send + Sync + 'static>(mut commands: EntityCommands, prompt: impl Into<Cow<'static, str>>, lookup: L) -> EntityCommands {
+    pub fn construct(self, mut commands: EntityCommands, prompt: impl Into<Cow<'static, str>>) -> EntityCommands {
         // let prompt = prompt.into();
         // move |world: &mut World| {
             // let mut commands = world.commands();
@@ -77,8 +84,9 @@ impl AutoComplete
                 .insert(NodeBundle::default())
                 .insert(StringCursor::default())
                 .insert(Focusable::default())
+                .insert(color::View)
                 // .insert(TextField)
-                .insert(AutoComplete::new(lookup));
+                .insert(self);
             commands
         // }
     }
@@ -86,7 +94,8 @@ impl AutoComplete
 
 pub(crate) fn plugin(app: &mut App) {
     app
-        .add_systems(PreUpdate, autocomplete_controller);
+        .add_systems(PreUpdate, autocomplete_controller)
+        .add_systems(Update, color::text_view::<With<AutoComplete>>);
 }
 
 unsafe impl Submitter for AutoComplete {
@@ -118,14 +127,13 @@ unsafe impl Submitter for AutoComplete {
 
 fn autocomplete_controller(
     mut focus: FocusParam,
-    mut query: Query<
-        (Entity, &mut StringCursor),
-        With<AutoComplete>>,
+    mut query: Query<(Entity, &mut StringCursor, &AutoComplete)>,
     mut input: EventReader<KeyboardInput>,
     mut commands: Commands,
+    mut lookup_events: EventWriter<LookUpEvent>,
 ) {
     let mut any_focused_text = false;
-    for (id, mut text_state) in query.iter_mut() {
+    for (id, mut text_state, autocomplete) in query.iter_mut() {
         if !focus.is_focused(id) {
             continue;
         }
@@ -135,6 +143,26 @@ fn autocomplete_controller(
                     continue;
                 }
                 match &ev.logical_key {
+
+                    Key::Tab => {
+                        if let Err(e) = autocomplete.look_up(&text_state.value) {
+                            use LookUpError::*;
+                            match dbg!(e) {
+                                Message(s) => {
+                                    commands.entity(id).insert(Feedback::info(s)); // Err(s),
+                                }
+                                Incomplete(v) => {
+                                    lookup_events.send(LookUpEvent::Completions(v));
+                                    if let Some(new_input) = autocomplete.longest_prefix(&text_state.value) {
+                                        text_state.set_value(&new_input);
+                                    }
+                                }
+                                Minibuffer(e) => {  //Err(format!("Error: {:?}", e).into()),
+                                    commands.entity(id).insert(Feedback::warn(format!("{:?}", e))); // Err(s),
+                                }
+                            }
+                        }
+                    }
                     Key::Character(s) => {
                         for c in s.chars() {
                             text_state.insert(c);
@@ -146,9 +174,8 @@ fn autocomplete_controller(
                     Key::ArrowLeft => text_state.move_cursor(CursorDirection::Left),
                     Key::ArrowRight => text_state.move_cursor(CursorDirection::Right),
                     Key::Enter => {
-                        warn!("trigger");
+                        lookup_events.send(LookUpEvent::Hide);
                         commands.trigger_targets(AskyEvent(Ok(text_state.value.clone())), id);
-                        warn!("block&move");
                         focus.block_and_move(id);
                     }
                     Key::Escape => {
@@ -162,3 +189,4 @@ fn autocomplete_controller(
     }
     focus.set_keyboard_nav(!any_focused_text);
 }
+

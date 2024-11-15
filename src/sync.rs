@@ -3,7 +3,7 @@ use crate::{
     Message,
     Dest,
     event::DispatchEvent,
-    lookup::LookUp,
+    lookup::{LookUp, Resolve},
     autocomplete::AutoComplete,
     prompt::{KeyChordEvent, GetKeyChord},
     ui::PromptContainer,
@@ -23,10 +23,6 @@ use bevy::{
 use bevy_input_sequence::KeyChord;
 use std::{borrow::Cow, fmt::Debug};
 use bevy_asky::{prelude::*, sync::AskyCommands};
-#[cfg(feature = "async")]
-use futures::{channel::oneshot, Future};
-#[cfg(feature = "async")]
-use bevy_defer::AsyncWorld;
 
 // #[derive(Resource, Debug, Reflect, Deref)]
 // pub struct MinibufferDest(Entity);
@@ -79,20 +75,6 @@ impl<'w, 's> Minibuffer<'w, 's> {
         self.commands.prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(dest))
     }
 
-    #[cfg(feature = "async")]
-    /// Prompt the user for input.
-    pub fn prompt_async<T: Construct + Component + Submitter>(
-        &mut self,
-        props: impl Into<T::Props>,
-    ) -> impl Future<Output = Result<T::Out, Error>>
-    where
-        <T as Construct>::Props: Send,
-        <T as Submitter>::Out: Clone + Debug + Send + Sync,
-    {
-        let dest = self.dest.single();
-        Asky::default().prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(dest))
-    }
-
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
         let msg = msg.into();
@@ -115,9 +97,50 @@ impl<'w, 's> Minibuffer<'w, 's> {
     {
         use crate::lookup::LookUpError::*;
         let mut commands = self.prompt::<TextField>(prompt);
+
         commands
             .insert(AutoComplete::new(lookup));
+            // .insert(AutoComplete::new(lookup));
         commands
+
+        // // let mut text = asky::Text::new(prompt);
+        // let l = lookup.clone();
+        // text.validate(move |input| match l.look_up(input) {
+        //     Ok(_) => Ok(()),
+        //     Err(e) => match e {
+        //         Message(s) => Err(s),
+        //         // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
+        //         Incomplete(_v) => Err("Incomplete".into()),
+        //         Minibuffer(e) => Err(format!("Error: {:?}", e).into()),
+        //     },
+        // });
+        // let text = AutoComplete::new(text, lookup, self.channel.clone());
+        // self.prompt_styled(text, self.style.clone().into())
+    }
+
+    pub fn resolve<R>(
+        &mut self,
+        prompt: impl Into<<TextField as Construct>::Props>,
+        resolve: R,
+    ) -> EntityCommands
+    where
+        R: Resolve + Clone + Send + Sync + 'static,
+    {
+        let dest = self.dest.single();
+        let mut commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);
+        //     commands
+        //         .construct::<Message>(msg);
+        // }
+        // let mut commands = self.prompt::<TextField>(prompt);
+        // let mut commands = dest.entity(self.commands);
+        let autocomplete = AutoComplete::new(resolve);
+        autocomplete.construct(commands, prompt)
+        // commands
+            // .reborrow()
+        // commands
+        //     .insert(AutoComplete::<R::Item>::from_resolve(resolve));
+        //     // .insert(AutoComplete::new(lookup));
+        // commands
 
         // // let mut text = asky::Text::new(prompt);
         // let l = lookup.clone();
@@ -150,23 +173,4 @@ impl<'w, 's> Minibuffer<'w, 's> {
         self.commands.spawn(GetKeyChord)
     }
 
-    #[cfg(feature = "async")]
-    /// Get the next key chord.
-    pub fn get_chord_async(&mut self) -> impl Future<Output = Result<KeyChord, Error>> {
-        async {
-            let (promise, waiter) = oneshot::channel::<Result<KeyChord, Error>>();
-            let mut promise = Some(promise);
-            let async_world = AsyncWorld::new();
-            async_world.apply_command(move |world: &mut World| {
-                let mut commands = world.commands();
-                commands.spawn(GetKeyChord)
-                    .observe(move |trigger: Trigger<KeyChordEvent>| {
-                        if let Some(promise) = promise.take() {
-                            promise.send(Ok(trigger.event().0.clone())).expect("send");
-                        }
-                    });
-            });
-            waiter.await?
-        }
-    }
 }

@@ -2,7 +2,7 @@ use crate::{
     Dest,
     Message,
     event::DispatchEvent,
-    lookup::LookUp,
+    lookup::Lookup,
     autocomplete::AutoComplete,
     prompt::{KeyChordEvent, GetKeyChord},
     ui::PromptContainer,
@@ -114,16 +114,16 @@ impl MinibufferAsync {
         // self.asky.prompt::<Message, bevy_asky::view::color::View>(msg.as_ref(), Dest::ReplaceChildren(self.dest))
     }
 
-    // /// Read input from user that must match a [LookUp].
+    // /// Read input from user that must match a [Lookup].
     // pub fn read<L>(
     //     &mut self,
     //     prompt: String,
     //     lookup: L,
     // ) -> impl Future<Output = Result<String, Error>> + '_
     // where
-    //     L: LookUp + Clone + Send + Sync + 'static,
+    //     L: Lookup + Clone + Send + Sync + 'static,
     // {
-    //     use crate::lookup::LookUpError::*;
+    //     use crate::lookup::LookupError::*;
     //     let mut text = asky::Text::new(prompt);
     //     let l = lookup.clone();
     //     text.validate(move |input| match l.look_up(input) {

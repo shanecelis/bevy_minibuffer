@@ -6,7 +6,7 @@
 * BUGS
 ** C-h a doesn't show up readily at first
 ** autocomplete hides when there are more choices
-One can match and be a prefix for other matches. Therefore, the LookUp trait
-must account for both with Result<String, LookUpError> can't do.
+One can match and be a prefix for other matches. Therefore, the Lookup trait
+must account for both with Result<String, LookupError> can't do.
 ** Cursor goes to second line when on edge of window
 ** Can add two acts with same name

@@ -1,6 +1,6 @@
 use crate::{
     act,
-    event::{run_acts, DispatchEvent, LookUpEvent, RunActEvent, RunInputSequenceEvent, dispatch_events},
+    event::{run_acts, DispatchEvent, LookupEvent, RunActEvent, RunInputSequenceEvent, dispatch_events},
     // lookup::AutoComplete,
     prompt::{
         self, get_key_chords,
@@ -121,7 +121,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .init_resource::<act::ActCache>()
             .insert_resource(self.config.clone())
             .add_event::<RunInputSequenceEvent>()
-            .add_event::<LookUpEvent>()
+            .add_event::<LookupEvent>()
             .add_event::<RunActEvent>()
             .add_event::<KeyChordEvent>()
             .add_systems(Startup, ui::spawn_layout)

@@ -1,7 +1,7 @@
 //! acts, or commands
 use crate::{
     event::RunActEvent,
-    //lookup::{LookUp, LookUpError, Resolve},
+    //lookup::{Lookup, LookupError, Resolve},
     prompt::{CompletionState, PromptState},
     prelude::Minibuffer,
 };
@@ -240,7 +240,7 @@ impl AsRef<str> for Act {
 
 // impl Resolve for Vec<Act> {
 //     type Item = Act;
-//     fn resolve(&self, input: &str) -> Result<Act, LookUpError> {
+//     fn resolve(&self, input: &str) -> Result<Act, LookupError> {
 //         let mut matches = self.iter().filter(|command| {
 //             command.flags.contains(ActFlags::ExecAct | ActFlags::Active)
 //                 && command.name.starts_with(input)
@@ -255,18 +255,18 @@ impl AsRef<str> for Act {
 //                 for item in matches {
 //                     result.push(item.name().to_string());
 //                 }
-//                 Err(LookUpError::Incomplete(result))
+//                 Err(LookupError::Incomplete(result))
 //             } else {
-//                 Err(LookUpError::Incomplete(vec![first.name().to_string()]))
+//                 Err(LookupError::Incomplete(vec![first.name().to_string()]))
 //             }
 //         } else {
-//             Err(LookUpError::Message("no matches".into()))
+//             Err(LookupError::Message("no matches".into()))
 //         }
 //     }
 // }
 
-// impl LookUp for Vec<Act> {
-//     fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+// impl Lookup for Vec<Act> {
+//     fn look_up(&self, input: &str) -> Result<(), LookupError> {
 //         self.resolve(input).map(|_| ())
 //     }
 

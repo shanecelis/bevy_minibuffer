@@ -3,7 +3,7 @@ use crate::{
     Message,
     Dest,
     event::DispatchEvent,
-    lookup::{LookUp, Resolve},
+    lookup::{Lookup, Resolve},
     autocomplete::AutoComplete,
     prompt::{KeyChordEvent, GetKeyChord},
     ui::PromptContainer,
@@ -86,14 +86,14 @@ impl<'w, 's> Minibuffer<'w, 's> {
         }
     }
 
-    /// Read input from user that must match a [LookUp].
+    /// Read input from user that must match a [Lookup].
     pub fn read<L>(
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
         lookup: L,
     ) -> EntityCommands
     where
-        L: LookUp + Clone + Send + Sync + 'static,
+        L: Lookup + Clone + Send + Sync + 'static,
     {
         let dest = self.dest.single();
         let mut commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);

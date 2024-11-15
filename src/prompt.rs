@@ -1,7 +1,7 @@
 //! Prompt
 
 use crate::{
-    event::{DispatchEvent, LookUpEvent, RunActEvent},
+    event::{DispatchEvent, LookupEvent, RunActEvent},
     ui::{completion_item, ScrollingList},
     Config,
 };
@@ -225,7 +225,7 @@ fn completion_set(
 }
 
 pub(crate) fn look_up_events(
-    mut look_up_events: EventReader<LookUpEvent>,
+    mut look_up_events: EventReader<LookupEvent>,
     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
     mut next_completion_state: ResMut<NextState<CompletionState>>,
     mut redraw: EventWriter<RequestRedraw>,
@@ -237,7 +237,7 @@ pub(crate) fn look_up_events(
     for e in look_up_events.read() {
         // info!("look up event: {e:?}");
         match e {
-            LookUpEvent::Completions(v) => {
+            LookupEvent::Completions(v) => {
                 let rnd_state = bevy::utils::RandomState::with_seed(0);
                 let hash = rnd_state.hash_one(v);
                 // eprintln!("hash {hash}");
@@ -255,7 +255,7 @@ pub(crate) fn look_up_events(
                 }
                 *last_hash = Some(hash);
             }
-            LookUpEvent::Hide => {
+            LookupEvent::Hide => {
                 // eprintln!("hide");
                 *last_hash = None;
                 next_completion_state.set(CompletionState::Invisible);
@@ -283,19 +283,19 @@ pub(crate) fn listen_prompt_active(
 
 #[cfg(test)]
 mod tests {
-    // use crate::lookup::LookUp;
+    // use crate::lookup::Lookup;
     // use crate::prompt::Parse;
 
     // #[derive(Debug)]
     // struct TomDickHarry(String);
 
     // impl Parse for TomDickHarry {
-    //     fn parse(input: &str) -> Result<Self, LookUpError> {
+    //     fn parse(input: &str) -> Result<Self, LookupError> {
     //         match input {
     //             "Tom" => Ok(TomDickHarry(input.into())),
     //             "Dick" => Ok(TomDickHarry(input.into())),
     //             "Harry" => Ok(TomDickHarry(input.into())),
-    //             _ => Err(LookUpError::Incomplete(vec![
+    //             _ => Err(LookupError::Incomplete(vec![
     //                 "Tom".into(),
     //                 "Dick".into(),
     //                 "Harry".into(),
@@ -315,9 +315,9 @@ mod tests {
     //     use trie_rs::Trie;
     //     let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
     //     assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");
-    //     let lookup: &dyn LookUp = &trie;
+    //     let lookup: &dyn Lookup = &trie;
     //     assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
     //     assert_eq!(lookup.longest_prefix("b"), None);
-    //     // let lookup: &dyn LookUp = &trie;
+    //     // let lookup: &dyn Lookup = &trie;
     // }
 }

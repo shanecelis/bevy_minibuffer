@@ -1,6 +1,6 @@
 use crate::{
     event::DispatchEvent,
-    // lookup::{AutoComplete, LookUp},
+    // lookup::{AutoComplete, Lookup},
     prompt::{KeyChordEvent, GetKeyChord},
     ui::PromptContainer,
 };

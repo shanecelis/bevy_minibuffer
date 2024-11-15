@@ -12,7 +12,7 @@ use crate::Error;
 /// Alternatives to having an exact match for lookup.
 #[derive(Debug, thiserror::Error)]
 #[allow(dead_code)]
-pub enum LookUpError {
+pub enum LookupError {
     /// An error message
     #[error("{0}")]
     Message(Cow<'static, str>),
@@ -27,10 +27,10 @@ pub enum LookUpError {
 /// Look up possible completions
 ///
 /// This trait is object-safe.
-pub trait LookUp {
+pub trait Lookup {
     /// Look up the `input`. If it matches exactly, this returns `Ok(())`.
-    /// Otherwise it returns [LookUpError], which can include its partial matches.
-    fn look_up(&self, input: &str) -> Result<(), LookUpError>;
+    /// Otherwise it returns [LookupError], which can include its partial matches.
+    fn look_up(&self, input: &str) -> Result<(), LookupError>;
     /// Return the longest prefix for `input`.
     fn longest_prefix(&self, input: &str) -> Option<String>;
 }
@@ -42,32 +42,32 @@ pub trait Resolve {
     /// The type this resolves to.
     type Item: Send;
     /// Resolve the `input` or provide an error.
-    fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError>;
+    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError>;
 }
 
 impl<V: Send + Sync + Clone> Resolve for map::Trie<u8, V> {
     type Item = V;
 
-    fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError> {
+    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
         if let Some(value) = self.exact_match(input) {
             return Ok(value.clone());
         }
         let matches: Vec<String> = self.predictive_search(input).keys().collect();
         match matches.len() {
-            0 => Err(LookUpError::Message("no matches".into())),
+            0 => Err(LookupError::Message("no matches".into())),
             // 1 =>
             //     if matches[0] == input {
             //         Ok(self.exact_match(input).cloned().unwrap())
             //     } else {
-            //         Err(LookUpError::Incomplete(matches))
+            //         Err(LookupError::Incomplete(matches))
             //     },
-            _ => Err(LookUpError::Incomplete(matches)),
+            _ => Err(LookupError::Incomplete(matches)),
         }
     }
 }
 
-impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
-    fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+impl<V: Send + Sync + Clone> Lookup for map::Trie<u8, V> {
+    fn look_up(&self, input: &str) -> Result<(), LookupError> {
         self.resolve(input).map(|_| ())
     }
 
@@ -79,13 +79,13 @@ impl<V: Send + Sync + Clone> LookUp for map::Trie<u8, V> {
 impl Resolve for trie_rs::Trie<u8> {
     type Item = ();
 
-    fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError> {
+    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
         self.0.look_up(input)
     }
 }
 
-impl LookUp for trie_rs::Trie<u8> {
-    fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+impl Lookup for trie_rs::Trie<u8> {
+    fn look_up(&self, input: &str) -> Result<(), LookupError> {
         self.0.resolve(input)
     }
 
@@ -97,7 +97,7 @@ impl LookUp for trie_rs::Trie<u8> {
 /// Handles arrays of &str, String, Cow<'_, str>. Does it all.
 impl<T: AsRef<str>> Resolve for &[T] {
     type Item = String;
-    fn resolve(&self, input: &str) -> Result<Self::Item, LookUpError> {
+    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
         // Collecting and matching is nice expressively. But manually iterating
         // avoids that allocation.
 
@@ -108,10 +108,10 @@ impl<T: AsRef<str>> Resolve for &[T] {
         //     .collect();
         // match matches[..] {
         //     [a] => Ok(a.to_string()),
-        //     [_a, _b, ..] => Err(LookUpError::Incomplete(
+        //     [_a, _b, ..] => Err(LookupError::Incomplete(
         //         matches.into_iter().map(|s| s.to_string()).collect(),
         //     )),
-        //     [] => Err(LookUpError::Message(" no matches".into())),
+        //     [] => Err(LookupError::Message(" no matches".into())),
         // }
 
         let mut matches = self
@@ -125,20 +125,20 @@ impl<T: AsRef<str>> Resolve for &[T] {
                 for item in matches {
                     result.push(item.to_string());
                 }
-                Err(LookUpError::Incomplete(result))
+                Err(LookupError::Incomplete(result))
             } else if input == first {
                 Ok(first.to_string())
             } else {
-                Err(LookUpError::Incomplete(vec![first.to_string()]))
+                Err(LookupError::Incomplete(vec![first.to_string()]))
             }
         } else {
-            Err(LookUpError::Message(" no matches".into()))
+            Err(LookupError::Message(" no matches".into()))
         }
     }
 }
 
-impl<T: AsRef<str>> LookUp for &[T] {
-    fn look_up(&self, input: &str) -> Result<(), LookUpError> {
+impl<T: AsRef<str>> Lookup for &[T] {
+    fn look_up(&self, input: &str) -> Result<(), LookupError> {
         self.resolve(input).map(|_| ())
     }
 

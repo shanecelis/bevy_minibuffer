@@ -1,8 +1,8 @@
 //! Provides autocomplete.
 use crate::{
     prelude::*,
-    event::LookUpEvent,
-    lookup::{LookUp, Resolve, LookUpError},
+    event::LookupEvent,
+    lookup::{Lookup, Resolve, LookupError},
 };
 use bevy_asky::{Submitter, view::color, string_cursor::*, construct::*, focus::{FocusParam, Focusable}};
 use bevy::{
@@ -46,10 +46,10 @@ use std::borrow::Cow;
 /// # }
 /// ```
 #[derive(Component, Deref)]
-pub struct AutoComplete(Box<dyn LookUp + Send + Sync>);
+pub struct AutoComplete(Box<dyn Lookup + Send + Sync>);
 // #[derive(Component)]
 // pub enum AutoComplete<T = ()> {
-//     LookUp(Box<dyn LookUp + Send + Sync>),
+//     Lookup(Box<dyn Lookup + Send + Sync>),
 //     Resolve(Box<dyn Resolve<Item = T> + Send + Sync>)
 // }
 
@@ -58,7 +58,7 @@ impl AutoComplete
     /// Wrap a prompt in autocomplete.
     pub fn new<L>(look_up: L) -> Self
     where
-        L: LookUp + Send + Sync + 'static,
+        L: Lookup + Send + Sync + 'static,
     {
         Self(Box::new(look_up))
     }
@@ -130,7 +130,7 @@ fn autocomplete_controller(
     mut query: Query<(Entity, &mut StringCursor, &AutoComplete)>,
     mut input: EventReader<KeyboardInput>,
     mut commands: Commands,
-    mut lookup_events: EventWriter<LookUpEvent>,
+    mut lookup_events: EventWriter<LookupEvent>,
 ) {
     let mut any_focused_text = false;
     for (id, mut text_state, autocomplete) in query.iter_mut() {
@@ -146,13 +146,13 @@ fn autocomplete_controller(
 
                     Key::Tab => {
                         if let Err(e) = autocomplete.look_up(&text_state.value) {
-                            use LookUpError::*;
+                            use LookupError::*;
                             match dbg!(e) {
                                 Message(s) => {
                                     commands.entity(id).insert(Feedback::info(s)); // Err(s),
                                 }
                                 Incomplete(v) => {
-                                    lookup_events.send(LookUpEvent::Completions(v));
+                                    lookup_events.send(LookupEvent::Completions(v));
                                     if let Some(new_input) = autocomplete.longest_prefix(&text_state.value) {
                                         text_state.set_value(&new_input);
                                     }
@@ -174,7 +174,7 @@ fn autocomplete_controller(
                     Key::ArrowLeft => text_state.move_cursor(CursorDirection::Left),
                     Key::ArrowRight => text_state.move_cursor(CursorDirection::Right),
                     Key::Enter => {
-                        lookup_events.send(LookUpEvent::Hide);
+                        lookup_events.send(LookupEvent::Hide);
                         commands.trigger_targets(AskyEvent(Ok(text_state.value.clone())), id);
                         focus.block_and_move(id);
                     }

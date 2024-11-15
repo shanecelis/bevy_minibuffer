@@ -45,7 +45,7 @@ impl fmt::Display for RunActEvent {
 
 /// Look up event fires when autocomplete panel is shown or hidden.
 #[derive(Debug, Clone, Event)]
-pub enum LookUpEvent {
+pub enum LookupEvent {
     /// Hide the autocomplete panel
     Hide,
     /// Show completions
@@ -60,16 +60,16 @@ pub enum LookUpEvent {
 #[derive(Debug, Clone, Event)]
 pub enum DispatchEvent {
     /// Send a look up event.
-    LookUpEvent(LookUpEvent),
+    LookupEvent(LookupEvent),
     /// Send a start act event.
     RunActEvent(RunActEvent),
     /// Emit a message.
     EmitMessage(String),
 }
 
-impl From<LookUpEvent> for DispatchEvent {
-    fn from(e: LookUpEvent) -> Self {
-        Self::LookUpEvent(e)
+impl From<LookupEvent> for DispatchEvent {
+    fn from(e: LookupEvent) -> Self {
+        Self::LookupEvent(e)
     }
 }
 impl From<RunActEvent> for DispatchEvent {
@@ -80,14 +80,14 @@ impl From<RunActEvent> for DispatchEvent {
 
 pub(crate) fn dispatch_events(
     mut dispatch_events: EventReader<DispatchEvent>,
-    mut look_up_events: EventWriter<LookUpEvent>,
+    mut look_up_events: EventWriter<LookupEvent>,
     mut request_act_events: EventWriter<RunActEvent>,
     mut minibuffer: Minibuffer,
 ) {
     use crate::event::DispatchEvent::*;
     for e in dispatch_events.read() {
         match e {
-            LookUpEvent(l) => {
+            LookupEvent(l) => {
                 look_up_events.send(l.clone());
             }
             RunActEvent(s) => {

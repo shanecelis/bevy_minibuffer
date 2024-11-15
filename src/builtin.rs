@@ -1,7 +1,9 @@
 use crate::{
-    act::{self, PluginOnce}, future_sink, future_result_sink,
+    act::{self, PluginOnce},
     prelude::{keyseq, ActBuilder, ActsPlugin},
 };
+#[cfg(feature = "async")]
+use crate::{future_sink, future_result_sink};
 use bevy::{app::App, ecs::system::IntoSystem};
 
 /// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key.
@@ -15,6 +17,7 @@ impl Default for Builtin {
         Self {
             acts:
             ActsPlugin::new([
+#[cfg(feature = "async")]
                 ActBuilder::new(act::exec_act.pipe(future_result_sink))
                     .named("exec_act")
                     .hotkey(keyseq! { shift-; })
@@ -26,6 +29,7 @@ impl Default for Builtin {
                 ActBuilder::new(act::list_key_bindings)
                     .named("list_key_bindings")
                     .hotkey(keyseq! { ctrl-H B }),
+#[cfg(feature = "async")]
                 ActBuilder::new(act::describe_key.pipe(future_result_sink))
                     .named("describe_key")
                     .hotkey(keyseq! { ctrl-H K })

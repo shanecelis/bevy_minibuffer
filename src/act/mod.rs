@@ -3,10 +3,10 @@ use crate::{
     event::RunActEvent,
     //lookup::{LookUp, LookUpError, Resolve},
     prompt::{CompletionState, PromptState},
-    prelude::{Minibuffer, MinibufferAsync},
+    prelude::Minibuffer,
 };
-// #[cfg(feature = "async")]
-// use crate::Minibuffer;
+#[cfg(feature = "async")]
+use crate::MinibufferAsync;
 use bevy::{
     ecs::system::{BoxedSystem, SystemId},
     prelude::*,

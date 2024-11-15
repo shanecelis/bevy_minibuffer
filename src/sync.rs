@@ -3,7 +3,8 @@ use crate::{
     Message,
     Dest,
     event::DispatchEvent,
-    // lookup::{AutoComplete, LookUp},
+    lookup::LookUp,
+    autocomplete::AutoComplete,
     prompt::{KeyChordEvent, GetKeyChord},
     ui::PromptContainer,
 };
@@ -104,29 +105,34 @@ impl<'w, 's> Minibuffer<'w, 's> {
     }
 
     /// Read input from user that must match a [LookUp].
-    // pub fn read<L>(
-    //     &mut self,
-    //     prompt: String,
-    //     lookup: L,
-    // ) -> impl Future<Output = Result<String, Error>> + '_
-    // where
-    //     L: LookUp + Clone + Send + Sync + 'static,
-    // {
-    //     use crate::lookup::LookUpError::*;
-    //     let mut text = asky::Text::new(prompt);
-    //     let l = lookup.clone();
-    //     text.validate(move |input| match l.look_up(input) {
-    //         Ok(_) => Ok(()),
-    //         Err(e) => match e {
-    //             Message(s) => Err(s),
-    //             // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
-    //             Incomplete(_v) => Err("Incomplete".into()),
-    //             Minibuffer(e) => Err(format!("Error: {:?}", e).into()),
-    //         },
-    //     });
-    //     let text = AutoComplete::new(text, lookup, self.channel.clone());
-    //     self.prompt_styled(text, self.style.clone().into())
-    // }
+    pub fn read<L>(
+        &mut self,
+        prompt: impl Into<<TextField as Construct>::Props>,
+        lookup: L,
+    ) -> EntityCommands
+    where
+        L: LookUp + Clone + Send + Sync + 'static,
+    {
+        use crate::lookup::LookUpError::*;
+        let mut commands = self.prompt::<TextField>(prompt);
+        commands
+            .insert(AutoComplete::new(lookup));
+        commands
+
+        // // let mut text = asky::Text::new(prompt);
+        // let l = lookup.clone();
+        // text.validate(move |input| match l.look_up(input) {
+        //     Ok(_) => Ok(()),
+        //     Err(e) => match e {
+        //         Message(s) => Err(s),
+        //         // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
+        //         Incomplete(_v) => Err("Incomplete".into()),
+        //         Minibuffer(e) => Err(format!("Error: {:?}", e).into()),
+        //     },
+        // });
+        // let text = AutoComplete::new(text, lookup, self.channel.clone());
+        // self.prompt_styled(text, self.style.clone().into())
+    }
 
     /// Clear the minibuffer.
     pub fn clear(&mut self) {

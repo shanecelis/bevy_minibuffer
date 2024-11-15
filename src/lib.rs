@@ -2,7 +2,8 @@
 #![forbid(missing_docs)]
 pub mod act;
 pub mod event;
-// pub mod lookup;
+pub mod lookup;
+pub mod autocomplete;
 #[cfg(feature = "async")]
 mod future;
 mod message;
@@ -18,9 +19,7 @@ pub use plugin::MinibufferPlugins;
 mod sink;
 #[cfg(feature = "async")]
 pub mod universal;
-#[cfg(feature = "async")]
 mod builtin;
-#[cfg(feature = "async")]
 pub use builtin::Builtin;
 #[cfg(feature = "async")]
 pub use sink::{future_sink, future_result_sink};
@@ -48,7 +47,6 @@ pub mod prelude {
     #[cfg(feature = "async")]
     pub use super::{future_sink, future_result_sink};
     pub use super::input::{key, keyseq, Modifiers};
-    #[cfg(feature = "async")]
     pub use super::Builtin;
     pub use super::Config;
     pub use super::{Error, MinibufferPlugin, MinibufferPlugins};

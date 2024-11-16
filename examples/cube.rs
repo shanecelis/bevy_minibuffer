@@ -14,23 +14,27 @@ struct Rotatable {
 
 fn main() {
     let video_settings = common::VideoCaptureSettings {
-        title: "Bevy Minibuffer Cube Async Example".into()
+        title: "Bevy Minibuffer Cube Async Example".into(),
     };
     App::new()
         // .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_plugins((DefaultPlugins.set(video_settings.window_plugin()),
-                      MinibufferPlugins.set(video_settings.minibuffer_plugin())))
+        .add_plugins((
+            DefaultPlugins.set(video_settings.window_plugin()),
+            MinibufferPlugins.set(video_settings.minibuffer_plugin()),
+        ))
         .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         // .add_plugins(bevy_inspector_egui::quick::StateInspectorPlugin::<bevy_minibuffer::prompt::MinibufferState>::new())
         .add_plugins(Builtin::default().into_plugin())
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
-        .add_plugins(ActsPlugin::new([
-            Act::new(stop),
-            Act::new(start),
-            Act::new(speed)
-                .hotkey(keyseq!{ S }),
-        ]).into_plugin())
+        .add_plugins(
+            ActsPlugin::new([
+                Act::new(stop),
+                Act::new(start),
+                Act::new(speed).hotkey(keyseq! { S }),
+            ])
+            .into_plugin(),
+        )
         .run();
 }
 
@@ -47,16 +51,14 @@ fn stop(mut query: Query<&mut Rotatable>) {
 }
 
 /// Set the speed of the spinning cube with input.
-fn speed(
-    mut minibuffer: Minibuffer,
-    query: Query<Entity, With<Rotatable>>,
-) {
-    minibuffer.prompt::<Number<f32>>("speed: ")
-    .observe(|trigger: Trigger<AskyEvent<f32>>, mut query: Query<&mut Rotatable>| {
-        for mut r in &mut query {
-            r.speed = *trigger.event().0.as_ref().expect("speed");
-        }
-    });
+fn speed(mut minibuffer: Minibuffer, query: Query<Entity, With<Rotatable>>) {
+    minibuffer.prompt::<Number<f32>>("speed: ").observe(
+        |trigger: Trigger<AskyEvent<f32>>, mut query: Query<&mut Rotatable>| {
+            for mut r in &mut query {
+                r.speed = *trigger.event().0.as_ref().expect("speed");
+            }
+        },
+    );
 }
 
 fn setup(

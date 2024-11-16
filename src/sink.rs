@@ -1,6 +1,6 @@
 use crate::MinibufferAsync as Minibuffer;
 #[allow(unused_imports)]
-use bevy::{prelude::warn, ecs::system::In};
+use bevy::{ecs::system::In, prelude::warn};
 use bevy_defer::{AsyncExecutor, NonSend};
 use std::{fmt::Display, future::Future};
 

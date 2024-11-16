@@ -34,8 +34,9 @@ impl VideoCaptureSettings {
 
 impl Plugin for VideoCaptureSettings {
     fn build(&self, app: &mut bevy::app::App) {
-        app
-            .add_plugins((DefaultPlugins.set(self.window_plugin()),
-                          MinibufferPlugins.set(self.minibuffer_plugin())));
+        app.add_plugins((
+            DefaultPlugins.set(self.window_plugin()),
+            MinibufferPlugins.set(self.minibuffer_plugin()),
+        ));
     }
 }

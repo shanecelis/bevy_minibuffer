@@ -1,7 +1,7 @@
 //! Illustrates how to interact with an object with minibuffer.
 
 use bevy::prelude::*;
-use bevy_defer::{AsyncWorld, AsyncAccess};
+use bevy_defer::{AsyncAccess, AsyncWorld};
 use bevy_minibuffer::prelude::*;
 use std::f32::consts::TAU;
 use std::future::Future;
@@ -15,23 +15,27 @@ struct Rotatable {
 }
 
 fn main() {
-
     let video_settings = common::VideoCaptureSettings {
-        title: "Bevy Minibuffer Cube Async Example".into()
+        title: "Bevy Minibuffer Cube Async Example".into(),
     };
     App::new()
         // .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_plugins((DefaultPlugins.set(video_settings.window_plugin()),
-                      MinibufferPlugins.set(video_settings.minibuffer_plugin())))
+        .add_plugins((
+            DefaultPlugins.set(video_settings.window_plugin()),
+            MinibufferPlugins.set(video_settings.minibuffer_plugin()),
+        ))
         // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_plugins(Builtin::default().into_plugin())
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
-        .add_plugins(ActsPlugin::new([
-            Act::new(stop),
-            Act::new(start),
-            Act::new(speed.pipe(future_result_sink)),
-        ]).into_plugin())
+        .add_plugins(
+            ActsPlugin::new([
+                Act::new(stop),
+                Act::new(start),
+                Act::new(speed.pipe(future_result_sink)),
+            ])
+            .into_plugin(),
+        )
         .run();
 }
 

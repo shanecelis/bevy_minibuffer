@@ -1,30 +1,29 @@
 use crate::{
-    Dest,
-    Message,
+    autocomplete::AutoComplete,
     event::DispatchEvent,
     lookup::Lookup,
-    autocomplete::AutoComplete,
-    prompt::{KeyChordEvent, GetKeyChord},
+    prompt::{GetKeyChord, KeyChordEvent},
     ui::PromptContainer,
+    Dest, Message,
 };
 use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        query::With,
-        system::{Query, Res, SystemMeta, SystemParam, SystemState, Resource, EntityCommands},
-        world::{unsafe_world_cell::UnsafeWorldCell, World},
         prelude::Commands,
+        query::With,
+        system::{EntityCommands, Query, Res, Resource, SystemMeta, SystemParam, SystemState},
+        world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Deref, Reflect, Trigger, TextBundle, TextStyle},
+    prelude::{Deref, Reflect, TextBundle, TextStyle, Trigger},
     utils::Duration,
 };
+use bevy_asky::prelude::*;
+use bevy_crossbeam_event::CrossbeamEventSender;
 use bevy_defer::AsyncWorld;
 use bevy_input_sequence::KeyChord;
-use std::{borrow::Cow, fmt::Debug};
-use bevy_asky::prelude::*;
 use futures::{channel::oneshot, Future};
-use bevy_crossbeam_event::CrossbeamEventSender;
+use std::{borrow::Cow, fmt::Debug};
 
 /// MinibufferAsync, a [SystemParam] for async.
 ///
@@ -53,10 +52,11 @@ unsafe impl SystemParam for MinibufferAsync {
             // Option<Res<MinibufferStyle>>,
             Res<CrossbeamEventSender<DispatchEvent>>,
         )> = SystemState::new(world);
-        let (//asky,
-             query,
-             //res,
-             channel
+        let (
+            //asky,
+            query,
+            //res,
+            channel,
         ) = state.get_mut(world);
         (
             // asky,
@@ -84,7 +84,6 @@ unsafe impl SystemParam for MinibufferAsync {
 }
 
 impl MinibufferAsync {
-
     /// Prompt the user for input.
     pub fn prompt<T: Construct + Component + Submitter>(
         &mut self,
@@ -94,7 +93,8 @@ impl MinibufferAsync {
         <T as Construct>::Props: Send,
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
-        self.asky.prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(self.dest))
+        self.asky
+            .prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(self.dest))
     }
 
     /// Leave a message in the minibuffer.
@@ -134,14 +134,15 @@ impl MinibufferAsync {
 
                 let mut commands = Dest::ReplaceChildren(dest).entity(&mut commands);
                 let autocomplete = AutoComplete::new(lookup);
-                autocomplete.construct(commands, prompt)
-                            .observe(move |trigger: Trigger<AskyEvent<String>>, mut commands: Commands| {
-                                if let Some(promise) = promise.take() {
-                                    promise.send(trigger.event().0.clone()).expect("send");
-                                }
-                                commands.entity(trigger.entity()).despawn();
-                            });
-                });
+                autocomplete.construct(commands, prompt).observe(
+                    move |trigger: Trigger<AskyEvent<String>>, mut commands: Commands| {
+                        if let Some(promise) = promise.take() {
+                            promise.send(trigger.event().0.clone()).expect("send");
+                        }
+                        commands.entity(trigger.entity()).despawn();
+                    },
+                );
+            });
             waiter.await?
         }
     }
@@ -165,13 +166,14 @@ impl MinibufferAsync {
             let async_world = AsyncWorld::new();
             async_world.apply_command(move |world: &mut World| {
                 let mut commands = world.commands();
-                commands.spawn(GetKeyChord)
-                    .observe(move |trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
+                commands.spawn(GetKeyChord).observe(
+                    move |trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             promise.send(Ok(trigger.event().0.clone())).expect("send");
                         }
                         commands.entity(trigger.entity()).despawn();
-                    });
+                    },
+                );
             });
             waiter.await?
         }

@@ -6,19 +6,17 @@ use crate::{
     Config,
 };
 use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
+use bevy_asky::prelude::*;
 use bevy_input_sequence::{KeyChord, Modifiers};
 use std::collections::VecDeque;
 use std::fmt::Debug;
-use bevy_asky::prelude::*;
 
 pub(crate) fn plugin(app: &mut App) {
-    app
-        .register_type::<MinibufferState>()
+    app.register_type::<MinibufferState>()
         .register_type::<PromptState>()
         .register_type::<CompletionState>()
         .register_type::<HideTime>()
-        .register_type::<GetKeyChord>()
-        ;
+        .register_type::<GetKeyChord>();
 }
 
 /// The state of... something???
@@ -94,8 +92,7 @@ pub(crate) fn set_minibuffer_state(
     key_chords: Query<&GetKeyChord>,
     mut next_minibuffer_state: ResMut<NextState<MinibufferState>>,
 ) {
-    let is_active = query.iter().any(|x| focus.is_focused(x))
-        || key_chords.iter().next().is_some();
+    let is_active = query.iter().any(|x| focus.is_focused(x)) || key_chords.iter().next().is_some();
 
     next_minibuffer_state.set(if is_active {
         MinibufferState::Active

@@ -1,24 +1,20 @@
 //! A sync version of the Minibuffer parameter.
 use crate::{
+    autocomplete::AutoComplete, lookup::Lookup, prompt::GetKeyChord, ui::PromptContainer, Dest,
     Message,
-    Dest,
-    lookup::Lookup,
-    autocomplete::AutoComplete,
-    prompt::GetKeyChord,
-    ui::PromptContainer,
 };
 use bevy::{
     ecs::{
         component::Component,
         entity::Entity,
-        query::With,
-        system::{Query, SystemParam, EntityCommands},
         prelude::Commands,
+        query::With,
+        system::{EntityCommands, Query, SystemParam},
     },
     prelude::DespawnRecursiveExt,
 };
-use std::fmt::Debug;
 use bevy_asky::{prelude::*, sync::AskyCommands};
+use std::fmt::Debug;
 
 // #[derive(Resource, Debug, Reflect, Deref)]
 // pub struct MinibufferDest(Entity);
@@ -29,7 +25,7 @@ pub struct Minibuffer<'w, 's> {
     /// The query for where the Minibuffer contents go. Expected to be singular.
     pub dest: Query<'w, 's, Entity, With<PromptContainer>>,
     /// Commands
-    pub commands: Commands<'w, 's>
+    pub commands: Commands<'w, 's>,
 }
 
 /// I don't know the entity without a query or something.
@@ -57,7 +53,6 @@ pub struct Minibuffer<'w, 's> {
 // }
 
 impl<'w, 's> Minibuffer<'w, 's> {
-
     /// Prompt the user for input.
     pub fn prompt<T: Construct + Component + Submitter>(
         &mut self,
@@ -68,7 +63,8 @@ impl<'w, 's> Minibuffer<'w, 's> {
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
         let dest = self.dest.single();
-        self.commands.prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(dest))
+        self.commands
+            .prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(dest))
     }
 
     /// Leave a message in the minibuffer.
@@ -77,8 +73,7 @@ impl<'w, 's> Minibuffer<'w, 's> {
 
         let dest = self.dest.single();
         if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut self.commands) {
-            commands
-                .construct::<Message>(msg);
+            commands.construct::<Message>(msg);
         }
     }
 
@@ -112,5 +107,4 @@ impl<'w, 's> Minibuffer<'w, 's> {
     pub fn get_chord(&mut self) -> EntityCommands {
         self.commands.spawn(GetKeyChord)
     }
-
 }

@@ -6,13 +6,13 @@ use bevy::{
     ecs::system::{BoxedSystem, SystemId},
     prelude::*,
 };
-use bevy_input_sequence::{action, input_sequence::{KeySequence}, KeyChord};
+use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
 use bitflags::bitflags;
 use std::{
-    // cell::RefCell,
-    sync::Mutex,
     borrow::Cow,
     fmt::{self, Debug, Display, Write},
+    // cell::RefCell,
+    sync::Mutex,
 };
 use trie_rs::map::{Trie, TrieBuilder};
 mod acts;
@@ -110,14 +110,14 @@ impl ActBuilder {
 
     pub fn name(&self) -> Cow<'static, str> {
         self.name.clone().unwrap_or_else(|| {
-                let n = self.system.name();
-                if let Some(start) = n.find('(') {
-                    if let Some(end) = n.find([',', ' ', ')']) {
-                        return n[start + 1..end].to_owned().into();
-                    }
+            let n = self.system.name();
+            if let Some(start) = n.find('(') {
+                if let Some(end) = n.find([',', ' ', ')']) {
+                    return n[start + 1..end].to_owned().into();
                 }
-                n
-            })
+            }
+            n
+        })
     }
 
     /// Build [Act].
@@ -167,7 +167,10 @@ pub trait PluginOnce {
     fn build(self, app: &mut App);
 
     /// Convert into a standard plugin.
-    fn into_plugin(self) -> PluginOnceShim<Self> where Self: Sized {
+    fn into_plugin(self) -> PluginOnceShim<Self>
+    where
+        Self: Sized,
+    {
         self.into()
     }
 }
@@ -176,13 +179,13 @@ pub trait PluginOnce {
 /// plugin holds it and uses interior mutability.
 #[derive(Debug)]
 pub struct PluginOnceShim<T: PluginOnce> {
-    builder: Mutex<Option<T>>
+    builder: Mutex<Option<T>>,
 }
 
 impl<T: PluginOnce> From<T> for PluginOnceShim<T> {
     fn from(builder: T) -> Self {
         PluginOnceShim {
-            builder: Mutex::new(Some(builder))
+            builder: Mutex::new(Some(builder)),
         }
     }
 }
@@ -192,12 +195,11 @@ impl PluginOnce for ActBuilder {
         let world = app.world_mut();
         let act = self.build(world);
         let keyseqs = act.build_keyseqs(world);
-        world.spawn(act)
-            .with_children(|builder| {
-                for keyseq in keyseqs {
-                    builder.spawn(keyseq);
-                }
-            });
+        world.spawn(act).with_children(|builder| {
+            for keyseq in keyseqs {
+                builder.spawn(keyseq);
+            }
+        });
     }
 }
 
@@ -228,11 +230,16 @@ impl Act {
 
     /// Build the [KeySequence]s.
     pub fn build_keyseqs(&self, world: &mut World) -> Vec<KeySequence> {
-        self.hotkeys.iter().map(|hotkey|
-                               KeySequence::new(
-                                   action::send_event(RunActEvent(self.clone())),
-                                   hotkey.clone(),
-                               ).build(world)).collect()
+        self.hotkeys
+            .iter()
+            .map(|hotkey| {
+                KeySequence::new(
+                    action::send_event(RunActEvent(self.clone())),
+                    hotkey.clone(),
+                )
+                .build(world)
+            })
+            .collect()
     }
 }
 
@@ -283,12 +290,11 @@ impl bevy::ecs::world::Command for ActBuilder {
     fn apply(self, world: &mut World) {
         let act = self.build(world);
         let keyseqs = act.build_keyseqs(world);
-        world.spawn(act)
-             .with_children(|builder| {
-                 for keyseq in keyseqs {
-                     builder.spawn(keyseq);
-                 }
-             });
+        world.spawn(act).with_children(|builder| {
+            for keyseq in keyseqs {
+                builder.spawn(keyseq);
+            }
+        });
 
         // for hotkey in &act.hotkeys {
         //     let keyseq = KeySequence::new(
@@ -307,12 +313,11 @@ impl bevy::ecs::system::EntityCommand for ActBuilder {
         let keyseqs = act.build_keyseqs(world);
         let mut entity = world.get_entity_mut(id).unwrap();
 
-        entity.insert(act)
-              .with_children(|builder| {
-                 for keyseq in keyseqs {
-                     builder.spawn(keyseq);
-                 }
-              });
+        entity.insert(act).with_children(|builder| {
+            for keyseq in keyseqs {
+                builder.spawn(keyseq);
+            }
+        });
     }
 }
 
@@ -332,4 +337,3 @@ impl bevy::ecs::system::EntityCommand for ActBuilder {
 //         });
 //     }
 // }
-

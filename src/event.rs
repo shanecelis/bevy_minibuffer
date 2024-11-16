@@ -1,23 +1,21 @@
 //! Events
+use crate::Minibuffer;
 use bevy::{
-    prelude::*,
     ecs::{
         event::{Event, EventReader},
         system::Commands,
-    }
+    },
+    prelude::*,
 };
-use crate::Minibuffer;
-use std::fmt;
 #[cfg(feature = "async")]
 use bevy_crossbeam_event::CrossbeamEventApp;
+use std::fmt;
 
 pub(crate) fn plugin(app: &mut App) {
-#[cfg(feature = "async")]
-    app
-        .add_crossbeam_event::<DispatchEvent>();
-#[cfg(not(feature = "async"))]
-    app
-        .add_event::<DispatchEvent>();
+    #[cfg(feature = "async")]
+    app.add_crossbeam_event::<DispatchEvent>();
+    #[cfg(not(feature = "async"))]
+    app.add_event::<DispatchEvent>();
 }
 
 /// Request a one-shot system be run.

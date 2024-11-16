@@ -19,7 +19,6 @@ pub struct ActsPlugin {
 
 // }
 
-
 impl ActsPlugin {
     /// Create a new plugin with a set of acts.
     pub fn new<I: IntoIterator<Item = ActBuilder>>(v: I) -> Self {
@@ -31,9 +30,10 @@ impl ActsPlugin {
     /// Take an act from this collection.
     pub fn take(&mut self, name: impl AsRef<str>) -> Option<ActBuilder> {
         let name = name.as_ref();
-        self.acts.iter().position(|act| act.name() == name)
+        self.acts
+            .iter()
+            .position(|act| act.name() == name)
             .map(|index| self.acts.remove(index))
-
     }
 
     // /// Get the current acts readonly.

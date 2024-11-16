@@ -2,8 +2,8 @@ use bevy::{
     ecs::component::Component,
     prelude::{Reflect, TextBundle, TextStyle},
 };
-use std::{borrow::Cow, fmt::Debug};
 use bevy_asky::prelude::*;
+use std::{borrow::Cow, fmt::Debug};
 
 /// A message marker to put a text message in the minibuffer.
 #[derive(Component, Debug, Reflect)]

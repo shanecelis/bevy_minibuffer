@@ -1,17 +1,14 @@
 //! A universal argument, accepts a numerical prefix.
 use crate::{
-    act::{Act, ActsPlugin, ActFlags, PluginOnce},
+    act::{Act, ActFlags, ActsPlugin, PluginOnce},
     event::{RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
     Minibuffer, MinibufferAsync,
 };
 use bevy::prelude::*;
-use bevy_defer::{AsyncWorld, AsyncAccess};
+use bevy_defer::{AsyncAccess, AsyncWorld};
 use bevy_input_sequence::KeyChord;
-use std::{
-    fmt::Debug,
-    future::Future,
-};
+use std::{fmt::Debug, future::Future};
 
 /// Universal argument plugin
 ///
@@ -49,14 +46,8 @@ impl PluginOnce for UniversalPlugin {
 /// XXX: This shouldn't be here. It should be in an example.
 pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
     match arg.0 {
-        Some(x) => {
-            minibuffer
-                .message(format!("Univeral argument {x}"))
-        }
-        None => {
-            minibuffer
-                .message("No universal argument set")
-        }
+        Some(x) => minibuffer.message(format!("Univeral argument {x}")),
+        None => minibuffer.message("No universal argument set"),
     }
 }
 

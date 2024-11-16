@@ -45,12 +45,14 @@ fn setup(mut commands: Commands) {
 
 fn main() {
     let video_settings = common::VideoCaptureSettings {
-        title: "Bevy Minibuffer Basic Example".into()
+        title: "Bevy Minibuffer Basic Example".into(),
     };
     App::new()
         // .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_plugins((DefaultPlugins.set(video_settings.window_plugin()),
-                      MinibufferPlugins.set(video_settings.minibuffer_plugin())))
+        .add_plugins((
+            DefaultPlugins.set(video_settings.window_plugin()),
+            MinibufferPlugins.set(video_settings.minibuffer_plugin()),
+        ))
         // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         // .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
         .add_plugins(UniversalPlugin::default().into_plugin())
@@ -59,4 +61,3 @@ fn main() {
         .add_systems(Startup, (setup, add_acts))
         .run();
 }
-

@@ -1,34 +1,35 @@
 use crate::{
     act,
-    event::{run_acts, LookupEvent, RunActEvent, RunInputSequenceEvent, dispatch_events},
+    event::{dispatch_events, run_acts, LookupEvent, RunActEvent, RunInputSequenceEvent},
     // lookup::AutoComplete,
     prompt::{
-        self, get_key_chords,
-        hide, hide_delayed, hide_prompt_maybe,
-        listen_prompt_active, look_up_events, show, CompletionState, MinibufferState, PromptState, KeyChordEvent
+        self, get_key_chords, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
+        look_up_events, show, CompletionState, KeyChordEvent, MinibufferState, PromptState,
     },
     ui,
 };
-use bevy_asky::AskyPlugin;
 use bevy::{
-    app::{PostUpdate, Startup, Update, PluginGroupBuilder},
-    state::{
-        app::AppExtStates,
-        // OnEnter, OnExit,
-        condition::{in_state},
-    },
+    app::{PluginGroupBuilder, PostUpdate, Startup, Update},
     ecs::{
         schedule::{
-            Condition, IntoSystemSetConfigs, SystemSet,
+            Condition,
+            IntoSystemSetConfigs,
+            SystemSet,
             // on_event,
         },
         system::Resource,
     },
     prelude::IntoSystemConfigs,
+    prelude::{on_event, OnEnter, OnExit, PluginGroup},
     reflect::Reflect,
+    state::{
+        app::AppExtStates,
+        // OnEnter, OnExit,
+        condition::in_state,
+    },
     text::TextStyle,
-    prelude::{OnEnter, OnExit, on_event, PluginGroup}
 };
+use bevy_asky::AskyPlugin;
 use bevy_input_sequence::InputSequencePlugin;
 use std::borrow::Cow;
 
@@ -45,11 +46,9 @@ pub struct MinibufferPlugins;
 
 impl PluginGroup for MinibufferPlugins {
     fn build(self) -> PluginGroupBuilder {
-        let group = PluginGroupBuilder::start::<Self>()
-            .add(MinibufferPlugin::default());
+        let group = PluginGroupBuilder::start::<Self>().add(MinibufferPlugin::default());
         #[cfg(feature = "async")]
-        let group = group
-            .add(bevy_defer::AsyncPlugin::default_settings());
+        let group = group.add(bevy_defer::AsyncPlugin::default_settings());
         group
     }
 }

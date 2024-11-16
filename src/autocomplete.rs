@@ -1,21 +1,24 @@
 //! Provides autocomplete.
 use crate::{
-    prelude::*,
     event::LookupEvent,
     lookup::{Lookup, LookupError},
+    prelude::*,
 };
-use bevy_asky::{Submitter, view::color, string_cursor::*, focus::{FocusParam, Focusable}};
 use bevy::{
-    ecs::system::{EntityCommands},
+    ecs::system::EntityCommands,
     input::{
         keyboard::{Key, KeyboardInput},
         ButtonState,
     },
     prelude::*,
 };
+use bevy_asky::{
+    focus::{FocusParam, Focusable},
+    string_cursor::*,
+    view::color,
+    Submitter,
+};
 use std::borrow::Cow;
-
-
 
 /// Prompt to get one-line user input.
 ///
@@ -52,8 +55,7 @@ pub struct AutoComplete(Box<dyn Lookup + Send + Sync>);
 //     Resolve(Box<dyn Resolve<Item = T> + Send + Sync>)
 // }
 
-impl AutoComplete
-{
+impl AutoComplete {
     /// Wrap a prompt in autocomplete.
     pub fn new<L>(look_up: L) -> Self
     where
@@ -70,30 +72,33 @@ impl AutoComplete
     // }
 
     /// Construct an autocomplete UI element.
-    pub fn construct(self, mut commands: EntityCommands, prompt: impl Into<Cow<'static, str>>) -> EntityCommands {
+    pub fn construct(
+        self,
+        mut commands: EntityCommands,
+        prompt: impl Into<Cow<'static, str>>,
+    ) -> EntityCommands {
         // let prompt = prompt.into();
         // move |world: &mut World| {
-            // let mut commands = world.commands();
-            // let mut commands = match entity {
-            //     None => commands.spawn_empty(),
-            //     Some(id) => commands.entity(id)
-            // };
-            commands
-                .insert(Prompt(prompt.into()))
-                .insert(NodeBundle::default())
-                .insert(StringCursor::default())
-                .insert(Focusable::default())
-                .insert(color::View)
-                // .insert(TextField)
-                .insert(self);
-            commands
+        // let mut commands = world.commands();
+        // let mut commands = match entity {
+        //     None => commands.spawn_empty(),
+        //     Some(id) => commands.entity(id)
+        // };
+        commands
+            .insert(Prompt(prompt.into()))
+            .insert(NodeBundle::default())
+            .insert(StringCursor::default())
+            .insert(Focusable::default())
+            .insert(color::View)
+            // .insert(TextField)
+            .insert(self);
+        commands
         // }
     }
 }
 
 pub(crate) fn plugin(app: &mut App) {
-    app
-        .add_systems(PreUpdate, autocomplete_controller)
+    app.add_systems(PreUpdate, autocomplete_controller)
         .add_systems(Update, color::text_view::<With<AutoComplete>>);
 }
 
@@ -137,55 +142,59 @@ fn autocomplete_controller(
             continue;
         }
         any_focused_text |= true;
-            for ev in input.read() {
-                if ev.state != ButtonState::Pressed {
-                    continue;
-                }
-                match &ev.logical_key {
-
-                    Key::Tab => {
-                        if let Err(e) = autocomplete.look_up(&text_state.value) {
-                            use LookupError::*;
-                            match e {
-                                Message(s) => {
-                                    commands.entity(id).insert(Feedback::info(s)); // Err(s),
+        for ev in input.read() {
+            if ev.state != ButtonState::Pressed {
+                continue;
+            }
+            match &ev.logical_key {
+                Key::Tab => {
+                    if let Err(e) = autocomplete.look_up(&text_state.value) {
+                        use LookupError::*;
+                        match e {
+                            Message(s) => {
+                                commands.entity(id).insert(Feedback::info(s)); // Err(s),
+                            }
+                            Incomplete(v) => {
+                                lookup_events.send(LookupEvent::Completions(v));
+                                if let Some(new_input) =
+                                    autocomplete.longest_prefix(&text_state.value)
+                                {
+                                    text_state.set_value(&new_input);
                                 }
-                                Incomplete(v) => {
-                                    lookup_events.send(LookupEvent::Completions(v));
-                                    if let Some(new_input) = autocomplete.longest_prefix(&text_state.value) {
-                                        text_state.set_value(&new_input);
-                                    }
-                                }
-                                Minibuffer(e) => {  //Err(format!("Error: {:?}", e).into()),
-                                    commands.entity(id).insert(Feedback::warn(format!("{:?}", e))); // Err(s),
-                                }
+                            }
+                            Minibuffer(e) => {
+                                //Err(format!("Error: {:?}", e).into()),
+                                commands
+                                    .entity(id)
+                                    .insert(Feedback::warn(format!("{:?}", e)));
+                                // Err(s),
                             }
                         }
                     }
-                    Key::Character(s) => {
-                        for c in s.chars() {
-                            text_state.insert(c);
-                        }
-                    }
-                    Key::Space => text_state.insert(' '),
-                    Key::Backspace => text_state.backspace(),
-                    Key::Delete => text_state.delete(),
-                    Key::ArrowLeft => text_state.move_cursor(CursorDirection::Left),
-                    Key::ArrowRight => text_state.move_cursor(CursorDirection::Right),
-                    Key::Enter => {
-                        lookup_events.send(LookupEvent::Hide);
-                        commands.trigger_targets(AskyEvent(Ok(text_state.value.clone())), id);
-                        focus.block_and_move(id);
-                    }
-                    Key::Escape => {
-                        commands.trigger_targets(AskyEvent::<String>(Err(asky::Error::Cancel)), id);
-                        commands.entity(id).insert(Feedback::error("canceled"));
-                        focus.block(id);
-                    }
-                    x => info!("Unhandled key {x:?}"),
                 }
+                Key::Character(s) => {
+                    for c in s.chars() {
+                        text_state.insert(c);
+                    }
+                }
+                Key::Space => text_state.insert(' '),
+                Key::Backspace => text_state.backspace(),
+                Key::Delete => text_state.delete(),
+                Key::ArrowLeft => text_state.move_cursor(CursorDirection::Left),
+                Key::ArrowRight => text_state.move_cursor(CursorDirection::Right),
+                Key::Enter => {
+                    lookup_events.send(LookupEvent::Hide);
+                    commands.trigger_targets(AskyEvent(Ok(text_state.value.clone())), id);
+                    focus.block_and_move(id);
+                }
+                Key::Escape => {
+                    commands.trigger_targets(AskyEvent::<String>(Err(asky::Error::Cancel)), id);
+                    commands.entity(id).insert(Feedback::error("canceled"));
+                    focus.block(id);
+                }
+                x => info!("Unhandled key {x:?}"),
+            }
         }
     }
     focus.set_keyboard_nav(!any_focused_text);
 }
-

@@ -1,10 +1,10 @@
 use crate::{
-    prelude::*,
+    act::{ActCache, ActFlags, PluginOnce},
     lookup::Resolve,
-    Minibuffer,
-    prompt::{CompletionState, PromptState, KeyChordEvent},
-    act::{PluginOnce, ActFlags, ActCache},
+    prelude::*,
     prelude::{keyseq, ActBuilder, ActsPlugin},
+    prompt::{CompletionState, KeyChordEvent, PromptState},
+    Minibuffer,
 };
 
 use std::{
@@ -13,20 +13,17 @@ use std::{
     fmt::{Debug, Write},
 };
 
-use bevy::{
-    prelude::*,
-    window::RequestRedraw,
-};
+#[cfg(feature = "async")]
+use crate::{future_result_sink, future_sink};
+use bevy::ecs::system::IntoSystem;
+use bevy::{prelude::*, window::RequestRedraw};
+#[cfg(feature = "async")]
+use bevy_defer::AsyncWorld;
 use tabular::{Row, Table};
 use trie_rs::{
     inc_search::IncSearch,
-    map::{Trie, TrieBuilder}
+    map::{Trie, TrieBuilder},
 };
-#[cfg(feature = "async")]
-use bevy_defer::AsyncWorld;
-#[cfg(feature = "async")]
-use crate::{future_sink, future_result_sink};
-use bevy::ecs::system::IntoSystem;
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 #[cfg(feature = "async")]
@@ -51,7 +48,8 @@ pub fn exec_act(
                 Err(e) => {
                     minibuffer.message(format!(
                         "Error: Could not resolve act named {:?}: {}",
-                        act_name, e));
+                        act_name, e
+                    ));
                 }
             },
             Err(e) => {
@@ -64,10 +62,7 @@ pub fn exec_act(
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 #[cfg(not(feature = "async"))]
-pub fn exec_act(
-    mut minibuffer: Minibuffer,
-    acts: Query<&Act>,
-) {
+pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>) {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
@@ -75,13 +70,13 @@ pub fn exec_act(
         }
     }
     let acts: Trie<u8, Act> = builder.build();
-    minibuffer.read(":", acts.clone())
-        .observe(move |trigger: Trigger<AskyEvent<String>>,
-                 // query: Query<&AutoComplete>,
-                 mut writer: EventWriter<RunActEvent>,
-                 mut minibuffer: Minibuffer| {
+    minibuffer.read(":", acts.clone()).observe(
+        move |trigger: Trigger<AskyEvent<String>>,
+              // query: Query<&AutoComplete>,
+              mut writer: EventWriter<RunActEvent>,
+              mut minibuffer: Minibuffer| {
             // let autocomplete = query.get(trigger.entity()).unwrap();
-                // let act_name = trigger.event().0.unwrap().cloned();
+            // let act_name = trigger.event().0.unwrap().cloned();
             match &trigger.event().0 {
                 Ok(act_name) => match acts.resolve(act_name) {
                     Ok(act) => {
@@ -90,14 +85,16 @@ pub fn exec_act(
                     Err(e) => {
                         minibuffer.message(format!(
                             "Error: Could not resolve act named {:?}: {}",
-                            act_name, e));
+                            act_name, e
+                        ));
                     }
                 },
                 Err(e) => {
                     minibuffer.message(format!("Error: {e}"));
                 }
             }
-        });
+        },
+    );
 }
 
 /// List acts currently operant.
@@ -156,7 +153,8 @@ pub fn list_key_bindings(mut minibuffer: Minibuffer, acts: Query<&Act>) {
     // key_bindings.sort_by(|a, b| a.0.cmp(&b.0));
     // Sort by act name? Yes.
     key_bindings.sort_by(|a, b| a.1.cmp(&b.1));
-    for (binding, act) in key_bindings.into_iter()
+    for (binding, act) in key_bindings
+        .into_iter()
         // Don't show some act name in a row. Replace the same named items with
         // an empty string. It's an implicit ibid.
         .scan(Cow::from(""), |last, (bind, act)| {
@@ -167,7 +165,8 @@ pub fn list_key_bindings(mut minibuffer: Minibuffer, acts: Query<&Act>) {
                 *last = act.clone();
                 Some((bind, act))
             }
-        }) {
+        })
+    {
         table.add_row(Row::new().with_cell(binding).with_cell(act.into_owned()));
     }
     let msg = format!("{}", table);
@@ -253,11 +252,7 @@ pub fn describe_key(
 }
 
 #[cfg(not(feature = "async"))]
-pub fn describe_key(
-    acts: Query<&Act>,
-    mut cache: ResMut<ActCache>,
-    mut minibuffer: Minibuffer,
-) {
+pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuffer: Minibuffer) {
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
     let mut position = trie.inc_search().into();
     // search
@@ -265,8 +260,10 @@ pub fn describe_key(
     // let state = (trie, search);
 
     minibuffer.message("Press key: ");
-    minibuffer.get_chord()
-        .observe(move |trigger: Trigger<KeyChordEvent>, mut commands: Commands, mut minibuffer: Minibuffer| {
+    minibuffer.get_chord().observe(
+        move |trigger: Trigger<KeyChordEvent>,
+              mut commands: Commands,
+              mut minibuffer: Minibuffer| {
             use trie_rs::inc_search::Answer;
             let mut search = IncSearch::resume(&trie, position);
             // let (trie, search) = state;
@@ -279,7 +276,9 @@ pub fn describe_key(
                     let v = search.value();
                     let msg = match x {
                         Answer::Match => format!("{}is bound to {:?}", accum, v.unwrap().name),
-                        Answer::PrefixAndMatch => format!("{}is bound to {:?} and more", accum, v.unwrap().name),
+                        Answer::PrefixAndMatch => {
+                            format!("{}is bound to {:?} and more", accum, v.unwrap().name)
+                        }
                         Answer::Prefix => format!("Press key: {}", accum),
                     };
                     minibuffer.message(msg);
@@ -297,29 +296,28 @@ pub fn describe_key(
                 }
             }
             position = search.into();
-        });
+        },
+    );
 }
-
 
 #[derive(Debug, Deref, DerefMut)]
 /// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key.
 pub struct Builtin {
     /// Set of builtin acts
-    pub acts: ActsPlugin
+    pub acts: ActsPlugin,
 }
 
 impl Default for Builtin {
     fn default() -> Self {
         Self {
-            acts:
-            ActsPlugin::new([
-#[cfg(feature = "async")]
+            acts: ActsPlugin::new([
+                #[cfg(feature = "async")]
                 ActBuilder::new(exec_act.pipe(future_result_sink))
                     .named("exec_act")
                     .hotkey(keyseq! { shift-; })
                     .hotkey(keyseq! { alt-X })
                     .in_exec_act(false),
-#[cfg(not(feature = "async"))]
+                #[cfg(not(feature = "async"))]
                 ActBuilder::new(exec_act)
                     .named("exec_act")
                     .hotkey(keyseq! { shift-; })
@@ -331,15 +329,15 @@ impl Default for Builtin {
                 ActBuilder::new(list_key_bindings)
                     .named("list_key_bindings")
                     .hotkey(keyseq! { ctrl-H B }),
-#[cfg(feature = "async")]
+                #[cfg(feature = "async")]
                 ActBuilder::new(describe_key.pipe(future_result_sink))
                     .named("describe_key")
                     .hotkey(keyseq! { ctrl-H K }),
-#[cfg(not(feature = "async"))]
+                #[cfg(not(feature = "async"))]
                 ActBuilder::new(describe_key)
                     .named("describe_key")
                     .hotkey(keyseq! { ctrl-H K }),
-            ])
+            ]),
         }
     }
 }

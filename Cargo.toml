@@ -9,7 +9,7 @@ bitflags = "2.3.1"
 trie-rs = "0.4.2"
 bevy-input-sequence = "0.5.0"
 keyseq = { version = "0.3", features = [ "bevy" ]}
-bevy_asky = { path = "../bevy_asky" }
+bevy_asky = { git = "https://github.com/shanecelis/bevy_asky.git" }
 futures = { version = "0.3.30", optional = true }
 tabular = "0.2.0"
 thiserror = "1.0.58"

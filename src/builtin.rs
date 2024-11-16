@@ -8,14 +8,12 @@ use crate::{
 };
 
 use std::{
-    // cell::RefCell,
     borrow::Cow,
     fmt::{Debug, Write},
 };
 
 #[cfg(feature = "async")]
 use crate::{future_result_sink, future_sink};
-use bevy::ecs::system::IntoSystem;
 use bevy::{prelude::*, window::RequestRedraw};
 #[cfg(feature = "async")]
 use bevy_defer::AsyncWorld;
@@ -24,6 +22,9 @@ use trie_rs::{
     inc_search::IncSearch,
     map::{Trie, TrieBuilder},
 };
+
+#[cfg(feature = "async")]
+use futures::Future;
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 #[cfg(feature = "async")]
@@ -311,6 +312,15 @@ impl Default for Builtin {
     fn default() -> Self {
         Self {
             acts: ActsPlugin::new([
+                ActBuilder::new(list_acts)
+                    .named("list_acts")
+                    .hotkey(keyseq! { ctrl-H A }),
+                ActBuilder::new(list_key_bindings)
+                    .named("list_key_bindings")
+                    .hotkey(keyseq! { ctrl-H B }),
+                ActBuilder::new(toggle_visibility)
+                    .named("toggle_visibility")
+                    .hotkey(keyseq! { Backquote }),
                 #[cfg(feature = "async")]
                 ActBuilder::new(exec_act.pipe(future_result_sink))
                     .named("exec_act")
@@ -323,12 +333,6 @@ impl Default for Builtin {
                     .hotkey(keyseq! { shift-; })
                     .hotkey(keyseq! { alt-X })
                     .in_exec_act(false),
-                ActBuilder::new(list_acts)
-                    .named("list_acts")
-                    .hotkey(keyseq! { ctrl-H A }),
-                ActBuilder::new(list_key_bindings)
-                    .named("list_key_bindings")
-                    .hotkey(keyseq! { ctrl-H B }),
                 #[cfg(feature = "async")]
                 ActBuilder::new(describe_key.pipe(future_result_sink))
                     .named("describe_key")

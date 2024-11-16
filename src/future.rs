@@ -4,7 +4,7 @@ use crate::{
     lookup::Lookup,
     prompt::{GetKeyChord, KeyChordEvent},
     ui::PromptContainer,
-    Dest, Message,
+    Dest
 };
 use bevy::{
     ecs::{

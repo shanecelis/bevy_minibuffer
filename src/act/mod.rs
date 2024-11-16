@@ -1,7 +1,5 @@
 //! acts, or commands
 use crate::event::RunActEvent;
-#[cfg(feature = "async")]
-use crate::MinibufferAsync;
 use bevy::{
     ecs::system::{BoxedSystem, SystemId},
     prelude::*,
@@ -10,15 +8,12 @@ use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
-    fmt::{self, Debug, Display, Write},
-    // cell::RefCell,
+    fmt::{self, Debug, Display},
     sync::Mutex,
 };
 use trie_rs::map::{Trie, TrieBuilder};
 mod acts;
 pub use acts::ActsPlugin;
-#[cfg(feature = "async")]
-use bevy_defer::AsyncWorld;
 
 bitflags! {
     /// Act flags

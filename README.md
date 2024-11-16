@@ -42,7 +42,9 @@ already has its own `Command` struct.
 # TODO
 - [ ] Use a real cursor/selection highlight that doesn't [fail on wrap](https://discord.com/channels/691052431525675048/1305257817057398825/1305257817057398825).
 - [ ] Change the keyseq macros to use lower case.
-- [ ] Copy the color::View to create Minibuffer's own View.
+- [ ] Copy-and-paste the color::View to create Minibuffer's own View.
+- [ ] Get off of unreleased dependencies.
+- [x] Re-write asky to be bevy native.
 
 # Design Quetions
 ## Re: No windows antigoal

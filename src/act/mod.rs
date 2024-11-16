@@ -8,7 +8,9 @@ use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
-    fmt::{self, Debug, Display},
+    fmt::{self, Debug, Display,
+          // Write
+    },
     sync::Mutex,
 };
 use trie_rs::map::{Trie, TrieBuilder};
@@ -17,7 +19,7 @@ pub use acts::ActsPlugin;
 
 bitflags! {
     /// Act flags
-    #[derive(Clone, Copy, Debug, Default, PartialOrd, PartialEq, Eq, Hash, Ord)]
+    #[derive(Clone, Copy, Debug, PartialOrd, PartialEq, Eq, Hash, Ord)]
     pub struct ActFlags: u8 {
         /// Act is active.
         const Active       = 0b00000001;
@@ -25,6 +27,14 @@ bitflags! {
         const ExecAct      = 0b00000010;
         /// Act usually runs another act like exec_act.
         const Adverb       = 0b00000100;
+        /// Act shows the minibuffer.
+        const Show         = 0b00001000;
+    }
+}
+
+impl Default for ActFlags {
+    fn default() -> Self {
+        ActFlags::Active | ActFlags::ExecAct
     }
 }
 
@@ -146,6 +156,22 @@ impl ActBuilder {
     {
         self.hotkeys
             .push(hotkey.into_iter().map(|v| v.into()).collect());
+        self
+    }
+
+    // pub fn with_flags<F: Fn(ActFlags) -> ActFlags>(mut self, f: F) -> Self {
+    //     self.flags = f(self.flags);
+    //     self
+    // }
+
+    // pub fn with_flags(mut self, flags: ActFlags) -> Self {
+    //     self.flags |= flags;
+    //     self
+    // }
+
+    /// Add the given the flags.
+    pub fn flags(mut self, flags: ActFlags) -> Self {
+        self.flags |= flags;
         self
     }
 

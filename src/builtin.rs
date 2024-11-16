@@ -156,7 +156,7 @@ pub fn list_key_bindings(mut minibuffer: Minibuffer, acts: Query<&Act>) {
     key_bindings.sort_by(|a, b| a.1.cmp(&b.1));
     for (binding, act) in key_bindings
         .into_iter()
-        // Don't show some act name in a row. Replace the same named items with
+        // Don't show same act name in a row. Replace the same named items with
         // an empty string. It's an implicit ibid.
         .scan(Cow::from(""), |last, (bind, act)| {
             if *last == act {
@@ -182,29 +182,32 @@ pub fn toggle_visibility(
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut next_completion_state: ResMut<NextState<CompletionState>>,
 ) {
-    match (**prompt_state, **completion_state) {
-        (PromptState::Invisible, CompletionState::Invisible) => {
-            next_prompt_state.set(PromptState::Visible);
-            next_completion_state.set(CompletionState::Visible);
-            redraw.send(RequestRedraw);
-        }
-        (PromptState::Visible, CompletionState::Visible) => {
-            next_prompt_state.set(PromptState::Invisible);
-            next_completion_state.set(CompletionState::Invisible);
-            redraw.send(RequestRedraw);
-        }
+    match dbg!((**prompt_state, **completion_state)) {
+        // (PromptState::Invisible, CompletionState::Invisible) => {
+        //     next_prompt_state.set(PromptState::Visible);
+        //     next_completion_state.set(CompletionState::Visible);
+        //     redraw.send(RequestRedraw);
+        // }
+        // (PromptState::Visible, CompletionState::Visible) => {
+        //     next_prompt_state.set(PromptState::Invisible);
+        //     next_completion_state.set(CompletionState::Invisible);
+        //     redraw.send(RequestRedraw);
+        // }
         (PromptState::Invisible, _) => {
             next_completion_state.set(CompletionState::Invisible);
+            next_prompt_state.set(PromptState::Visible);
             redraw.send(RequestRedraw);
         }
         (PromptState::Visible, _) => {
             next_completion_state.set(CompletionState::Invisible);
+            next_prompt_state.set(PromptState::Invisible);
             redraw.send(RequestRedraw);
         }
-        (PromptState::Finished, _) => {
-            next_completion_state.set(CompletionState::Invisible);
-            redraw.send(RequestRedraw);
-        }
+        // (PromptState::Finished, _) => {
+        //     next_completion_state.set(CompletionState::Invisible);
+        //     next_prompt_state.set(PromptState::Invisible);
+        //     redraw.send(RequestRedraw);
+        // }
     }
 }
 
@@ -314,9 +317,11 @@ impl Default for Builtin {
             acts: ActsPlugin::new([
                 ActBuilder::new(list_acts)
                     .named("list_acts")
+                    .flags(ActFlags::Show)
                     .hotkey(keyseq! { ctrl-H A }),
                 ActBuilder::new(list_key_bindings)
                     .named("list_key_bindings")
+                    .flags(ActFlags::Show)
                     .hotkey(keyseq! { ctrl-H B }),
                 ActBuilder::new(toggle_visibility)
                     .named("toggle_visibility")

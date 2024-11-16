@@ -1,5 +1,5 @@
 //! Events
-use crate::Minibuffer;
+use crate::{Minibuffer, act::ActFlags, prompt::PromptState};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -99,8 +99,13 @@ pub(crate) fn dispatch_events(
 }
 
 /// Run act for any [RunActEvent].
-pub fn run_acts(mut events: EventReader<RunActEvent>, mut commands: Commands) {
+pub fn run_acts(mut events: EventReader<RunActEvent>,
+                mut next_prompt_state: ResMut<NextState<PromptState>>,
+                mut commands: Commands) {
     for e in events.read() {
+        if e.0.flags.contains(ActFlags::Show) {
+            next_prompt_state.set(PromptState::Visible);
+        }
         commands.run_system(e.0.system_id);
     }
 }

@@ -37,8 +37,6 @@ pub enum PromptState {
     /// Invisible
     #[default]
     Invisible,
-    /// Finished prompt, start auto hide timer.
-    Finished,
     /// Visible
     Visible,
 }
@@ -270,7 +268,7 @@ pub(crate) fn listen_prompt_active(
     for transition in transitions.read() {
         match transition.entered {
             Some(MinibufferState::Active) => next_prompt_state.set(PromptState::Visible),
-            Some(MinibufferState::Inactive) => next_prompt_state.set(PromptState::Finished),
+            // Some(MinibufferState::Inactive) => next_prompt_state.set(PromptState::Finished),
             _ => (),
         }
         redraw.send(RequestRedraw);

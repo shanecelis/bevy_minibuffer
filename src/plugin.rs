@@ -141,7 +141,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
                          ((run_acts, prompt::set_minibuffer_state).chain(),
                           (dispatch_events, look_up_events).chain())
                          .in_set(MinibufferSet::Output))
-            .add_systems(OnEnter(PromptState::Finished),    hide_delayed::<ui::PromptContainer>)
+            .add_systems(OnEnter(MinibufferState::Inactive),hide_delayed::<ui::PromptContainer>)
             .add_systems(OnEnter(PromptState::Visible),     show::<ui::PromptContainer>)
             .add_systems(OnEnter(PromptState::Invisible),   hide::<ui::PromptContainer>)
             .add_systems(OnEnter(CompletionState::Visible), show::<ui::CompletionContainer>)

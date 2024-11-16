@@ -108,7 +108,7 @@ pub fn exec_act(
 
 /// List acts currently operant.
 pub fn list_acts(mut minibuffer: Minibuffer, acts: Query<&Act>) {
-    let mut table = Table::new("{:<}\t{:<}");
+    let mut table = Table::new("{:<}\t {:<}");
     table.add_row(Row::new().with_cell("ACT ").with_cell("KEY BINDING"));
     let mut acts: Vec<_> = acts.iter().collect();
     acts.sort_by(|a, b| a.name().cmp(b.name()));
@@ -117,7 +117,7 @@ pub fn list_acts(mut minibuffer: Minibuffer, acts: Query<&Act>) {
         if act.hotkeys.is_empty() {
             table.add_row(
                 Row::new()
-                    .with_cell(format!("{} ", name.take().unwrap_or("")))
+                    .with_cell(name.take().unwrap_or(""))
                     .with_cell(""),
             );
         } else {
@@ -131,7 +131,7 @@ pub fn list_acts(mut minibuffer: Minibuffer, acts: Query<&Act>) {
             for binding in bindings {
                 table.add_row(
                     Row::new()
-                        .with_cell(format!("{} ", name.take().unwrap_or("")))
+                        .with_cell(name.take().unwrap_or(""))
                         .with_cell(binding),
                 );
             }
@@ -143,7 +143,7 @@ pub fn list_acts(mut minibuffer: Minibuffer, acts: Query<&Act>) {
 
 /// List key bindings available.
 pub fn list_key_bindings(mut minibuffer: Minibuffer, acts: Query<&Act>) {
-    let mut table = Table::new("{:<}\t{:<}");
+    let mut table = Table::new("{:<}\t {:<}");
     table.add_row(Row::new().with_cell("KEY BINDING ").with_cell("ACT"));
 
     let mut key_bindings: Vec<(String, Cow<'static, str>)> = acts

@@ -2,11 +2,10 @@
 use crate::{
     prelude::*,
     event::LookupEvent,
-    lookup::{Lookup, Resolve, LookupError},
+    lookup::{Lookup, LookupError},
 };
-use bevy_asky::{Submitter, view::color, string_cursor::*, construct::*, focus::{FocusParam, Focusable}};
+use bevy_asky::{Submitter, view::color, string_cursor::*, focus::{FocusParam, Focusable}};
 use bevy::{
-    ecs::world::{Command},
     ecs::system::{EntityCommands},
     input::{
         keyboard::{Key, KeyboardInput},

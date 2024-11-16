@@ -1,22 +1,7 @@
-use crate::{
-    event::DispatchEvent,
-    // lookup::{AutoComplete, Lookup},
-    prompt::{KeyChordEvent, GetKeyChord},
-    ui::PromptContainer,
-};
 use bevy::{
-    ecs::{
-        component::Component,
-        entity::Entity,
-        query::With,
-        system::{Query, Res, SystemMeta, SystemParam, SystemState, Resource, EntityCommands},
-        world::{unsafe_world_cell::UnsafeWorldCell, World},
-        prelude::Commands,
-    },
-    prelude::{Deref, Reflect, Trigger, TextBundle, TextStyle},
-    utils::Duration,
+    ecs::component::Component,
+    prelude::{Reflect, TextBundle, TextStyle},
 };
-use bevy_input_sequence::KeyChord;
 use std::{borrow::Cow, fmt::Debug};
 use bevy_asky::prelude::*;
 

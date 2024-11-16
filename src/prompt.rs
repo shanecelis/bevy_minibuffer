@@ -1,7 +1,7 @@
 //! Prompt
 
 use crate::{
-    event::{DispatchEvent, LookupEvent, RunActEvent},
+    event::LookupEvent,
     ui::{completion_item, ScrollingList},
     Config,
 };

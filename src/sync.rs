@@ -2,10 +2,9 @@
 use crate::{
     Message,
     Dest,
-    event::DispatchEvent,
-    lookup::{Lookup, Resolve},
+    lookup::Lookup,
     autocomplete::AutoComplete,
-    prompt::{KeyChordEvent, GetKeyChord},
+    prompt::GetKeyChord,
     ui::PromptContainer,
 };
 use bevy::{
@@ -13,15 +12,12 @@ use bevy::{
         component::Component,
         entity::Entity,
         query::With,
-        system::{Query, Res, SystemMeta, SystemParam, SystemState, Resource, EntityCommands},
-        world::{unsafe_world_cell::UnsafeWorldCell, World},
+        system::{Query, SystemParam, EntityCommands},
         prelude::Commands,
     },
-    prelude::{Deref, Reflect, Trigger, TextBundle, TextStyle, DespawnRecursiveExt},
-    utils::Duration,
+    prelude::DespawnRecursiveExt,
 };
-use bevy_input_sequence::KeyChord;
-use std::{borrow::Cow, fmt::Debug};
+use std::fmt::Debug;
 use bevy_asky::{prelude::*, sync::AskyCommands};
 
 // #[derive(Resource, Debug, Reflect, Deref)]
@@ -96,7 +92,7 @@ impl<'w, 's> Minibuffer<'w, 's> {
         L: Lookup + Clone + Send + Sync + 'static,
     {
         let dest = self.dest.single();
-        let mut commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);
+        let commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);
         let autocomplete = AutoComplete::new(lookup);
         autocomplete.construct(commands, prompt)
     }

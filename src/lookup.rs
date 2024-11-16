@@ -1,10 +1,8 @@
 //! Lookup and autocompletion
 use bevy::prelude::*;
 use std::borrow::Cow;
-use std::io;
 use trie_rs::{iter::KeysExt, map};
 
-use crate::event::*;
 use crate::Error;
 
 /// Look up error

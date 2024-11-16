@@ -1,16 +1,10 @@
 //! acts, or commands
-use crate::{
-    event::RunActEvent,
-    //lookup::{Lookup, LookupError, Resolve},
-    prompt::{CompletionState, PromptState},
-    prelude::Minibuffer,
-};
+use crate::event::RunActEvent;
 #[cfg(feature = "async")]
 use crate::MinibufferAsync;
 use bevy::{
     ecs::system::{BoxedSystem, SystemId},
     prelude::*,
-    window::RequestRedraw,
 };
 use bevy_input_sequence::{action, input_sequence::{KeySequence}, KeyChord};
 use bitflags::bitflags;
@@ -19,9 +13,7 @@ use std::{
     sync::Mutex,
     borrow::Cow,
     fmt::{self, Debug, Display, Write},
-    future::Future,
 };
-use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
 mod acts;
 pub use acts::ActsPlugin;

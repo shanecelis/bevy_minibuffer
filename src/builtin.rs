@@ -1,24 +1,19 @@
 use crate::{
-    autocomplete::AutoComplete,
     prelude::*,
     lookup::Resolve,
     Minibuffer,
-    Message,
     prompt::{CompletionState, PromptState, KeyChordEvent},
-    act::{self, PluginOnce, ActFlags, ActCache},
+    act::{PluginOnce, ActFlags, ActCache},
     prelude::{keyseq, ActBuilder, ActsPlugin},
 };
 
 use std::{
     // cell::RefCell,
-    sync::Mutex,
     borrow::Cow,
-    fmt::{self, Debug, Display, Write},
-    future::Future,
+    fmt::{Debug, Write},
 };
 
 use bevy::{
-    ecs::system::{BoxedSystem, SystemId},
     prelude::*,
     window::RequestRedraw,
 };
@@ -31,7 +26,7 @@ use trie_rs::{
 use bevy_defer::AsyncWorld;
 #[cfg(feature = "async")]
 use crate::{future_sink, future_result_sink};
-use bevy::{prelude::*, ecs::system::IntoSystem};
+use bevy::ecs::system::IntoSystem;
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 #[cfg(feature = "async")]
@@ -88,7 +83,7 @@ pub fn exec_act(
             // let autocomplete = query.get(trigger.entity()).unwrap();
                 // let act_name = trigger.event().0.unwrap().cloned();
             match &trigger.event().0 {
-                Ok(act_name) => match acts.resolve(&act_name) {
+                Ok(act_name) => match acts.resolve(act_name) {
                     Ok(act) => {
                         writer.send(RunActEvent(act));
                     }
@@ -278,7 +273,7 @@ pub fn describe_key(
             // let trie = trie;
             // let search = search;
             let chord = &trigger.event().0;
-            match search.query(&chord) {
+            match search.query(chord) {
                 Some(x) => {
                     let _ = write!(accum, "{} ", chord);
                     let v = search.value();

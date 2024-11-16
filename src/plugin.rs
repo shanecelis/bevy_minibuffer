@@ -1,6 +1,6 @@
 use crate::{
     act,
-    event::{run_acts, DispatchEvent, LookupEvent, RunActEvent, RunInputSequenceEvent, dispatch_events},
+    event::{run_acts, LookupEvent, RunActEvent, RunInputSequenceEvent, dispatch_events},
     // lookup::AutoComplete,
     prompt::{
         self, get_key_chords,
@@ -18,7 +18,6 @@ use bevy::{
         condition::{in_state},
     },
     ecs::{
-        reflect::AppTypeRegistry,
         schedule::{
             Condition, IntoSystemSetConfigs, SystemSet,
             // on_event,
@@ -28,7 +27,6 @@ use bevy::{
     prelude::IntoSystemConfigs,
     reflect::Reflect,
     text::TextStyle,
-    utils::default,
     prelude::{OnEnter, OnExit, on_event, PluginGroup}
 };
 use bevy_input_sequence::InputSequencePlugin;

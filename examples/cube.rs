@@ -3,7 +3,6 @@
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 use std::f32::consts::TAU;
-use std::future::Future;
 #[path = "common/lib.rs"]
 mod common;
 

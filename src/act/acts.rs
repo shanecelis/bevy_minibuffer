@@ -1,6 +1,5 @@
-use crate::act::{ActBuilder, PluginOnce, PluginOnceShim};
+use crate::act::{ActBuilder, PluginOnce};
 use bevy::prelude::*;
-use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 /// Houses a collection of acts.
 ///

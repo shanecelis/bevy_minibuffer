@@ -38,3 +38,8 @@ required-features = [ "async" ]
 name = "cube-async"
 path = "examples/async/cube.rs"
 required-features = [ "async" ]
+
+[[example]]
+name = "two-commands-async"
+path = "examples/async/two_commands.rs"
+required-features = [ "async" ]

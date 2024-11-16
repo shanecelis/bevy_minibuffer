@@ -306,6 +306,7 @@ pub fn describe_key(
 }
 
 
+#[derive(Debug, Deref, DerefMut)]
 /// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key.
 pub struct Builtin {
     /// Set of builtin acts

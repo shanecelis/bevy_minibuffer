@@ -116,6 +116,18 @@ impl ActBuilder {
         }
     }
 
+    pub fn name(&self) -> Cow<'static, str> {
+        self.name.clone().unwrap_or_else(|| {
+                let n = self.system.name();
+                if let Some(start) = n.find('(') {
+                    if let Some(end) = n.find([',', ' ', ')']) {
+                        return n[start + 1..end].to_owned().into();
+                    }
+                }
+                n
+            })
+    }
+
     /// Build [Act].
     pub fn build(self, world: &mut World) -> Act {
         Act {

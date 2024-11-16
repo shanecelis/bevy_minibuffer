@@ -13,6 +13,13 @@ pub struct ActsPlugin {
     acts: Vec<ActBuilder>,
 }
 
+// impl trait IndexMut<AsRef<str>> for ActsPlugin {
+//     type Output = Act;
+
+//     fn index(
+
+// }
+
 
 impl ActsPlugin {
     /// Create a new plugin with a set of acts.
@@ -20,6 +27,14 @@ impl ActsPlugin {
         ActsPlugin {
             acts: v.into_iter().collect(),
         }
+    }
+
+    /// Take an act from this collection.
+    pub fn take(&mut self, name: impl AsRef<str>) -> Option<ActBuilder> {
+        let name = name.as_ref();
+        self.acts.iter().position(|act| act.name() == name)
+            .map(|index| self.acts.remove(index))
+
     }
 
     // /// Get the current acts readonly.

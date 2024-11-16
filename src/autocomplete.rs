@@ -147,7 +147,7 @@ fn autocomplete_controller(
                     Key::Tab => {
                         if let Err(e) = autocomplete.look_up(&text_state.value) {
                             use LookupError::*;
-                            match dbg!(e) {
+                            match e {
                                 Message(s) => {
                                     commands.entity(id).insert(Feedback::info(s)); // Err(s),
                                 }

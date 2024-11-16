@@ -74,7 +74,6 @@ pub fn exec_act(
     mut minibuffer: Minibuffer,
     acts: Query<&Act>,
 ) {
-    eprintln!("here");
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
@@ -108,9 +107,9 @@ pub fn exec_act(
 }
 
 /// List acts currently operant.
-pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) {
+pub fn list_acts(mut minibuffer: Minibuffer, acts: Query<&Act>) {
     let mut table = Table::new("{:<}\t{:<}");
-    table.add_row(Row::new().with_cell("ACT").with_cell("KEY BINDING"));
+    table.add_row(Row::new().with_cell("ACT ").with_cell("KEY BINDING"));
     let mut acts: Vec<_> = acts.iter().collect();
     acts.sort_by(|a, b| a.name().cmp(b.name()));
     for act in &acts {
@@ -118,7 +117,7 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) {
         if act.hotkeys.is_empty() {
             table.add_row(
                 Row::new()
-                    .with_cell(name.take().unwrap_or(""))
+                    .with_cell(format!("{} ", name.take().unwrap_or("")))
                     .with_cell(""),
             );
         } else {
@@ -132,18 +131,18 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) {
             for binding in bindings {
                 table.add_row(
                     Row::new()
-                        .with_cell(name.take().unwrap_or(""))
+                        .with_cell(format!("{} ", name.take().unwrap_or("")))
                         .with_cell(binding),
                 );
             }
         }
     }
     let msg = format!("{}", table);
-    asky.message(msg);
+    minibuffer.message(msg);
 }
 
 /// List key bindings available.
-pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) {
+pub fn list_key_bindings(mut minibuffer: Minibuffer, acts: Query<&Act>) {
     let mut table = Table::new("{:<}\t{:<}");
     table.add_row(Row::new().with_cell("KEY BINDING ").with_cell("ACT"));
 
@@ -178,7 +177,7 @@ pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) {
         table.add_row(Row::new().with_cell(binding).with_cell(act.into_owned()));
     }
     let msg = format!("{}", table);
-    asky.message(msg);
+    minibuffer.message(msg);
 }
 
 /// Toggle visibility.
@@ -325,7 +324,6 @@ impl Default for Builtin {
                     .hotkey(keyseq! { shift-; })
                     .hotkey(keyseq! { alt-X })
                     .in_exec_act(false),
-
 #[cfg(not(feature = "async"))]
                 ActBuilder::new(exec_act)
                     .named("exec_act")

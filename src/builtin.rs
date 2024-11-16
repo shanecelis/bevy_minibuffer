@@ -4,8 +4,8 @@ use crate::{
     lookup::Resolve,
     Minibuffer,
     Message,
-    prompt::{CompletionState, PromptState},
-    act::{self, PluginOnce, ActFlags},
+    prompt::{CompletionState, PromptState, KeyChordEvent},
+    act::{self, PluginOnce, ActFlags, ActCache},
     prelude::{keyseq, ActBuilder, ActsPlugin},
 };
 
@@ -23,7 +23,10 @@ use bevy::{
     window::RequestRedraw,
 };
 use tabular::{Row, Table};
-use trie_rs::map::{Trie, TrieBuilder};
+use trie_rs::{
+    inc_search::IncSearch,
+    map::{Trie, TrieBuilder}
+};
 #[cfg(feature = "async")]
 use crate::{future_sink, future_result_sink};
 use bevy::{prelude::*, ecs::system::IntoSystem};
@@ -256,6 +259,54 @@ pub fn describe_key(
     }
 }
 
+#[cfg(not(feature = "async"))]
+pub fn describe_key(
+    acts: Query<&Act>,
+    mut cache: ResMut<ActCache>,
+    mut minibuffer: Minibuffer,
+) {
+    let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
+    let mut position = trie.inc_search().into();
+    // search
+    let mut accum = String::from("");
+    // let state = (trie, search);
+
+    minibuffer.message("Press key: ");
+    minibuffer.get_chord()
+        .observe(move |trigger: Trigger<KeyChordEvent>, mut commands: Commands, mut minibuffer: Minibuffer| {
+            use trie_rs::inc_search::Answer;
+            let mut search = IncSearch::resume(&trie, position);
+            // let (trie, search) = state;
+            // let trie = trie;
+            // let search = search;
+            let chord = &trigger.event().0;
+            match search.query(&chord) {
+                Some(x) => {
+                    let _ = write!(accum, "{} ", chord);
+                    let v = search.value();
+                    let msg = match x {
+                        Answer::Match => format!("{}is bound to {:?}", accum, v.unwrap().name),
+                        Answer::PrefixAndMatch => format!("{}is bound to {:?} and more", accum, v.unwrap().name),
+                        Answer::Prefix => format!("Press key: {}", accum),
+                    };
+                    minibuffer.message(msg);
+                    if matches!(x, Answer::Match) {
+                        commands.entity(trigger.entity()).despawn_recursive();
+                        // break;
+                    }
+                }
+                None => {
+                    let _ = write!(accum, "{} ", chord);
+                    let msg = format!("{}is unbound", accum);
+                    minibuffer.message(msg);
+                    commands.entity(trigger.entity()).despawn_recursive();
+                    // break;
+                }
+            }
+            position = search.into();
+        });
+}
+
 
 /// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key.
 pub struct Builtin {
@@ -290,7 +341,11 @@ impl Default for Builtin {
 #[cfg(feature = "async")]
                 ActBuilder::new(describe_key.pipe(future_result_sink))
                     .named("describe_key")
-                    .hotkey(keyseq! { ctrl-H K })
+                    .hotkey(keyseq! { ctrl-H K }),
+#[cfg(not(feature = "async"))]
+                ActBuilder::new(describe_key)
+                    .named("describe_key")
+                    .hotkey(keyseq! { ctrl-H K }),
             ])
         }
     }

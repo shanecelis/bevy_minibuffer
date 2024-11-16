@@ -126,10 +126,9 @@ pub(crate) fn get_key_chords(
     if let Some(chord) = buffer.pop_front().or_else(|| chords.pop_front()) {
         for id in query.iter_mut() {
             commands.trigger_targets(KeyChordEvent(chord.clone()), id);
-            // if let Some(promise) = get_key_chord.0.take() {
-            //     promise.resolve(chord.clone());
-            // }
-            commands.entity(id).remove::<GetKeyChord>();
+            // NOTE: Don't remove this here. Let the consumer decide when they're done.
+            //
+            // commands.entity(id).remove::<GetKeyChord>();
             // commands.entity(id).despawn();
         }
     }

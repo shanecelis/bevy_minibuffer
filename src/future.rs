@@ -114,30 +114,37 @@ impl MinibufferAsync {
         // self.asky.prompt::<Message, bevy_asky::view::color::View>(msg.as_ref(), Dest::ReplaceChildren(self.dest))
     }
 
-    // /// Read input from user that must match a [Lookup].
-    // pub fn read<L>(
-    //     &mut self,
-    //     prompt: String,
-    //     lookup: L,
-    // ) -> impl Future<Output = Result<String, Error>> + '_
-    // where
-    //     L: Lookup + Clone + Send + Sync + 'static,
-    // {
-    //     use crate::lookup::LookupError::*;
-    //     let mut text = asky::Text::new(prompt);
-    //     let l = lookup.clone();
-    //     text.validate(move |input| match l.look_up(input) {
-    //         Ok(_) => Ok(()),
-    //         Err(e) => match e {
-    //             Message(s) => Err(s),
-    //             // Incomplete(_v) => Err(format!("Incomplete: {}", v.join(", ")).into()),
-    //             Incomplete(_v) => Err("Incomplete".into()),
-    //             MinibufferAsync(e) => Err(format!("Error: {:?}", e).into()),
-    //         },
-    //     });
-    //     let text = AutoComplete::new(text, lookup, self.channel.clone());
-    //     self.prompt_styled(text, self.style.clone().into())
-    // }
+    /// Read input from user that must match a [Lookup].
+    pub fn read<L>(
+        &mut self,
+        prompt: impl Into<Cow<'static, str>>,
+        lookup: L,
+    ) -> impl Future<Output = Result<String, Error>> + '_
+    where
+        L: Lookup + Clone + Send + Sync + 'static,
+    {
+        let prompt = prompt.into();
+        async {
+            let dest = self.dest;
+            let (promise, waiter) = oneshot::channel::<Result<String, Error>>();
+            let mut promise = Some(promise);
+            let async_world = AsyncWorld::new();
+            async_world.apply_command(move |world: &mut World| {
+                let mut commands = world.commands();
+
+                let mut commands = Dest::ReplaceChildren(dest).entity(&mut commands);
+                let autocomplete = AutoComplete::new(lookup);
+                autocomplete.construct(commands, prompt)
+                            .observe(move |trigger: Trigger<AskyEvent<String>>, mut commands: Commands| {
+                                if let Some(promise) = promise.take() {
+                                    promise.send(trigger.event().0.clone()).expect("send");
+                                }
+                                commands.entity(trigger.entity()).despawn();
+                            });
+                });
+            waiter.await?
+        }
+    }
 
     /// Clear the minibuffer.
     pub fn clear(&mut self) {
@@ -159,10 +166,11 @@ impl MinibufferAsync {
             async_world.apply_command(move |world: &mut World| {
                 let mut commands = world.commands();
                 commands.spawn(GetKeyChord)
-                    .observe(move |trigger: Trigger<KeyChordEvent>| {
+                    .observe(move |trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             promise.send(Ok(trigger.event().0.clone())).expect("send");
                         }
+                        commands.entity(trigger.entity()).despawn();
                     });
             });
             waiter.await?

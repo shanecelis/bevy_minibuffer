@@ -28,13 +28,15 @@ use trie_rs::{
     map::{Trie, TrieBuilder}
 };
 #[cfg(feature = "async")]
+use bevy_defer::AsyncWorld;
+#[cfg(feature = "async")]
 use crate::{future_sink, future_result_sink};
 use bevy::{prelude::*, ecs::system::IntoSystem};
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 #[cfg(feature = "async")]
 pub fn exec_act(
-    mut minibuffer: Minibuffer,
+    mut minibuffer: MinibufferAsync,
     acts: Query<&Act>,
 ) -> impl Future<Output = Result<(), crate::Error>> {
     let mut builder = TrieBuilder::new();
@@ -45,25 +47,22 @@ pub fn exec_act(
     }
     let acts: Trie<u8, Act> = builder.build();
     async move {
-        todo!();
-        // match minibuffer.read(":".to_string(), acts.clone()).await {
-        //     // TODO: Get rid of clone.
-        //     Ok(act_name) => match acts.resolve(&act_name) {
-        //         Ok(act) => {
-        //             AsyncWorld::new().send_event(RunActEvent(act))?;
-        //         }
-        //         Err(e) => {
-        //             minibuffer.prompt(Message::new(format!(
-        //                 "Error: Could not resolve act named {:?}: {}",
-        //                 act_name, e
-        //             )))
-        //             .await?;
-        //         }
-        //     },
-        //     Err(e) => {
-        //         minibuffer.prompt(Message::new(format!("Error: {e}"))).await?;
-        //     }
-        // }
+        match minibuffer.read(":", acts.clone()).await {
+            // TODO: Get rid of clone.
+            Ok(act_name) => match acts.resolve(&act_name) {
+                Ok(act) => {
+                    AsyncWorld::new().send_event(RunActEvent(act))?;
+                }
+                Err(e) => {
+                    minibuffer.message(format!(
+                        "Error: Could not resolve act named {:?}: {}",
+                        act_name, e));
+                }
+            },
+            Err(e) => {
+                minibuffer.message(format!("Error: {e}"));
+            }
+        }
         Ok(())
     }
 }

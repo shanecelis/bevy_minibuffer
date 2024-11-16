@@ -139,7 +139,7 @@ pub(crate) fn spawn_layout(mut commands: Commands) {
                 });
             builder
                 .spawn(NodeBundle {
-                    // visibility: Visibility::Hidden,
+                    visibility: Visibility::Hidden,
                     style: Style {
                         flex_direction: FlexDirection::Row,
                         flex_grow: 1.,

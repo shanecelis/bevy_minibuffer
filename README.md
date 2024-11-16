@@ -23,7 +23,7 @@ The video above shows the [two_commands.rs](examples/two_commands.rs) example.
 
 # Antigoals
 
-- No general text editing
+- No general-purpose text editing
 - No windows or panels
 
 Try to force everything through the minibuffer at the bottom of the screen. It can resize to accommodate more than one-line of text. 
@@ -41,6 +41,8 @@ already has its own `Command` struct.
 
 # TODO
 - [ ] Use a real cursor/selection highlight that doesn't [fail on wrap](https://discord.com/channels/691052431525675048/1305257817057398825/1305257817057398825).
+- [ ] Change the keyseq macros to use lower case.
+- [ ] Copy the color::View to create Minibuffer's own View.
 
 # Design Quetions
 ## Re: No windows antigoal

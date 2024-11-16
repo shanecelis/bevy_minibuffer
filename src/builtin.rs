@@ -136,13 +136,13 @@ pub fn list_acts(mut asky: Minibuffer, acts: Query<&Act>) {
         }
     }
     let msg = format!("{}", table);
-    asky.message(&msg);
+    asky.message(msg);
 }
 
-/// List key bindings for event `E`.
+/// List key bindings available.
 pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) {
     let mut table = Table::new("{:<}\t{:<}");
-    table.add_row(Row::new().with_cell("KEY BINDING").with_cell("EVENT"));
+    table.add_row(Row::new().with_cell("KEY BINDING ").with_cell("ACT"));
 
     let mut key_bindings: Vec<(String, Cow<'static, str>)> = acts
         .iter()
@@ -156,15 +156,29 @@ pub fn list_key_bindings(mut asky: Minibuffer, acts: Query<&Act>) {
             })
         })
         .collect();
-    key_bindings.sort_by(|a, b| a.0.cmp(&b.0));
-    for (binding, e) in &key_bindings {
-        table.add_row(Row::new().with_cell(binding).with_cell(format!("{}", e)));
+    // Sort by key binding name? No.
+    // key_bindings.sort_by(|a, b| a.0.cmp(&b.0));
+    // Sort by act name? Yes.
+    key_bindings.sort_by(|a, b| a.1.cmp(&b.1));
+    for (binding, act) in key_bindings.into_iter()
+        // Don't show some act name in a row. Replace the same named items with
+        // an empty string. It's an implicit ibid.
+        .scan(Cow::from(""), |last, (bind, act)| {
+            if *last == act {
+                *last = act.clone();
+                Some((bind, Cow::from("")))
+            } else {
+                *last = act.clone();
+                Some((bind, act))
+            }
+        }) {
+        table.add_row(Row::new().with_cell(binding).with_cell(act.into_owned()));
     }
     let msg = format!("{}", table);
     asky.message(msg);
 }
 
-/// Toggle visibility
+/// Toggle visibility.
 pub fn toggle_visibility(
     mut redraw: EventWriter<RequestRedraw>,
     prompt_state: Res<State<PromptState>>,

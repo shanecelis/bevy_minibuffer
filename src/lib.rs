@@ -15,6 +15,7 @@ pub use plugin::Config;
 pub use plugin::Error;
 pub use plugin::MinibufferPlugin;
 pub use plugin::MinibufferPlugins;
+pub mod view;
 mod builtin;
 #[cfg(feature = "async")]
 mod sink;

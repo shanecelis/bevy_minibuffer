@@ -5,6 +5,7 @@ use crate::{
     prelude::*,
     prelude::{keyseq, ActBuilder, ActsPlugin},
     prompt::{CompletionState, KeyChordEvent, PromptState},
+    autocomplete::RequireMatch,
     Minibuffer,
 };
 
@@ -88,7 +89,9 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Las
     // } else {
     //     "exec_act".into()
     // };
-    minibuffer.read(prompt, acts.clone()).observe(
+    minibuffer.read(prompt, acts.clone())
+        .insert(RequireMatch)
+              .observe(
         move |trigger: Trigger<AskyEvent<String>>,
               // query: Query<&AutoComplete>,
               mut writer: EventWriter<RunActEvent>,

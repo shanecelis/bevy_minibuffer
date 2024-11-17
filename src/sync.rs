@@ -64,7 +64,7 @@ impl<'w, 's> Minibuffer<'w, 's> {
     {
         let dest = self.dest.single();
         self.commands
-            .prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(dest))
+            .prompt::<T, crate::view::View>(props, Dest::ReplaceChildren(dest))
     }
 
     /// Leave a message in the minibuffer.

@@ -49,6 +49,9 @@ use std::borrow::Cow;
 /// ```
 #[derive(Component, Deref)]
 pub struct AutoComplete(Box<dyn Lookup + Send + Sync>);
+
+#[derive(Component, Debug)]
+pub struct RequireMatch;
 // #[derive(Component)]
 // pub enum AutoComplete<T = ()> {
 //     Lookup(Box<dyn Lookup + Send + Sync>),
@@ -89,8 +92,7 @@ impl AutoComplete {
             .insert(NodeBundle::default())
             .insert(StringCursor::default())
             .insert(Focusable::default())
-            .insert(color::View)
-            // .insert(TextField)
+            .insert(crate::view::View)
             .insert(self);
         commands
         // }
@@ -99,16 +101,18 @@ impl AutoComplete {
 
 pub(crate) fn plugin(app: &mut App) {
     app.add_systems(PreUpdate, autocomplete_controller)
-        .add_systems(Update, color::text_view::<With<AutoComplete>>);
+        .add_systems(Update, crate::view::text_view::<With<AutoComplete>>);
 }
 
 unsafe impl Submitter for AutoComplete {
     type Out = String;
 }
 
+// NOTE: Construct didn't work for AutoComplete because my lookup field could
+// not be a property.
+//
 // impl Construct for AutoComplete {
 //     type Props = (Cow<'static, str>, AutoComplete);
-
 //     fn construct(
 //         context: &mut ConstructContext,
 //         props: Self::Props,
@@ -122,22 +126,20 @@ unsafe impl Submitter for AutoComplete {
 //             .insert(NodeBundle::default())
 //             .insert(input_state)
 //             .insert(Focusable::default());
-
 //         context.world.flush();
-
 //         Ok(props.1)
 //     }
 // }
 
 fn autocomplete_controller(
     mut focus: FocusParam,
-    mut query: Query<(Entity, &mut StringCursor, &AutoComplete)>,
+    mut query: Query<(Entity, &mut StringCursor, &AutoComplete, Option<&RequireMatch>)>,
     mut input: EventReader<KeyboardInput>,
     mut commands: Commands,
     mut lookup_events: EventWriter<LookupEvent>,
 ) {
     let mut any_focused_text = false;
-    for (id, mut text_state, autocomplete) in query.iter_mut() {
+    for (id, mut text_state, autocomplete, require_match) in query.iter_mut() {
         if !focus.is_focused(id) {
             continue;
         }
@@ -152,6 +154,7 @@ fn autocomplete_controller(
                         use LookupError::*;
                         match e {
                             Message(s) => {
+                                lookup_events.send(LookupEvent::Hide);
                                 if let Some(mut ecommands) = commands.get_entity(id) {
                                     ecommands.try_insert(Feedback::info(s)); // Err(s),
                                 }
@@ -164,6 +167,7 @@ fn autocomplete_controller(
                                 }
                             }
                             Minibuffer(e) => {
+                                lookup_events.send(LookupEvent::Hide);
                                 if let Some(mut ecommands) = commands.get_entity(id) {
                                     ecommands.try_insert(Feedback::warn(format!("{:?}", e)));
                                 }
@@ -182,6 +186,14 @@ fn autocomplete_controller(
                 Key::ArrowLeft => text_state.move_cursor(CursorDirection::Left),
                 Key::ArrowRight => text_state.move_cursor(CursorDirection::Right),
                 Key::Enter => {
+                    if require_match.is_some() {
+                        if let Err(e) = autocomplete.look_up(&text_state.value) {
+                            if let Some(mut ecommands) = commands.get_entity(id) {
+                                ecommands.try_insert(Feedback::warn(format!("require match. {}", e)));
+                            }
+                            continue;
+                        }
+                    }
                     lookup_events.send(LookupEvent::Hide);
                     commands.trigger_targets(AskyEvent(Ok(text_state.value.clone())), id);
                     focus.block_and_move(id);

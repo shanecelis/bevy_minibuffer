@@ -94,7 +94,7 @@ impl MinibufferAsync {
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
         self.asky
-            .prompt::<T, bevy_asky::view::color::View>(props, Dest::ReplaceChildren(self.dest))
+            .prompt::<T, crate::view::View>(props, Dest::ReplaceChildren(self.dest))
     }
 
     /// Leave a message in the minibuffer.
@@ -111,7 +111,7 @@ impl MinibufferAsync {
         //     }
         // });
         // self.dest
-        // self.asky.prompt::<Message, bevy_asky::view::color::View>(msg.as_ref(), Dest::ReplaceChildren(self.dest))
+        // self.asky.prompt::<Message, crate::view::View>(msg.as_ref(), Dest::ReplaceChildren(self.dest))
     }
 
     /// Read input from user that must match a [Lookup].

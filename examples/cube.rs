@@ -23,7 +23,7 @@ fn main() {
             MinibufferPlugins.set(video_settings.minibuffer_plugin()),
         ))
         // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
-        .add_plugins(bevy_inspector_egui::quick::StateInspectorPlugin::<bevy_minibuffer::prompt::MinibufferState>::new())
+        // .add_plugins(bevy_inspector_egui::quick::StateInspectorPlugin::<bevy_minibuffer::prompt::MinibufferState>::new())
         .add_plugins(Builtin::default().into_plugin())
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)

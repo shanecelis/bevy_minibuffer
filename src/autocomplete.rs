@@ -152,22 +152,21 @@ fn autocomplete_controller(
                         use LookupError::*;
                         match e {
                             Message(s) => {
-                                commands.entity(id).insert(Feedback::info(s)); // Err(s),
+                                if let Some(mut ecommands) = commands.get_entity(id) {
+                                    ecommands.try_insert(Feedback::info(s)); // Err(s),
+                                }
                             }
                             Incomplete(v) => {
                                 lookup_events.send(LookupEvent::Completions(v));
                                 if let Some(new_input) =
-                                    autocomplete.longest_prefix(&text_state.value)
-                                {
+                                    autocomplete.longest_prefix(&text_state.value) {
                                     text_state.set_value(&new_input);
                                 }
                             }
                             Minibuffer(e) => {
-                                //Err(format!("Error: {:?}", e).into()),
-                                commands
-                                    .entity(id)
-                                    .insert(Feedback::warn(format!("{:?}", e)));
-                                // Err(s),
+                                if let Some(mut ecommands) = commands.get_entity(id) {
+                                    ecommands.try_insert(Feedback::warn(format!("{:?}", e)));
+                                }
                             }
                         }
                     }
@@ -189,7 +188,9 @@ fn autocomplete_controller(
                 }
                 Key::Escape => {
                     commands.trigger_targets(AskyEvent::<String>(Err(asky::Error::Cancel)), id);
-                    commands.entity(id).insert(Feedback::error("canceled"));
+                    if let Some(mut ecommands) = commands.get_entity(id) {
+                        ecommands.try_insert(Feedback::error("canceled"));
+                    }
                     focus.block(id);
                 }
                 x => info!("Unhandled key {x:?}"),

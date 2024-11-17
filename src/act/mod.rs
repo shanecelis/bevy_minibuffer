@@ -32,6 +32,42 @@ bitflags! {
     }
 }
 
+#[derive(Debug, Clone, Reflect)]
+pub struct Hotkey {
+    pub chords: Vec<KeyChord>,
+    pub alias: Option<Cow<'static, str>>,
+}
+
+impl Hotkey {
+    pub fn new<T>(chords: impl IntoIterator<Item = T>) -> Self
+    where
+        KeyChord: From<T>,
+    {
+        Self {
+            chords: chords.into_iter().map(|v| v.into()).collect(),
+            alias: None,
+        }
+    }
+
+    pub fn alias(mut self, name: impl Into<Cow<'static, str>>) -> Self {
+        self.alias = Some(name.into());
+        self
+    }
+}
+
+impl fmt::Display for Hotkey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(alias) = &self.alias {
+            write!(f, "{}", alias)
+        } else {
+            for key_chord in &self.chords {
+                write!(f, "{} ", key_chord)?;
+            }
+            Ok(())
+        }
+    }
+}
+
 impl Default for ActFlags {
     fn default() -> Self {
         ActFlags::Active | ActFlags::ExecAct
@@ -45,7 +81,7 @@ pub struct Act {
     /// An act's name
     pub name: Cow<'static, str>,
     /// Hot keys
-    pub hotkeys: Vec<Vec<KeyChord>>,
+    pub hotkeys: Vec<Hotkey>,
     /// What system runs when act is called
     #[reflect(ignore)]
     pub(crate) system_id: SystemId,
@@ -69,7 +105,7 @@ impl ActCache {
             let mut builder: TrieBuilder<KeyChord, Act> = TrieBuilder::new();
             for act in acts {
                 for hotkey in &act.hotkeys {
-                    builder.insert(hotkey.clone(), act.clone());
+                    builder.insert(hotkey.chords.clone(), act.clone());
                 }
             }
             builder.build()
@@ -87,7 +123,7 @@ impl ActCache {
 pub struct ActBuilder {
     pub(crate) name: Option<Cow<'static, str>>,
     /// Hotkeys
-    pub hotkeys: Vec<Vec<KeyChord>>,
+    pub hotkeys: Vec<Hotkey>,
     pub(crate) system: BoxedSystem,
     /// Flags for this act
     pub flags: ActFlags,
@@ -154,23 +190,26 @@ impl ActBuilder {
     where
         KeyChord: From<T>,
     {
-        self.hotkeys
-            .push(hotkey.into_iter().map(|v| v.into()).collect());
+        self.hotkeys.push(Hotkey::new(hotkey));
         self
     }
 
-    // pub fn with_flags<F: Fn(ActFlags) -> ActFlags>(mut self, f: F) -> Self {
-    //     self.flags = f(self.flags);
-    //     self
-    // }
+    pub fn hotkey_named<T>(mut self, hotkey: impl IntoIterator<Item = T>, name: impl Into<Cow<'static, str>>) -> Self
+    where
+        KeyChord: From<T>,
+    {
+        self.hotkeys.push(Hotkey::new(hotkey).alias(name));
+        self
+    }
 
-    // pub fn with_flags(mut self, flags: ActFlags) -> Self {
-    //     self.flags |= flags;
-    //     self
-    // }
+    /// Set flags.
+    pub fn flags(mut self, flags: ActFlags) -> Self {
+        self.flags = flags;
+        self
+    }
 
     /// Add the given the flags.
-    pub fn flags(mut self, flags: ActFlags) -> Self {
+    pub fn add_flags(mut self, flags: ActFlags) -> Self {
         self.flags |= flags;
         self
     }
@@ -253,10 +292,11 @@ impl Act {
     pub fn build_keyseqs(&self, world: &mut World) -> Vec<KeySequence> {
         self.hotkeys
             .iter()
-            .map(|hotkey| {
+            .enumerate()
+            .map(|(i, hotkey)| {
                 KeySequence::new(
-                    action::send_event(RunActEvent(self.clone())),
-                    hotkey.clone(),
+                    action::send_event(RunActEvent::new(self.clone()).hotkey(i)),
+                    hotkey.chords.clone(),
                 )
                 .build(world)
             })

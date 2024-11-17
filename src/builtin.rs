@@ -1,4 +1,5 @@
 use crate::{
+    event::LastRunAct,
     act::{ActCache, ActFlags, PluginOnce},
     lookup::Resolve,
     prelude::*,
@@ -63,7 +64,7 @@ pub fn exec_act(
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 #[cfg(not(feature = "async"))]
-pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>) {
+pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<LastRunAct>) {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
@@ -71,7 +72,23 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>) {
         }
     }
     let acts: Trie<u8, Act> = builder.build();
-    minibuffer.read(":", acts.clone()).observe(
+    let prompt: Cow<'static, str> =
+        (*last_act).as_ref()
+                   .and_then(|run_act| {
+                       run_act.hotkey.map(|index| format!("{}", run_act.act.hotkeys[index]).into())
+                   })
+                   .unwrap_or("exec_act".into());
+
+    //     if let Some(ref run_act) = **last_act {
+    //     if let Some(index) = run_act.hotkey {
+    //         format!("{}", run_act.act.hotkeys[index]).into()
+    //     } else {
+    //     "exec_act".into()
+    //     }
+    // } else {
+    //     "exec_act".into()
+    // };
+    minibuffer.read(prompt, acts.clone()).observe(
         move |trigger: Trigger<AskyEvent<String>>,
               // query: Query<&AutoComplete>,
               mut writer: EventWriter<RunActEvent>,
@@ -81,7 +98,7 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>) {
             match &trigger.event().0 {
                 Ok(act_name) => match acts.resolve(act_name) {
                     Ok(act) => {
-                        writer.send(RunActEvent(act));
+                        writer.send(RunActEvent::new(act));
                     }
                     Err(e) => {
                         minibuffer.message(format!(
@@ -113,11 +130,8 @@ pub fn list_acts(mut minibuffer: Minibuffer, acts: Query<&Act>) {
                     .with_cell(""),
             );
         } else {
-            let bindings = act.hotkeys.iter().map(|chords| {
-                chords.iter().fold(String::new(), |mut output, chord| {
-                    let _ = write!(output, "{} ", chord);
-                    output
-                })
+            let bindings = act.hotkeys.iter().map(|hotkey| {
+                hotkey.to_string()
             });
 
             for binding in bindings {
@@ -142,11 +156,7 @@ pub fn list_key_bindings(mut minibuffer: Minibuffer, acts: Query<&Act>) {
         .iter()
         .flat_map(|act| {
             act.hotkeys.iter().map(|hotkey| {
-                let binding = hotkey.iter().fold(String::new(), |mut output, chord| {
-                    let _ = write!(output, "{} ", chord);
-                    output
-                });
-                (binding, act.name.clone())
+                (hotkey.to_string(), act.name.clone())
             })
         })
         .collect();
@@ -181,33 +191,20 @@ pub fn toggle_visibility(
     completion_state: Res<State<CompletionState>>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut next_completion_state: ResMut<NextState<CompletionState>>,
+    mut last_completion_state: Local<CompletionState>,
 ) {
-    match dbg!((**prompt_state, **completion_state)) {
-        // (PromptState::Invisible, CompletionState::Invisible) => {
-        //     next_prompt_state.set(PromptState::Visible);
-        //     next_completion_state.set(CompletionState::Visible);
-        //     redraw.send(RequestRedraw);
-        // }
-        // (PromptState::Visible, CompletionState::Visible) => {
-        //     next_prompt_state.set(PromptState::Invisible);
-        //     next_completion_state.set(CompletionState::Invisible);
-        //     redraw.send(RequestRedraw);
-        // }
-        (PromptState::Invisible, _) => {
-            next_completion_state.set(CompletionState::Invisible);
+    match **prompt_state {
+        PromptState::Invisible => {
+            next_completion_state.set(*last_completion_state);
             next_prompt_state.set(PromptState::Visible);
             redraw.send(RequestRedraw);
         }
-        (PromptState::Visible, _) => {
+        PromptState::Visible => {
             next_completion_state.set(CompletionState::Invisible);
             next_prompt_state.set(PromptState::Invisible);
             redraw.send(RequestRedraw);
+            *last_completion_state = **completion_state;
         }
-        // (PromptState::Finished, _) => {
-        //     next_completion_state.set(CompletionState::Invisible);
-        //     next_prompt_state.set(PromptState::Invisible);
-        //     redraw.send(RequestRedraw);
-        // }
     }
 }
 
@@ -317,11 +314,11 @@ impl Default for Builtin {
             acts: ActsPlugin::new([
                 ActBuilder::new(list_acts)
                     .named("list_acts")
-                    .flags(ActFlags::Show)
+                    .add_flags(ActFlags::Show)
                     .hotkey(keyseq! { ctrl-H A }),
                 ActBuilder::new(list_key_bindings)
                     .named("list_key_bindings")
-                    .flags(ActFlags::Show)
+                    .add_flags(ActFlags::Show)
                     .hotkey(keyseq! { ctrl-H B }),
                 ActBuilder::new(toggle_visibility)
                     .named("toggle_visibility")
@@ -335,7 +332,7 @@ impl Default for Builtin {
                 #[cfg(not(feature = "async"))]
                 ActBuilder::new(exec_act)
                     .named("exec_act")
-                    .hotkey(keyseq! { shift-; })
+                    .hotkey_named(keyseq! { shift-; }, ":")
                     .hotkey(keyseq! { alt-X })
                     .in_exec_act(false),
                 #[cfg(feature = "async")]

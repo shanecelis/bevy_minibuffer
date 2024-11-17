@@ -1,5 +1,5 @@
 //! Events
-use crate::{Minibuffer, act::ActFlags, prompt::PromptState};
+use crate::{Minibuffer, act::Act, act::ActFlags, prompt::PromptState};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -16,12 +16,34 @@ pub(crate) fn plugin(app: &mut App) {
     app.add_crossbeam_event::<DispatchEvent>();
     #[cfg(not(feature = "async"))]
     app.add_event::<DispatchEvent>();
+    app.init_resource::<LastRunAct>();
 }
 
 /// Request a one-shot system be run.
 #[derive(Clone, Event, Debug, Deref)]
 // pub struct RunActEvent(pub SystemId);
-pub struct RunActEvent(pub super::act::Act);
+pub struct RunActEvent {
+    #[deref]
+    pub act: Act,
+    pub hotkey: Option<usize>
+}
+
+#[derive(Resource, Debug, Default, Deref, DerefMut)]
+pub struct LastRunAct(Option<RunActEvent>);
+
+impl RunActEvent {
+    pub fn new(act: Act) -> Self {
+        Self {
+            act,
+            hotkey: None
+        }
+    }
+
+    pub fn hotkey(mut self, index: usize) -> Self {
+        self.hotkey = Some(index);
+        self
+    }
+}
 
 /// Run the input sequence system even if the minibuffer is set to inactive.
 #[derive(Clone, Event, Debug)]
@@ -30,7 +52,7 @@ pub struct RunInputSequenceEvent;
 impl fmt::Display for RunActEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // write!(f, "RunAct({})", self.0)
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.act)
     }
 }
 // impl fmt::Debug for RunActEvent {
@@ -101,11 +123,13 @@ pub(crate) fn dispatch_events(
 /// Run act for any [RunActEvent].
 pub fn run_acts(mut events: EventReader<RunActEvent>,
                 mut next_prompt_state: ResMut<NextState<PromptState>>,
-                mut commands: Commands) {
+                mut commands: Commands,
+                mut last_act: ResMut<LastRunAct>) {
     for e in events.read() {
-        if e.0.flags.contains(ActFlags::Show) {
+        if e.act.flags.contains(ActFlags::Show) {
             next_prompt_state.set(PromptState::Visible);
         }
-        commands.run_system(e.0.system_id);
+        last_act.0 = Some(e.clone());
+        commands.run_system(e.act.system_id);
     }
 }

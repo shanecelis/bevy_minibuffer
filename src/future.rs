@@ -125,10 +125,11 @@ impl MinibufferAsync {
         self.sender.send(DispatchEvent::Clear);
     }
 
-    // Wait a certain duration.
-    // pub fn delay(&mut self, duration: Duration) -> impl Future<Output = ()> {
-    //     self.asky.delay(duration)
-    // }
+    /// Wait a certain duration.
+    pub async fn delay(&mut self, duration: Duration) {
+        let world = AsyncWorld::new();
+        world.sleep(duration);
+    }
 
     /// Get the next key chord.
     pub fn get_chord(&mut self) -> impl Future<Output = Result<KeyChord, Error>> {

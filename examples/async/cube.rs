@@ -46,7 +46,8 @@ fn start(mut query: Query<&mut Rotatable>) {
 }
 
 /// Stop the cube spinning. No input.
-fn stop(mut query: Query<&mut Rotatable>) {
+fn stop(mut query: Query<&mut Rotatable>, mut minibuffer: MinibufferAsync) {
+    minibuffer.clear();
     let mut r = query.single_mut();
     r.speed = 0.0;
 }

@@ -35,6 +35,11 @@ path = "examples/async/basic.rs"
 required-features = [ "async" ]
 
 [[example]]
+name = "demo-async"
+path = "examples/async/demo.rs"
+required-features = [ "async" ]
+
+[[example]]
 name = "cube-async"
 path = "examples/async/cube.rs"
 required-features = [ "async" ]

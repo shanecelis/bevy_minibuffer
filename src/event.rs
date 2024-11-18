@@ -85,6 +85,8 @@ pub enum DispatchEvent {
     RunActEvent(RunActEvent),
     /// Emit a message.
     EmitMessage(String),
+    /// Clear the buffer.
+    Clear,
 }
 
 impl From<LookupEvent> for DispatchEvent {
@@ -115,6 +117,9 @@ pub(crate) fn dispatch_events(
             }
             EmitMessage(s) => {
                 minibuffer.message(s);
+            }
+            Clear => {
+                minibuffer.clear();
             }
         }
     }

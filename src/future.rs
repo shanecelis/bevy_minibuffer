@@ -27,7 +27,7 @@ use std::{borrow::Cow, fmt::Debug};
 
 /// MinibufferAsync, a [SystemParam] for async.
 ///
-/// This is distinct from the [crate::sync::MinibufferAsync] because it does not have
+/// This is distinct from the [crate::sync::Minibuffer] because it does not have
 /// any lifetimes which allow it to be captured by a closure.
 #[derive(Clone)]
 pub struct MinibufferAsync {
@@ -38,7 +38,6 @@ pub struct MinibufferAsync {
 
 unsafe impl SystemParam for MinibufferAsync {
     type State = (
-        // Asky,
         Entity,
         CrossbeamEventSender<DispatchEvent>,
     );
@@ -47,23 +46,11 @@ unsafe impl SystemParam for MinibufferAsync {
     #[allow(clippy::type_complexity)]
     fn init_state(world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
         let mut state: SystemState<(
-            // Asky,
             Query<Entity, With<PromptContainer>>,
-            // Option<Res<MinibufferStyle>>,
             Res<CrossbeamEventSender<DispatchEvent>>,
         )> = SystemState::new(world);
-        let (
-            //asky,
-            query,
-            //res,
-            channel,
-        ) = state.get_mut(world);
-        (
-            // asky,
-            query.single(),
-            // res.map(|x| x.clone()),
-            channel.clone(),
-        )
+        let (query, channel) = state.get_mut(world);
+        (query.single(), channel.clone())
     }
 
     #[inline]
@@ -77,7 +64,6 @@ unsafe impl SystemParam for MinibufferAsync {
         MinibufferAsync {
             asky: Asky::default(),
             dest: state.0,
-            // style: state.2.unwrap_or_default(),
             sender: state.1,
         }
     }
@@ -99,8 +85,7 @@ impl MinibufferAsync {
 
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
-        let msg = msg.into();
-        self.sender.send(DispatchEvent::EmitMessage(msg));
+        self.sender.send(DispatchEvent::EmitMessage(msg.into()));
     }
 
     /// Read input from user that must match a [Lookup].
@@ -120,7 +105,6 @@ impl MinibufferAsync {
             let async_world = AsyncWorld::new();
             async_world.apply_command(move |world: &mut World| {
                 let mut commands = world.commands();
-
                 let mut commands = Dest::ReplaceChildren(dest).entity(&mut commands);
                 let autocomplete = AutoComplete::new(lookup);
                 autocomplete.construct(commands, prompt).observe(
@@ -138,8 +122,7 @@ impl MinibufferAsync {
 
     /// Clear the minibuffer.
     pub fn clear(&mut self) {
-        let world = AsyncWorld::new();
-        world.entity(self.dest).despawn_descendants()
+        self.sender.send(DispatchEvent::Clear);
     }
 
     // Wait a certain duration.

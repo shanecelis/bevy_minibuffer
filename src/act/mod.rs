@@ -127,6 +127,7 @@ pub struct ActBuilder {
     pub(crate) system: BoxedSystem,
     /// Flags for this act
     pub flags: ActFlags,
+    pub shorten_name: bool,
 }
 
 impl Display for Act {
@@ -146,6 +147,7 @@ impl ActBuilder {
             hotkeys: Vec::new(),
             system: Box::new(IntoSystem::into_system(system)),
             flags: ActFlags::Active | ActFlags::ExecAct,
+            shorten_name: true,
         }
     }
 
@@ -165,11 +167,17 @@ impl ActBuilder {
     pub fn build(self, world: &mut World) -> Act {
         Act {
             name: self.name.unwrap_or_else(|| {
-                let n = self.system.name();
-                if let Some(start) = n.find('(') {
-                    if let Some(end) = n.find([',', ' ', ')']) {
-                        return n[start + 1..end].to_owned().into();
-                    }
+                let mut n = dbg!(self.system.name());
+                // Take name out of pipe.
+                //
+                // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result_sink<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"
+                // -> "cube_async::speed"
+                n = n.find('(').and_then(|start| {
+                    n.find([',', ' ', ')']).map(|end|
+                        n[start + 1..end].to_owned().into())
+                }).unwrap_or(n);
+                if self.shorten_name {
+                    n = n.rfind(':').map(|start| n[start + 1..].to_owned().into()).unwrap_or(n);
                 }
                 n
             }),

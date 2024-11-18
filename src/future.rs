@@ -15,7 +15,7 @@ use bevy::{
         system::{EntityCommands, Query, Res, Resource, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Deref, Reflect, TextBundle, TextStyle, Trigger},
+    prelude::{Deref, Reflect, TextBundle, TextStyle, Trigger, DespawnRecursiveExt},
     utils::Duration,
 };
 use bevy_asky::prelude::*;
@@ -101,17 +101,6 @@ impl MinibufferAsync {
     pub fn message(&mut self, msg: impl Into<String>) {
         let msg = msg.into();
         self.sender.send(DispatchEvent::EmitMessage(msg));
-        // let dest = self.dest;
-        // let async_world = AsyncWorld::new();
-        // async_world.apply_command(move |world: &mut World| {
-        //     let mut commands = world.commands();
-        //     if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut commands) {
-        //         commands
-        //             .construct::<Message>(msg);
-        //     }
-        // });
-        // self.dest
-        // self.asky.prompt::<Message, crate::view::View>(msg.as_ref(), Dest::ReplaceChildren(self.dest))
     }
 
     /// Read input from user that must match a [Lookup].
@@ -139,7 +128,7 @@ impl MinibufferAsync {
                         if let Some(promise) = promise.take() {
                             promise.send(trigger.event().0.clone()).expect("send");
                         }
-                        commands.entity(trigger.entity()).despawn();
+                        commands.entity(trigger.entity()).despawn_recursive();
                     },
                 );
             });

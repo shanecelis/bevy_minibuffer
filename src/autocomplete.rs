@@ -187,9 +187,32 @@ fn autocomplete_controller(
                 Key::ArrowRight => text_state.move_cursor(CursorDirection::Right),
                 Key::Enter => {
                     if require_match.is_some() {
+
                         if let Err(e) = autocomplete.look_up(&text_state.value) {
-                            if let Some(mut ecommands) = commands.get_entity(id) {
-                                ecommands.try_insert(Feedback::warn(format!("require match. {}", e)));
+                            use LookupError::*;
+                            match e {
+                                Message(s) => {
+                                    lookup_events.send(LookupEvent::Hide);
+                                    if let Some(mut ecommands) = commands.get_entity(id) {
+                                        ecommands.try_insert(Feedback::info(s)); // Err(s),
+                                    }
+                                }
+                                Incomplete(v) => {
+                                    if let Some(mut ecommands) = commands.get_entity(id) {
+                                        ecommands.try_insert(Feedback::warn("require match"));
+                                    }
+                                    lookup_events.send(LookupEvent::Completions(v));
+                                    if let Some(new_input) =
+                                        autocomplete.longest_prefix(&text_state.value) {
+                                        text_state.set_value(&new_input);
+                                    }
+                                }
+                                Minibuffer(e) => {
+                                    lookup_events.send(LookupEvent::Hide);
+                                    if let Some(mut ecommands) = commands.get_entity(id) {
+                                        ecommands.try_insert(Feedback::warn(format!("{:?}", e)));
+                                    }
+                                }
                             }
                             continue;
                         }

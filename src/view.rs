@@ -606,19 +606,19 @@ pub(crate) fn radio_view(
             .expect("prequestion");
     }
 }
-// We don't know if it's focusable.
+
 fn blink_cursor(
-    mut query: Query<(&mut BackgroundColor, &mut Text, &Parent), With<Cursor>>,
+    mut query: Query<(Entity, &mut BackgroundColor, &mut Text), With<Cursor>>,
     mut timer: ResMut<CursorBlink>,
     time: Res<Time>,
     mut count: Local<u8>,
     focus: Focus,
     palette: Res<Palette>,
-) {
+    parent: Query<&Parent>) {
     if timer.tick(time.delta()).just_finished() {
         *count = count.checked_add(1).unwrap_or(0);
-        for (mut color, mut text, parent) in &mut query {
-            if focus.is_focused(parent.get()) {
+        for (root, mut color, mut text) in &mut query {
+            if focus.is_focused(root) || parent.iter_ancestors(root).any(|id| focus.is_focused(id)) {
                 color.0 = if *count % 2 == 0 {
                     Color::WHITE
                 } else {

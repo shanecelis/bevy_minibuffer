@@ -46,7 +46,7 @@ pub fn exec_act(
             // TODO: Get rid of clone.
             Ok(act_name) => match acts.resolve(&act_name) {
                 Ok(act) => {
-                    AsyncWorld::new().send_event(RunActEvent(act))?;
+                    AsyncWorld::new().send_event(RunActEvent::new(act))?;
                 }
                 Err(e) => {
                     minibuffer.message(format!(
@@ -324,8 +324,9 @@ impl Default for Builtin {
                     .add_flags(ActFlags::Show)
                     .hotkey(keyseq! { ctrl-H B }),
                 ActBuilder::new(toggle_visibility)
-                    .named("toggle_visibility")
-                    .hotkey(keyseq! { Backquote }),
+                    // .named("toggle_visibility")
+                    .hotkey(keyseq! { Backquote })
+                    .in_exec_act(false),
                 #[cfg(feature = "async")]
                 ActBuilder::new(exec_act.pipe(future_result_sink))
                     .named("exec_act")

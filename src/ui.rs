@@ -50,9 +50,19 @@ pub(crate) fn completion_item(
     )
 }
 
+pub(crate) fn plugin(app: &mut App) {
+    app
+        .register_type::<MinibufferRoot>()
+        .add_systems(Startup, spawn_layout);
+}
+
+#[derive(Debug,Resource, Reflect)]
+#[reflect(Resource)]
+pub struct MinibufferRoot(pub Entity);
+
 /// Create the UI layout.
-pub(crate) fn spawn_layout(mut commands: Commands) {
-    commands
+fn spawn_layout(mut commands: Commands) {
+    let root = commands
         .spawn(NodeBundle {
             // visibility: Visibility::Hidden,
             style: Style {
@@ -69,6 +79,7 @@ pub(crate) fn spawn_layout(mut commands: Commands) {
             },
             ..Default::default()
         })
+        .insert(Name::new("Minibuffer"))
         .insert(MinibufferNode)
         .with_children(|builder| {
             builder
@@ -155,7 +166,8 @@ pub(crate) fn spawn_layout(mut commands: Commands) {
                     ..Default::default()
                 })
                 .insert(PromptContainer);
-        });
+        }).id();
+    commands.insert_resource(MinibufferRoot(root));
 }
 
 // Scroll the auto complete panel with mouse.

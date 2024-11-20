@@ -3,6 +3,7 @@ use bevy::{
     ecs::{query::QueryEntityError, system::SystemParam},
     prelude::*,
 };
+use crate::ui::MinibufferRoot;
 
 #[derive(Component, Reflect, Default)]
 pub struct View;
@@ -35,6 +36,20 @@ impl Construct for View {
         commands.entity(context.id).insert(NodeBundle::default());
         // context.world.flush();
         Ok(View)
+    }
+}
+
+pub fn replace_view(query: Query<Entity, Added<NeedsView>>,
+                    parents: Query<&Parent>,
+                    root: Res<MinibufferRoot>,
+                    mut commands: Commands) {
+    for id in &query {
+        if parents.iter_ancestors(id).last() == Some(root.0) {
+            commands
+                .entity(id)
+                .remove::<NeedsView>()
+                .construct::<View>(());
+        }
     }
 }
 
@@ -161,16 +176,10 @@ pub fn plugin(app: &mut App) {
         .register_type::<CursorBlink>()
         .register_type::<Palette>()
         .add_systems(
-            PreUpdate,
-            (
-                bevy_asky::view::add_view_to_checkbox::<View>,
-                bevy_asky::view::add_view_to_radio::<View>,
-            ),
-        )
-        .add_systems(
             Update,
             (
                 (
+                    replace_view,
                     focus_view,
                     radio_view,
                     checkbox_view,
@@ -408,7 +417,7 @@ pub(crate) fn password_view(
                 );
             } else {
                 let mut pre_cursor = parts.fetch_next().expect("pre cursor");
-                replace_or_insert(&mut pre_cursor, 0, &text_state.value);
+                replace_or_insert_rep(&mut pre_cursor, 0, glyph, text_state.value.len());
                 let mut cursor = parts.fetch_next().expect("cursor");
                 replace_or_insert(&mut cursor, 0, "");
                 let mut post_cursor = parts.fetch_next().expect("post cursor");

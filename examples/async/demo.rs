@@ -17,7 +17,7 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     }
     let index = minibuffer.prompt::<RadioGroup>(
                     // "Which do you prefer?".to_string(),
-                    vec!["brainfuck".into(), "rust".into(), "x86 machine code".into()]).await?;
+                    ["brainfuck", "rust", "x86 machine code"]).await?;
     Ok(())
 }
 

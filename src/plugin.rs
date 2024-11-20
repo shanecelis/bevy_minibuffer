@@ -105,6 +105,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .register_type::<CompletionState>()
             .register_type::<Config>()
             .register_type::<act::Act>()
+            .add_plugins(crate::ui::plugin)
             .add_plugins(crate::event::plugin)
             .add_plugins(crate::prompt::plugin)
             .add_plugins(crate::autocomplete::plugin)
@@ -122,7 +123,6 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_event::<LookupEvent>()
             .add_event::<RunActEvent>()
             .add_event::<KeyChordEvent>()
-            .add_systems(Startup, ui::spawn_layout)
             .add_systems(Update,
                          (hide_prompt_maybe,
                           // act::detect_additions,

@@ -80,7 +80,7 @@ impl MinibufferAsync {
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
         self.asky
-            .prompt::<T, crate::view::View>(props, Dest::ReplaceChildren(self.dest))
+            .prompt::<T>(props, Dest::ReplaceChildren(self.dest))
     }
 
     /// Leave a message in the minibuffer.

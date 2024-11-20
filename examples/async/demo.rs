@@ -8,16 +8,18 @@ mod common;
 /// Ask the user for their name. Say hello.
 async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let yes = minibuffer.prompt::<Confirm>("Want to see something cool?").await?;
+    minibuffer.message(if yes { "Oh, good!" } else { "Oh, nevermind." });
     let beat = Duration::from_secs_f32(2.0);
 
-    minibuffer.message(if yes { "Oh, good!" } else { "Oh, nevermind." });
-    minibuffer.delay(beat);
+    let _ = minibuffer.delay(beat).await;
     if ! yes {
         return Ok(());
     }
-    let index = minibuffer.prompt::<RadioGroup>(
-                    // "Which do you prefer?".to_string(),
+
+    let index = minibuffer.prompt_group::<Radio>(
+                    "Which do you prefer?",
                     ["brainfuck", "rust", "x86 machine code"]).await?;
+    info!("index = {index}");
     Ok(())
 }
 
@@ -48,6 +50,6 @@ fn main() {
         // Add builtin commands.
         .add_plugins(Builtin::default().into_plugin())
         .add_systems(Startup, (setup, add_acts))
-        // .add_systems(PostStartup, demo.pipe(future_result_sink))
+        .add_systems(PostStartup, demo.pipe(future_result_sink))
         .run();
 }

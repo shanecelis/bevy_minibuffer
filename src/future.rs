@@ -18,8 +18,9 @@ use bevy::{
     prelude::{Deref, Reflect, TextBundle, TextStyle, Trigger, DespawnRecursiveExt},
     utils::Duration,
 };
-use bevy_asky::prelude::*;
-use bevy_crossbeam_event::CrossbeamEventSender;
+use bevy_asky::{Part, prelude::*};
+// use bevy_crossbeam_event::CrossbeamEventSender;
+use bevy_channel_trigger::ChannelSender;
 use bevy_defer::AsyncWorld;
 use bevy_input_sequence::KeyChord;
 use futures::{channel::oneshot, Future};
@@ -33,13 +34,14 @@ use std::{borrow::Cow, fmt::Debug};
 pub struct MinibufferAsync {
     asky: Asky,
     dest: Entity,
-    sender: CrossbeamEventSender<DispatchEvent>,
+    sender: ChannelSender<DispatchEvent>,
 }
 
 unsafe impl SystemParam for MinibufferAsync {
     type State = (
         Entity,
-        CrossbeamEventSender<DispatchEvent>,
+        // CrossbeamEventSender<DispatchEvent>,
+        ChannelSender<DispatchEvent>
     );
     type Item<'w, 's> = MinibufferAsync;
 
@@ -47,7 +49,7 @@ unsafe impl SystemParam for MinibufferAsync {
     fn init_state(world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
         let mut state: SystemState<(
             Query<Entity, With<PromptContainer>>,
-            Res<CrossbeamEventSender<DispatchEvent>>,
+            Res<ChannelSender<DispatchEvent>>,
         )> = SystemState::new(world);
         let (query, channel) = state.get_mut(world);
         (query.single(), channel.clone())
@@ -81,6 +83,20 @@ impl MinibufferAsync {
     {
         self.asky
             .prompt::<T>(props, Dest::ReplaceChildren(self.dest))
+    }
+
+    pub fn prompt_group<T: Construct + Component + Part>(
+        &mut self,
+        group_prop: impl Into<<<T as Part>::Group as Construct>::Props>,
+        props: impl IntoIterator<Item = impl Into<T::Props>>,
+    ) -> impl Future<Output = Result<<<T as Part>::Group as Submitter>::Out, Error>>
+    where
+        <T as Construct>::Props: Send,
+        <<T as Part>::Group as Construct>::Props: Send,
+        <T as Part>::Group: Component + Construct + Send + Sync + Submitter,
+        <<T as Part>::Group as Submitter>::Out: Clone + Debug + Send + Sync {
+        self.asky
+            .prompt_group::<T>(group_prop, props, Dest::ReplaceChildren(self.dest))
     }
 
     /// Leave a message in the minibuffer.
@@ -126,6 +142,7 @@ impl MinibufferAsync {
     }
 
     /// Wait a certain duration.
+    #[must_use]
     pub async fn delay(&mut self, duration: Duration) {
         let world = AsyncWorld::new();
         world.sleep(duration);

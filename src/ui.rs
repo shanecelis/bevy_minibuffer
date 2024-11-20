@@ -91,6 +91,7 @@ fn spawn_layout(mut commands: Commands) {
                     },
                     ..default()
                 })
+                .insert(Name::new("completions"))
                 .with_children(|builder| {
                     // List with hidden overflow
                     builder
@@ -165,6 +166,7 @@ fn spawn_layout(mut commands: Commands) {
                     background_color: BackgroundColor(Color::BLACK),
                     ..Default::default()
                 })
+                .insert(Name::new("buffer"))
                 .insert(PromptContainer);
         }).id();
     commands.insert_resource(MinibufferRoot(root));

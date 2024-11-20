@@ -8,13 +8,20 @@ use bevy::{
     prelude::*,
 };
 #[cfg(feature = "async")]
-use bevy_crossbeam_event::CrossbeamEventApp;
+use bevy_channel_trigger::ChannelTriggerApp;
+// #[cfg(feature = "async")]
+// use bevy_crossbeam_event::CrossbeamEventApp;
 use std::fmt;
 
 pub(crate) fn plugin(app: &mut App) {
+    // #[cfg(feature = "async")]
+    // app.add_crossbeam_event::<DispatchEvent>();
     #[cfg(feature = "async")]
-    app.add_crossbeam_event::<DispatchEvent>();
-    #[cfg(not(feature = "async"))]
+    {
+        let sender = app.add_channel_trigger::<DispatchEvent>();
+        app.insert_resource(sender);
+    }
+    // #[cfg(not(feature = "async"))]
     app.add_event::<DispatchEvent>();
     app.init_resource::<LastRunAct>();
 }

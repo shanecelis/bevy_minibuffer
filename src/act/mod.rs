@@ -167,7 +167,7 @@ impl ActBuilder {
     pub fn build(self, world: &mut World) -> Act {
         Act {
             name: self.name.unwrap_or_else(|| {
-                let mut n = dbg!(self.system.name());
+                let mut n = self.system.name();
                 // Take name out of pipe.
                 //
                 // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result_sink<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"

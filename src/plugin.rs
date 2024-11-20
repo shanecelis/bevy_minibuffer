@@ -48,7 +48,8 @@ impl PluginGroup for MinibufferPlugins {
     fn build(self) -> PluginGroupBuilder {
         let group = PluginGroupBuilder::start::<Self>().add(MinibufferPlugin::default());
         #[cfg(feature = "async")]
-        let group = group.add(bevy_defer::AsyncPlugin::default_settings());
+        // let group = group.add(bevy_defer::AsyncPlugin::default_settings());
+        let group = group.add(bevy_defer::AsyncPlugin::empty().run_in(bevy::prelude::PreUpdate));
         group
     }
 }

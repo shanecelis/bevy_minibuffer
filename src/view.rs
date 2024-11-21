@@ -32,12 +32,18 @@ impl Construct for View {
         context: &mut ConstructContext,
         _props: Self::Props,
     ) -> Result<Self, ConstructError> {
-        let has_node = context.world.get_entity(context.id).map(|eref| eref.contains::<Node>()).unwrap_or(false);
-        let mut commands = context.world.commands();
-        if ! has_node {
-            commands.entity(context.id).insert(NodeBundle::default());
+
+        if let Some(mut eref) = context.world.get_entity_mut(context.id) {
+            if !eref.contains::<Node>() {
+                eref.insert(NodeBundle::default());
+            }
         }
-        context.world.flush();
+        // let has_node = context.world.get_entity(context.id).map(|eref| eref.contains::<Node>()).unwrap_or(false);
+        // let mut commands = context.world.commands();
+        // if ! has_node {
+        //     commands.entity(context.id).insert(NodeBundle::default());
+        // }
+        // context.world.flush();
         Ok(View)
     }
 }
@@ -48,6 +54,7 @@ pub fn replace_view(query: Query<Entity, Added<NeedsView>>,
                     mut commands: Commands) {
     for id in &query {
         if parents.iter_ancestors(id).last() == Some(root.0) {
+            info!("replace view {id}");
             commands
                 .entity(id)
                 .remove::<NeedsView>()
@@ -193,11 +200,17 @@ pub fn plugin(app: &mut App) {
                     feedback_view,
                 )
                     .chain(),
+                blink_cursor,
+            ).in_set(crate::plugin::MinibufferSet::Output),
+        )
+        .add_systems(
+            Update,
+            (
                 clear_feedback::<StringCursor>,
                 clear_feedback::<Toggle>,
-                blink_cursor,
-            ),
+            ).in_set(crate::plugin::MinibufferSet::Process),
         )
+        // .add_systems(PostUpdate, replace_view)
         .insert_resource(CursorBlink(Timer::from_seconds(
             1.0 / 3.0,
             TimerMode::Repeating,

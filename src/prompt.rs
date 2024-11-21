@@ -135,29 +135,15 @@ pub fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<Config>,
     mut redraw: EventWriter<RequestRedraw>,
-    mut query: Query<(Entity, &mut Visibility, Option<&mut HideTime>), With<T>>,
+    mut query: Query<Entity, With<T>>,
 ) {
     if !config.auto_hide {
         return;
     }
-    for (id, mut visibility, hide_time_maybe) in query.iter_mut() {
-        match config.hide_delay {
-            Some(hide_delay) => match hide_time_maybe {
-                Some(mut hide_time) => {
-                    hide_time.timer =
-                        Timer::new(Duration::from_millis(hide_delay), TimerMode::Once);
-                }
-                None => {
-                    commands.entity(id).insert(HideTime {
-                        timer: Timer::new(Duration::from_millis(hide_delay), TimerMode::Once),
-                    });
-                }
-            },
-            None => {
-                *visibility = Visibility::Hidden;
-                redraw.send(RequestRedraw);
-            }
-        }
+    for id in query.iter_mut() {
+        commands.entity(id).insert(HideTime {
+            timer: Timer::new(config.hide_delay, TimerMode::Once),
+        });
     }
 }
 

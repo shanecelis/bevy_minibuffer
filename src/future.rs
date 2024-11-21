@@ -23,7 +23,7 @@ use bevy_asky::{Part, prelude::*};
 use bevy_channel_trigger::ChannelSender;
 use bevy_defer::AsyncWorld;
 use bevy_input_sequence::KeyChord;
-use futures::{channel::oneshot, Future};
+use futures::{channel::oneshot, Future, future::{Either, select_all}, FutureExt, pin_mut};
 use std::{borrow::Cow, fmt::Debug};
 
 /// MinibufferAsync, a [SystemParam] for async.
@@ -73,6 +73,7 @@ unsafe impl SystemParam for MinibufferAsync {
 
 impl MinibufferAsync {
     /// Prompt the user for input.
+    #[must_use]
     pub fn prompt<T: Construct + Component + Submitter>(
         &mut self,
         props: impl Into<T::Props>,
@@ -85,6 +86,7 @@ impl MinibufferAsync {
             .prompt::<T>(props, Dest::ReplaceChildren(self.dest))
     }
 
+    #[must_use]
     pub fn prompt_group<T: Construct + Component + Part>(
         &mut self,
         group_prop: impl Into<<<T as Part>::Group as Construct>::Props>,
@@ -105,6 +107,7 @@ impl MinibufferAsync {
     }
 
     /// Read input from user that must match a [Lookup].
+    #[must_use]
     pub fn read<L>(
         &mut self,
         prompt: impl Into<Cow<'static, str>>,
@@ -143,12 +146,33 @@ impl MinibufferAsync {
 
     /// Wait a certain duration.
     #[must_use]
-    pub async fn delay(&mut self, duration: Duration) {
-        let world = AsyncWorld::new();
-        world.sleep(duration);
+    pub fn delay(&mut self, duration: Duration) -> impl Future<Output = ()> {
+        AsyncWorld::new().sleep(duration)
+    }
+
+    #[must_use]
+    pub fn delay_or_chord(&mut self, duration: Duration) -> impl Future<Output = Option<KeyChord>> + use<'_> {
+        async move {
+            let sleep = AsyncWorld::new().sleep(duration);
+            let get_key = self.get_chord();
+            pin_mut!(sleep);
+            pin_mut!(get_key);
+            match futures::future::select(sleep, get_key).await {
+                Either::Left((_, _)) => None,
+                Either::Right((chord, _)) => chord.ok()
+            }
+        }
+        // async move {
+        //     let (output, _index, _futures) = select_all([async move { AsyncWorld::new().sleep(duration).await; None }, //.boxed(),
+        //                                                   async move { self.get_chord().await.ok() }//.boxed()
+        //     ]).await;
+
+        //     output
+        // }
     }
 
     /// Get the next key chord.
+    #[must_use]
     pub fn get_chord(&mut self) -> impl Future<Output = Result<KeyChord, Error>> {
         async {
             let (promise, waiter) = oneshot::channel::<Result<KeyChord, Error>>();
@@ -159,7 +183,7 @@ impl MinibufferAsync {
                 commands.spawn(GetKeyChord).observe(
                     move |trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
-                            promise.send(Ok(trigger.event().0.clone())).expect("send");
+                            let _ = promise.send(Ok(trigger.event().0.clone()));//.expect("send");
                         }
                         commands.entity(trigger.entity()).despawn();
                     },

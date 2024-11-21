@@ -70,7 +70,6 @@ impl<'w, 's> Minibuffer<'w, 's> {
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
         let msg = msg.into();
-
         let dest = self.dest.single();
         if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut self.commands) {
             commands.construct::<Message>(msg);

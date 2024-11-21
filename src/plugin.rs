@@ -9,7 +9,7 @@ use crate::{
     ui,
 };
 use bevy::{
-    app::{PluginGroupBuilder, PostUpdate, Startup, Update},
+    app::{PluginGroupBuilder, PostUpdate, PreUpdate, Startup, Update},
     ecs::{
         schedule::{
             Condition,
@@ -31,7 +31,7 @@ use bevy::{
 };
 use bevy_asky::AskyPlugin;
 use bevy_input_sequence::InputSequencePlugin;
-use std::borrow::Cow;
+use std::{time::Duration, borrow::Cow};
 
 /// Minibuffer plugin
 #[derive(Debug, Default, Clone)]
@@ -59,8 +59,8 @@ impl PluginGroup for MinibufferPlugins {
 pub struct Config {
     /// If true, auto hide minibuffer after use.
     pub auto_hide: bool,
-    /// Auto hide delay in milliseconds.
-    pub hide_delay: Option<u64>, // milliseconds
+    /// Auto hide delay.
+    pub hide_delay: Duration,
     /// The text style for minibuffer
     pub text_style: TextStyle,
 }
@@ -89,7 +89,7 @@ pub enum Error {
 }
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-enum MinibufferSet {
+pub enum MinibufferSet {
     Input,
     Process,
     Output,
@@ -113,8 +113,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_plugins(crate::view::plugin)
             .add_plugins(AskyPlugin)
             .add_plugins(bevy_asky::view::color::plugin)
-            .add_plugins(InputSequencePlugin::empty()
-            .run_in_set(Update, InputSet))
+            .add_plugins(InputSequencePlugin::empty().run_in_set(Update, InputSet))
             .init_state::<MinibufferState>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
@@ -131,18 +130,16 @@ impl bevy::app::Plugin for MinibufferPlugin {
                           listen_prompt_active)
                          .in_set(MinibufferSet::Process))
             .add_systems(Update, get_key_chords.in_set(MinibufferSet::Input))
-            .configure_sets(Update,
-                            (InputSet).after(MinibufferSet::Input))
-
             .configure_sets(Update, (
-                // (MinibufferSet::Input, MinibufferSet::Process, MinibufferSet::Output).chain(),
+                (MinibufferSet::Input, MinibufferSet::Process, MinibufferSet::Output).chain(),
                 InputSet.after(MinibufferSet::Input),
                 InputSet.run_if(in_state(MinibufferState::Inactive).or_else(on_event::<RunInputSequenceEvent>())),
             ))
-            .add_systems(PostUpdate,
+            .observe(crate::event::dispatch_trigger)
+            .add_systems(Update,
                          ((run_acts, prompt::set_minibuffer_state).chain(),
                           (dispatch_events, look_up_events).chain())
-                         .in_set(MinibufferSet::Output))
+                         .in_set(MinibufferSet::Process))
             .add_systems(OnEnter(MinibufferState::Inactive),hide_delayed::<ui::PromptContainer>)
             .add_systems(OnEnter(MinibufferState::Inactive),hide::<ui::CompletionContainer>)
             .add_systems(OnEnter(PromptState::Visible),     show::<ui::PromptContainer>)

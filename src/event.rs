@@ -79,6 +79,41 @@ pub enum LookupEvent {
     Completions(Vec<String>),
 }
 
+// #[derive(Debug, Clone)]
+// pub enum MsgDest<T> {
+//     Replace(T),
+//     Append(T)
+// }
+
+// impl<T> MsgDest<T> {
+//     pub fn map<F: Fn(T) -> X, X>(self, f: F) -> MsgDest<X> {
+//         use MsgDest::*;
+//         match self {
+//             Replace(x) => Replace(f(x)),
+//             Append(x) => Append(f(x)),
+//         }
+//     }
+// }
+
+// impl<T> From<T> for MsgDest<T> {
+//     fn from(x: T) -> Self {
+//         MsgDest::Replace(x)
+//     }
+// }
+
+// impl<T, X:Into<T>> From<X> for MsgDest<T> {
+//     fn from(x: X) -> Self {
+//         MsgDest::Replace(x.into())
+//     }
+// }
+//
+
+// impl<X: Into<String>> From<X> for MsgDest<String> {
+//     fn from(x: X) -> Self {
+//         MsgDest::Replace(x.into())
+//     }
+// }
+
 /// Dispatch an event
 ///
 /// This event relays another event to fire.
@@ -123,11 +158,34 @@ pub(crate) fn dispatch_events(
                 request_act_events.send(s.clone());
             }
             EmitMessage(s) => {
-                minibuffer.message(s);
+                minibuffer.message(s.clone());
             }
             Clear => {
                 minibuffer.clear();
             }
+        }
+    }
+}
+
+pub(crate) fn dispatch_trigger(
+    mut dispatch_events: Trigger<DispatchEvent>,
+    mut look_up_events: EventWriter<LookupEvent>,
+    mut request_act_events: EventWriter<RunActEvent>,
+    mut minibuffer: Minibuffer,
+) {
+    use crate::event::DispatchEvent::*;
+    match dispatch_events.event() {
+        LookupEvent(l) => {
+            look_up_events.send(l.clone());
+        }
+        RunActEvent(s) => {
+            request_act_events.send(s.clone());
+        }
+        EmitMessage(s) => {
+            minibuffer.message(s.clone());
+        }
+        Clear => {
+            minibuffer.clear();
         }
     }
 }

@@ -1,7 +1,7 @@
 //! A sync version of the Minibuffer parameter.
 use crate::{
     autocomplete::AutoComplete, lookup::Lookup, prompt::GetKeyChord, ui::PromptContainer, Dest,
-    Message,
+    Message, prompt::PromptState,
 };
 use bevy::{
     ecs::{
@@ -11,7 +11,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::DespawnRecursiveExt,
+    prelude::{Res, ResMut, NextState, State, DespawnRecursiveExt},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands};
 use std::fmt::Debug;
@@ -26,6 +26,11 @@ pub struct Minibuffer<'w, 's> {
     pub dest: Query<'w, 's, Entity, With<PromptContainer>>,
     /// Commands
     pub commands: Commands<'w, 's>,
+    /// prompt_state
+    prompt_state: Res<'w, State<PromptState>>,
+    /// next prompt state
+    next_prompt_state: ResMut<'w, NextState<PromptState>>,
+
 }
 
 /// I don't know the entity without a query or something.
@@ -95,6 +100,14 @@ impl<'w, 's> Minibuffer<'w, 's> {
     pub fn clear(&mut self) {
         let dest = self.dest.single();
         self.commands.entity(dest).despawn_descendants();
+    }
+
+    pub fn visible(&self) -> bool {
+        matches!(**self.prompt_state, PromptState::Visible)
+    }
+
+    pub fn set_visible(&mut self, show: bool) {
+        self.next_prompt_state.set(if show { PromptState::Visible } else { PromptState::Invisible });
     }
 
     // Wait a certain duration.

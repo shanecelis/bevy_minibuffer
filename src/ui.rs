@@ -153,6 +153,7 @@ fn spawn_layout(mut commands: Commands) {
                 .spawn(NodeBundle {
                     visibility: Visibility::Hidden,
                     style: Style {
+                        flex_wrap: FlexWrap::Wrap,
                         flex_direction: FlexDirection::Row,
                         flex_grow: 1.,
                         padding: UiRect {

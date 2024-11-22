@@ -129,6 +129,8 @@ pub enum DispatchEvent {
     EmitMessage(String),
     /// Clear the buffer.
     Clear,
+    /// Show the buffer.
+    SetVisible(bool),
 }
 
 impl From<LookupEvent> for DispatchEvent {
@@ -163,6 +165,9 @@ pub(crate) fn dispatch_events(
             Clear => {
                 minibuffer.clear();
             }
+            SetVisible(show) => {
+                minibuffer.set_visible(*show);
+            }
         }
     }
 }
@@ -186,6 +191,9 @@ pub(crate) fn dispatch_trigger(
         }
         Clear => {
             minibuffer.clear();
+        }
+        SetVisible(show) => {
+            minibuffer.set_visible(*show);
         }
     }
 }

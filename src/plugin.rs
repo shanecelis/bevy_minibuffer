@@ -65,14 +65,6 @@ pub struct Config {
     pub text_style: TextStyle,
 }
 
-// impl Default for ConsoleConfig {
-//     fn default() -> Self {
-//         Self {
-//             hide_delay: Some(2000), /* milliseconds */
-//         }
-//     }
-// }
-
 /// Minibuffer error
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -80,14 +72,21 @@ pub enum Error {
     #[error("{0}")]
     Message(Cow<'static, str>),
     /// An [asky] error
-    #[error("asky {0}")]
+    #[error("{0}")]
     Asky(#[from] bevy_asky::Error),
     /// An async error
     #[cfg(feature = "async")]
     #[error("async error {0}")]
     Async(#[from] bevy_defer::AccessError),
+
+    /// A futures error
+    #[cfg(feature = "async")]
+    #[error("future error {0}")]
+    Futures(#[from] futures::channel::oneshot::Canceled),
 }
 
+/// Minibuffer generally runs in the Update schedule of sets in this order where
+/// necessary: Input, Process, Output.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum MinibufferSet {
     Input,
@@ -95,6 +94,8 @@ pub enum MinibufferSet {
     Output,
 }
 
+/// This is a separate system set because it is toggled on and off depending on
+/// wheter we want key sequences to be detected or not.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 struct InputSet;
 
@@ -112,7 +113,6 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_plugins(crate::autocomplete::plugin)
             .add_plugins(crate::view::plugin)
             .add_plugins(AskyPlugin)
-            .add_plugins(bevy_asky::view::color::plugin)
             .add_plugins(InputSequencePlugin::empty().run_in_set(Update, InputSet))
             .init_state::<MinibufferState>()
             .init_state::<PromptState>()

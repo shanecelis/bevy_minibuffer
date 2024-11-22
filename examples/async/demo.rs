@@ -5,27 +5,25 @@ use std::time::Duration;
 #[path = "../common/lib.rs"]
 mod common;
 
-/// Ask the user for their name. Say hello.
+/// Demo some of Minibuffer's prompts.
 async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let beat = Duration::from_secs_f32(2.0);
-    let yes = minibuffer.prompt::<Confirm>("Want to see something cool?").await?;
-
-    minibuffer.message(if yes { "Oh, good!" } else { "Oh, nevermind." });
-    let _ = minibuffer.delay_or_chord(beat).await;
+    let yes: bool = minibuffer.prompt::<Confirm>("Hey, psst. Want to see something cool?").await?;
+    minibuffer.message(if yes { "Oh, good!" } else { "Oh, ok. Hit 'D' if you change your mind." });
     if ! yes {
         return Ok(());
     }
-
-    let lang = minibuffer.prompt_group::<Radio>(
+    let _ = minibuffer.delay_or_chord(beat).await;
+    minibuffer.message("First a few questions.");
+    let _ = minibuffer.delay_or_chord(beat).await;
+    let lang: usize = minibuffer.prompt_group::<Radio>(
                     "Which do you prefer?",
-                    ["brainfuck", "rust", "x86 machine code"]).await?;
+                    ["brainf*ck", "rust", "x86 machine code"]).await?;
     minibuffer.message(if lang == 1 { "Me too!" } else { "More power to you." });
     let _ = minibuffer.delay_or_chord(beat).await;
-
-    let selection = minibuffer.prompt_group::<Checkbox>(
-                    "What engines do you use?",
-                    ["Unity", "Unreal", "Godot", "bevy", "other"]).await?;
-
+    let selection: Vec<bool> = minibuffer.prompt_group::<Checkbox>(
+                    "What game engines do you use?",
+                    ["Unity", "Unreal", "Godot", "Bevy", "other"]).await?;
     minibuffer.message(if selection[3] { "Well, have I got news for you!" }
                        else if !selection.iter().any(|x| *x) { "This may not interest you then." }
                        else { "Those are also great." });
@@ -34,19 +32,24 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let _ = minibuffer.delay_or_chord(beat).await;
     minibuffer.message("So...");
     let _ = minibuffer.delay_or_chord(beat).await;
-    minibuffer.prompt::<Confirm>("Let's sign you up on our email list.").await;
-    minibuffer.prompt::<TextField>("What's your email? ").await;
-    if let Ok(p) = minibuffer.prompt::<Password>("I'm gonna need your password too. ").await {
-        minibuffer.message("Heh heh.");
+    let signup = minibuffer.prompt::<Confirm>("Let's sign you up on our email list.").await?;
+    let email: Result<String, Error> = minibuffer.prompt::<TextField>("What's your email? ").await;
+    if email.is_err() {
+        minibuffer.message("canceled?");
+        let _ = minibuffer.delay_or_chord(beat).await;
+        minibuffer.message("Fine. Be like that.");
+        let _ = minibuffer.delay_or_chord(beat).await;
+    }
+    if minibuffer.prompt::<Password>("What's your password? ").await.is_ok() {
+        minibuffer.message("Heh heh. Just kidding.");
     } else {
-        minibuffer.message("Please, I need it for real.");
+        minibuffer.message("canceled? Well, had to try.");
     }
     let _ = minibuffer.delay_or_chord(beat).await;
-    minibuffer.message("Just kidding.");
+    minibuffer.message("Bye.");
     let _ = minibuffer.delay_or_chord(beat).await;
-    minibuffer.message("I don't NEED your password.");
-    let _ = minibuffer.delay_or_chord(beat).await;
-    minibuffer.message("I just wanted it for REASONS.");
+    minibuffer.clear();
+    minibuffer.set_visible(false);
     Ok(())
 }
 
@@ -71,7 +74,7 @@ fn main() {
             DefaultPlugins.set(video_settings.window_plugin()),
             MinibufferPlugins.set(video_settings.minibuffer_plugin()),
         ))
-        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
+        // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         // .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
         .add_plugins(UniversalPlugin::default().into_plugin())
         // Add builtin commands.

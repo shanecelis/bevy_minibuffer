@@ -16,8 +16,7 @@ pub fn future_result_sink<
 ) {
     exec.spawn(async move {
         if let Err(e) = future.await {
-            warn!("error {e}");
-            // minibuffer.message(format!("error {e}"));
+            minibuffer.message(format!("{e}"));
         }
     });
 }

@@ -15,7 +15,6 @@ use bevy::{
 use bevy_asky::{
     focus::{FocusParam, Focusable},
     string_cursor::*,
-    view::color,
     Submitter,
 };
 use std::borrow::Cow;
@@ -123,7 +122,6 @@ unsafe impl Submitter for AutoComplete {
 //         commands
 //             .entity(context.id)
 //             .insert(Prompt(props.0))
-//             .insert(NodeBundle::default())
 //             .insert(input_state)
 //             .insert(Focusable::default());
 //         context.world.flush();

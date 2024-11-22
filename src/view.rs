@@ -20,10 +20,10 @@ enum ViewPart {
 }
 
 #[derive(Debug, Component, Reflect)]
-struct Cursor;
+pub struct Cursor;
 
 #[derive(Resource, Deref, DerefMut, Reflect)]
-struct CursorBlink(Timer);
+pub struct CursorBlink(pub Timer);
 
 impl Construct for View {
     type Props = ();
@@ -35,15 +35,16 @@ impl Construct for View {
 
         if let Some(mut eref) = context.world.get_entity_mut(context.id) {
             if !eref.contains::<Node>() {
-                eref.insert(NodeBundle::default());
+                eref.insert(NodeBundle {
+                    style: Style {
+                        flex_wrap: FlexWrap::Wrap,
+                        ..default()
+                    },
+                    ..default()
+                }
+                );
             }
         }
-        // let has_node = context.world.get_entity(context.id).map(|eref| eref.contains::<Node>()).unwrap_or(false);
-        // let mut commands = context.world.commands();
-        // if ! has_node {
-        //     commands.entity(context.id).insert(NodeBundle::default());
-        // }
-        // context.world.flush();
         Ok(View)
     }
 }
@@ -189,7 +190,7 @@ pub fn plugin(app: &mut App) {
             Update,
             (
                 (replace_view,
-                    focus_view,
+                    // focus_view,
                     radio_view,
                     checkbox_view,
                     prompt_view,
@@ -208,6 +209,7 @@ pub fn plugin(app: &mut App) {
             (
                 clear_feedback::<StringCursor>,
                 clear_feedback::<Toggle>,
+                clear_feedback::<Radio>,
             ).in_set(crate::plugin::MinibufferSet::Process),
         )
         // .add_systems(PostUpdate, replace_view)
@@ -452,13 +454,9 @@ pub(crate) fn password_view(
                         } else {
                             glyph
                         },
-                        TextStyle {
-                            color: Color::BLACK,
-                            ..default()
-                        },
-                    )
-                    .with_background_color(Color::WHITE),
-                );
+                        TextStyle::default(),
+                    ))
+                    .insert(Cursor);
                 // post cursor
                 parent.spawn(TextBundle::from_section(
                     glyph.repeat(text_state.value.len().saturating_sub(text_state.index)),

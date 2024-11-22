@@ -2,9 +2,10 @@ use crate::{
     autocomplete::AutoComplete,
     event::DispatchEvent,
     lookup::Lookup,
-    prompt::{GetKeyChord, KeyChordEvent},
+    prompt::{GetKeyChord, KeyChordEvent, PromptState},
     ui::PromptContainer,
-    Dest
+    Dest,
+    Error,
 };
 use bevy::{
     ecs::{
@@ -15,15 +16,18 @@ use bevy::{
         system::{EntityCommands, Query, Res, Resource, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Deref, Reflect, TextBundle, TextStyle, Trigger, DespawnRecursiveExt},
+    prelude::{Deref, Reflect, TextBundle, TextStyle, Trigger, State, DespawnRecursiveExt},
     utils::Duration,
 };
-use bevy_asky::{Part, prelude::*};
+use bevy_asky::{Part, Asky, AskyEvent,
+    construct::Construct,
+                Submitter,
+};
 // use bevy_crossbeam_event::CrossbeamEventSender;
 use bevy_channel_trigger::ChannelSender;
-use bevy_defer::AsyncWorld;
+use bevy_defer::{AsyncWorld, AsyncAccess};
 use bevy_input_sequence::KeyChord;
-use futures::{channel::oneshot, Future, future::{Either, select_all}, FutureExt, pin_mut};
+use futures::{channel::oneshot, Future, future::{Either, select_all}, FutureExt, pin_mut, TryFutureExt};
 use std::{borrow::Cow, fmt::Debug};
 
 /// MinibufferAsync, a [SystemParam] for async.
@@ -84,6 +88,7 @@ impl MinibufferAsync {
     {
         self.asky
             .prompt::<T>(props, Dest::ReplaceChildren(self.dest))
+            .map_err(Error::from)
     }
 
     #[must_use]
@@ -99,6 +104,7 @@ impl MinibufferAsync {
         <<T as Part>::Group as Submitter>::Out: Clone + Debug + Send + Sync {
         self.asky
             .prompt_group::<T>(group_prop, props, Dest::ReplaceChildren(self.dest))
+            .map_err(Error::from)
     }
 
     /// Leave a message in the minibuffer.
@@ -129,7 +135,7 @@ impl MinibufferAsync {
                 autocomplete.construct(commands, prompt).observe(
                     move |trigger: Trigger<AskyEvent<String>>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
-                            promise.send(trigger.event().0.clone()).expect("send");
+                            promise.send(trigger.event().0.clone().map_err(Error::from)).expect("send");
                         }
                         commands.entity(trigger.entity()).despawn_recursive();
                     },
@@ -142,6 +148,24 @@ impl MinibufferAsync {
     /// Clear the minibuffer.
     pub fn clear(&mut self) {
         self.sender.send(DispatchEvent::Clear);
+    }
+
+    /// Hide the minibuffer.
+    pub fn set_visible(&mut self, show: bool) {
+        self.sender.send(DispatchEvent::SetVisible(show));
+    }
+
+    /// Show the minibuffer.
+    pub fn is_visible(&mut self) -> impl Future<Output = Result<bool, Error>> {
+        async move {
+            let async_world = AsyncWorld::new();
+
+            async_world
+            .resource::<State<PromptState>>()
+            .get(|res| matches!(**res, PromptStateVisible))
+                .map_err(Error::from)
+
+        }
     }
 
     /// Wait a certain duration.

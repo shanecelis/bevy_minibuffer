@@ -9,7 +9,7 @@ impl VideoCaptureSettings {
     pub fn window_plugin(&self) -> WindowPlugin {
         WindowPlugin {
             primary_window: Some(Window {
-                resolution: [400., 400.].into(),
+                resolution: [600., 400.].into(),
                 title: self.title.clone(),
                 ..Default::default()
             }),

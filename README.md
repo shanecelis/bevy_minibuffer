@@ -1,7 +1,8 @@
 # bevy_minibuffer
 
-This is a developer console for the bevy game engine. It's inspired by the
-user interface of classic unix text editors rather than the unix shell.
+This is a developer console for the [Bevy game engine](https://bevyengine.org).
+It is inspired by the user interface of classic Unix text editors rather than
+the Unix shell.
 
 > [!CAUTION]
 > `bevy_minibuffer` is currently in the early stages of development and is subject to breaking changes.
@@ -13,36 +14,42 @@ The video above shows the [two_commands.rs](examples/two_commands.rs) example.
 
 # Goals
 
-- Easily add commands
-- Easily bind key chord sequences to commands
-- Easily solicit user for textual input
-- Tab completable
-## Unrealized goals
-- Easily exclude from build
-- Easily opt-in to built-in functionality
+- [x] Easily add acts, i.e., commands
+- [x] Easily bind key chord sequences to acts via [bevy-input-sequences](https://github.com/not-elm/bevy-input-sequence)
+- [x] Easily solicit user for input via [bevy_asky](https://github.com/shanecelis/bevy_asky)
+- [x] Tab completion where possible
+- [x] Easily opt-in to built-in functionality
+- [ ] Easily exclude from build
+
+I believe a project with a "minibuffer" feature flag and rust conditional
+compilation facilities ought to make it easy to exclude from a release build.
+But I'd like to affirm that in practice before checking that box.
 
 # Antigoals
 
 - No general-purpose text editing
 - No windows or panels
 
-Try to force everything through the minibuffer at the bottom of the screen. It can resize to accommodate more than one-line of text. 
+Try to force everything through the minibuffer at the bottom of the screen. It
+can resize to accommodate more than one-line of text.
 
 - No default kitchen sink
 
-The default functionality should be a blank slate that does nothing if no commands or key bindings have been added. Built-in functions like `exec_act` and the ":" key binding should be opt-in.
+The default functionality should be a blank slate that does nothing if no
+commands or key bindings have been added. Built-in functions like `exec_act` and
+the ":" key binding should be opt-in.
 
 # FAQ
 
-## Why are bevy_minibuffer commands called acts?
+## Why are Minibuffer commands called acts?
 
-`bevy_minibuffer` commands are called `Act`s to avoid confusion because bevy
-already has its own `Command` struct.
+Bevy has a foundational trait called `Command`. Calling Minibuffer's commands
+`Act`s is to avoid confusing the two.
 
 # TODO
 - [ ] Use a real cursor/selection highlight that doesn't [fail on wrap](https://discord.com/channels/691052431525675048/1305257817057398825/1305257817057398825).
-- [ ] Change the keyseq macros to use lower case, or use caps on mods like "Ctrl-C".
-- [ ] Copy-and-paste the color::View to create Minibuffer's own View.
+- [ ] Change the keyseq macros to capitalize modifiers like "Ctrl-C" instead of "ctrl-C".
+- [x] Copy-and-paste the color::View to create Minibuffer's own View.
 - [ ] Get off of unreleased dependencies.
 - [x] Re-write asky to be bevy native.
 
@@ -50,6 +57,8 @@ already has its own `Command` struct.
 ## Re: No windows antigoal
 The minibuffer can show more than one line of text, but what to do if its asked
 to show multiple pages of text?
+
+This is an unresolved issue.
 
 # License
 

@@ -318,11 +318,11 @@ impl Default for Builtin {
                 ActBuilder::new(list_acts)
                     .named("list_acts")
                     .add_flags(ActFlags::Show)
-                    .hotkey(keyseq! { ctrl-H A }),
+                    .hotkey(keyseq! { Ctrl-H A }),
                 ActBuilder::new(list_key_bindings)
                     .named("list_key_bindings")
                     .add_flags(ActFlags::Show)
-                    .hotkey(keyseq! { ctrl-H B }),
+                    .hotkey(keyseq! { Ctrl-H B }),
                 ActBuilder::new(toggle_visibility)
                     // .named("toggle_visibility")
                     .hotkey(keyseq! { Backquote })
@@ -330,23 +330,23 @@ impl Default for Builtin {
                 #[cfg(feature = "async")]
                 ActBuilder::new(exec_act.pipe(future_result_sink))
                     .named("exec_act")
-                    .hotkey(keyseq! { shift-; })
-                    .hotkey(keyseq! { alt-X })
+                    .hotkey(keyseq! { Shift-; })
+                    .hotkey(keyseq! { Alt-X })
                     .in_exec_act(false),
                 #[cfg(not(feature = "async"))]
                 ActBuilder::new(exec_act)
                     .named("exec_act")
-                    .hotkey_named(keyseq! { shift-; }, ":")
-                    .hotkey(keyseq! { alt-X })
+                    .hotkey_named(keyseq! { Shift-; }, ":")
+                    .hotkey(keyseq! { Alt-X })
                     .in_exec_act(false),
                 #[cfg(feature = "async")]
                 ActBuilder::new(describe_key.pipe(future_result_sink))
                     .named("describe_key")
-                    .hotkey(keyseq! { ctrl-H K }),
+                    .hotkey(keyseq! { Ctrl-H K }),
                 #[cfg(not(feature = "async"))]
                 ActBuilder::new(describe_key)
                     .named("describe_key")
-                    .hotkey(keyseq! { ctrl-H K }),
+                    .hotkey(keyseq! { Ctrl-H K }),
             ]),
         }
     }

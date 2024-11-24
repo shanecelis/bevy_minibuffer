@@ -30,12 +30,12 @@ fn add_acts(mut commands: Commands) {
     commands.add(
         Act::new(ask_name.pipe(future_result_sink))
             .named("ask_name")
-            .hotkey(keyseq!(ctrl-A N)),
+            .hotkey(keyseq!(Ctrl-A N)),
     );
     commands.add(
         Act::new(ask_age.pipe(future_result_sink))
             .named("ask_age")
-            .hotkey(keyseq! { ctrl-A A }),
+            .hotkey(keyseq! { Ctrl-A A }),
     );
 }
 

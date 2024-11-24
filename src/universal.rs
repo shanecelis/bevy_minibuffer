@@ -24,7 +24,7 @@ impl Default for UniversalPlugin {
             acts: ActsPlugin::new(vec![
                 Act::new(universal_argument.pipe(future_sink))
                     .named("universal_argument")
-                    .hotkey(keyseq! { ctrl-U })
+                    .hotkey(keyseq! { Ctrl-U })
                     .in_exec_act(false),
                 Act::new(check_accum)
                     .named("check_accum")

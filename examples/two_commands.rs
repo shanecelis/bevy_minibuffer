@@ -44,9 +44,9 @@ fn setup(mut commands: Commands) {
     commands.add(
         Act::new(ask_name)
             .named("ask_name")
-            .hotkey(keyseq!(ctrl-A N)),
+            .hotkey(keyseq!(Ctrl-A N)),
     );
-    commands.add(Act::new(ask_age).named("ask_age").hotkey(keyseq!(ctrl-A A)));
+    commands.add(Act::new(ask_age).named("ask_age").hotkey(keyseq!(Ctrl-A A)));
 
     // Add a builtin act.
     commands.add(Builtin::default().take("exec_act").unwrap());

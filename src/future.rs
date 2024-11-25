@@ -4,6 +4,7 @@ use crate::{
     lookup::Lookup,
     prompt::{GetKeyChord, KeyChordEvent, PromptState},
     ui::PromptContainer,
+    view::View,
     Dest,
     Error,
 };
@@ -87,7 +88,7 @@ impl MinibufferAsync {
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
         self.asky
-            .prompt::<T>(props, Dest::ReplaceChildren(self.dest))
+            .prompt::<T, View>(props, Dest::ReplaceChildren(self.dest))
             .map_err(Error::from)
     }
 
@@ -103,7 +104,7 @@ impl MinibufferAsync {
         <T as Part>::Group: Component + Construct + Send + Sync + Submitter,
         <<T as Part>::Group as Submitter>::Out: Clone + Debug + Send + Sync {
         self.asky
-            .prompt_group::<T>(group_prop, props, Dest::ReplaceChildren(self.dest))
+            .prompt_group::<T, View>(group_prop, props, Dest::ReplaceChildren(self.dest))
             .map_err(Error::from)
     }
 

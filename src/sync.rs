@@ -1,7 +1,7 @@
 //! A sync version of the Minibuffer parameter.
 use crate::{
     autocomplete::AutoComplete, lookup::Lookup, prompt::GetKeyChord, ui::PromptContainer, Dest,
-    Message, prompt::PromptState,
+    Message, prompt::PromptState, view::View,
 };
 use bevy::{
     ecs::{
@@ -69,7 +69,7 @@ impl<'w, 's> Minibuffer<'w, 's> {
     {
         let dest = self.dest.single();
         self.commands
-            .prompt::<T>(props, Dest::ReplaceChildren(dest))
+            .prompt::<T, View>(props, Dest::ReplaceChildren(dest))
     }
 
     /// Leave a message in the minibuffer.

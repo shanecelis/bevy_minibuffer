@@ -49,21 +49,6 @@ impl Construct for View {
     }
 }
 
-pub fn replace_view(query: Query<Entity, Added<NeedsView>>,
-                    parents: Query<&Parent>,
-                    root: Res<MinibufferRoot>,
-                    mut commands: Commands) {
-    for id in &query {
-        if parents.iter_ancestors(id).last() == Some(root.0) {
-            info!("replace view {id}");
-            commands
-                .entity(id)
-                .remove::<NeedsView>()
-                .construct::<View>(());
-        }
-    }
-}
-
 #[derive(SystemParam)]
 pub(crate) struct Inserter<'w, 's, C: Component> {
     roots: Query<'w, 's, &'static mut C>,
@@ -189,8 +174,7 @@ pub fn plugin(app: &mut App) {
         .add_systems(
             Update,
             (
-                (replace_view,
-                 // focus_view,
+                (// focus_view,
                  radio_view,
                  checkbox_view,
                  prompt_view,

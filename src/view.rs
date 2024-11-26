@@ -3,7 +3,6 @@ use bevy::{
     ecs::{query::QueryEntityError, system::SystemParam},
     prelude::*,
 };
-use crate::ui::MinibufferRoot;
 
 #[derive(Component, Reflect, Default)]
 pub struct View;
@@ -241,8 +240,8 @@ pub(crate) fn clear_feedback<T: Component>(
 
 pub(crate) fn focus_view(
     focus: Focus,
-    mut query: Query<Entity, Or<(Changed<View>, Changed<Focusable>)>>,
-    mut writer: Inserter<Text>,
+    query: Query<Entity, Or<(Changed<View>, Changed<Focusable>)>>,
+    writer: Inserter<Text>,
     palette: Res<Palette>,
 ) {
     // for id in query.iter_mut() {
@@ -570,7 +569,7 @@ pub(crate) fn confirm_view(
 
 /// Use a column layout for the group views.
 pub(crate) fn group_view(
-    mut query: Query<
+    query: Query<
         Entity,
         (With<View>, Or<(Added<RadioGroup>, Added<CheckboxGroup>)>)
     >,

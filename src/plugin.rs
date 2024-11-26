@@ -9,7 +9,7 @@ use crate::{
     ui,
 };
 use bevy::{
-    app::{PluginGroupBuilder, PostUpdate, PreUpdate, Startup, Update},
+    app::{PluginGroupBuilder, Update},
     ecs::{
         schedule::{
             Condition,

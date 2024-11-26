@@ -173,7 +173,7 @@ pub(crate) fn dispatch_events(
 }
 
 pub(crate) fn dispatch_trigger(
-    mut dispatch_events: Trigger<DispatchEvent>,
+    dispatch_events: Trigger<DispatchEvent>,
     mut look_up_events: EventWriter<LookupEvent>,
     mut request_act_events: EventWriter<RunActEvent>,
     mut minibuffer: Minibuffer,

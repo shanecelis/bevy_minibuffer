@@ -5,7 +5,7 @@ use crate::{
     ui::{completion_item, ScrollingList},
     Config,
 };
-use bevy::{prelude::*, utils::Duration, window::RequestRedraw};
+use bevy::{prelude::*, window::RequestRedraw};
 use bevy_asky::prelude::*;
 use bevy_input_sequence::{KeyChord, Modifiers};
 use std::collections::VecDeque;
@@ -134,7 +134,7 @@ pub(crate) fn get_key_chords(
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<Config>,
-    mut redraw: EventWriter<RequestRedraw>,
+    redraw: EventWriter<RequestRedraw>,
     mut query: Query<Entity, With<T>>,
 ) {
     if !config.auto_hide {
@@ -252,11 +252,7 @@ pub(crate) fn listen_prompt_active(
     mut redraw: EventWriter<RequestRedraw>,
 ) {
     for transition in transitions.read() {
-        match transition.entered {
-            Some(MinibufferState::Active) => next_prompt_state.set(PromptState::Visible),
-            // Some(MinibufferState::Inactive) => next_prompt_state.set(PromptState::Finished),
-            _ => (),
-        }
+        if let Some(MinibufferState::Active) = transition.entered { next_prompt_state.set(PromptState::Visible) }
         redraw.send(RequestRedraw);
     }
 }

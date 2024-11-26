@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use bevy_minibuffer::prelude::*;
+use bevy_minibuffer::{prelude::{*, Error}, view::View};
+use bevy_asky::prelude::*;
 use bevy_minibuffer::universal::UniversalPlugin;
 use std::time::Duration;
 #[path = "../common/lib.rs"]
@@ -16,14 +17,16 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let _ = minibuffer.delay_or_chord(beat).await;
     minibuffer.message("First a few questions.");
     let _ = minibuffer.delay_or_chord(beat).await;
-    let lang: usize = minibuffer.prompt_group::<Radio>(
-                    "Which do you prefer?",
-                    ["brainf*ck", "rust", "x86 machine code"]).await?;
+    let lang: usize = minibuffer.prompt_with::<RadioGroup>("Which do you prefer?", |commands| {
+        commands.prompt_children::<Radio>(["brainf*ck", "rust", "x86 machine code"]);
+    }).await?;
     minibuffer.message(if lang == 1 { "Me too!" } else { "More power to you." });
     let _ = minibuffer.delay_or_chord(beat).await;
-    let selection: Vec<bool> = minibuffer.prompt_group::<Checkbox>(
-                    "What game engines do you use?",
-                    ["Unity", "Unreal", "Godot", "Bevy", "other"]).await?;
+    let selection: Vec<bool> = minibuffer
+        .prompt_with::<CheckboxGroup>("What game engines do you use?", |commands| {
+            // commands.construct_children::<Add<Checkbox, View>>(["Unity", "Unreal", "Godot", "Bevy", "other"]);
+            commands.prompt_children::<Checkbox>(["Unity", "Unreal", "Godot", "Bevy", "other"]);
+        }).await?;
     minibuffer.message(if selection[3] { "Well, have I got news for you!" }
                        else if !selection.iter().any(|x| *x) { "This may not interest you then." }
                        else { "Those are also great." });

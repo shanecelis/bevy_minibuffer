@@ -175,6 +175,7 @@ pub fn plugin(app: &mut App) {
             Update,
             (
                 (// focus_view,
+                 group_view,
                  radio_view,
                  checkbox_view,
                  prompt_view,
@@ -564,6 +565,19 @@ pub(crate) fn confirm_view(
             }
             _ => (),
         };
+    }
+}
+
+/// Use a column layout for the group views.
+pub(crate) fn group_view(
+    mut query: Query<
+        Entity,
+        (With<View>, Or<(Added<RadioGroup>, Added<CheckboxGroup>)>)
+    >,
+    mut commands: Commands
+) {
+    for id in &query {
+        commands.entity(id).column();
     }
 }
 

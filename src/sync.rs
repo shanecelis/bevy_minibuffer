@@ -13,7 +13,7 @@ use bevy::{
     },
     prelude::{Res, ResMut, NextState, State, DespawnRecursiveExt},
 };
-use bevy_asky::{prelude::*, sync::AskyCommands};
+use bevy_asky::{prelude::*, sync::AskyCommands, Part};
 use std::fmt::Debug;
 
 // #[derive(Resource, Debug, Reflect, Deref)]
@@ -34,28 +34,27 @@ pub struct Minibuffer<'w, 's> {
 }
 
 /// I don't know the entity without a query or something.
-// pub trait MinibufferCommands {
+pub trait MinibufferCommands {
 
-//     fn prompt<T: Construct + Component + Submitter> (
-//         &mut self,
-//         props: impl Into<T::Props>,
-//     ) -> EntityCommands
-//     where
-//         <T as Construct>::Props: Send,
-//         <T as Submitter>::Out: Clone + Debug + Send + Sync;
-// }
+    fn prompt_children<T: Construct + Component + Part> (
+        &mut self,
+        props: impl IntoIterator<Item = impl Into<T::Props>>,
+    ) -> EntityCommands
+    where
+        <T as Construct>::Props: Send;
+}
 
-// impl<'w, 's> MinibufferCommands for Commands<'w, 's> {
-//     fn prompt<T: Construct + Component + Submitter> (
-//         &mut self,
-//         props: impl Into<T::Props>,
-//     ) -> EntityCommands
-//     where
-//         <T as Construct>::Props: Send,
-//         <T as Submitter>::Out: Clone + Debug + Send + Sync {
-
-//     }
-// }
+impl<'w> MinibufferCommands for EntityCommands<'w> {
+    fn prompt_children<T: Construct + Component + Part> (
+        &mut self,
+        props: impl IntoIterator<Item = impl Into<T::Props>>,
+    ) -> EntityCommands
+    where
+        <T as Construct>::Props: Send {
+        self.construct_children::<Add<T, View>>(props);
+        self.reborrow()
+    }
+}
 
 impl<'w, 's> Minibuffer<'w, 's> {
     /// Prompt the user for input.
@@ -69,8 +68,21 @@ impl<'w, 's> Minibuffer<'w, 's> {
     {
         let dest = self.dest.single();
         self.commands
-            .prompt::<T, View>(props, Dest::ReplaceChildren(dest))
+            .prompt::<Add<T, View>>(props, Dest::ReplaceChildren(dest))
     }
+
+    // pub fn with_prompt<T: Submitter>(
+    //     &mut self,
+    //     props: impl Into<T::Props>,
+    //     f: impl FnOnce(EntityCommands) -> Asyncable<T::Out> + Sync + Send + 'static
+    // ) -> Asyncable<T::Out>
+    // where
+    //     <T as Submitter>::Out: Clone + Debug + Send + Sync + 'static,
+    // {
+
+
+
+    // }
 
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {

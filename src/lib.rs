@@ -56,4 +56,5 @@ pub mod prelude {
     pub use asky::{prompt::*, AskyEvent};
     pub use bevy_asky as asky;
     pub use std::time::Duration;
+    pub use super::sync::MinibufferCommands;
 }

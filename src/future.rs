@@ -17,12 +17,12 @@ use bevy::{
         system::{EntityCommands, Query, Res, Resource, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Deref, Reflect, TextBundle, TextStyle, Trigger, State, DespawnRecursiveExt},
+    prelude::{Deref, Reflect, TextBundle, TextStyle, Trigger, State, DespawnRecursiveExt, Bundle},
     utils::Duration,
 };
-use bevy_asky::{Part, Asky, AskyEvent,
-    construct::Construct,
-                Submitter,
+use bevy_asky::{
+    Part, AskyAsync, AskyEvent, sync::{AskyEntityCommands, AskyCommands},
+    construct::{Add, Construct}, Submitter,
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
 use bevy_channel_trigger::ChannelSender;
@@ -37,7 +37,7 @@ use std::{borrow::Cow, fmt::Debug};
 /// any lifetimes which allow it to be captured by a closure.
 #[derive(Clone)]
 pub struct MinibufferAsync {
-    asky: Asky,
+    asky: AskyAsync,
     dest: Entity,
     sender: ChannelSender<DispatchEvent>,
 }
@@ -69,7 +69,7 @@ unsafe impl SystemParam for MinibufferAsync {
     ) -> Self::Item<'w, 's> {
         let state = state.clone();
         MinibufferAsync {
-            asky: Asky::default(),
+            asky: AskyAsync::default(),
             dest: state.0,
             sender: state.1,
         }
@@ -79,34 +79,48 @@ unsafe impl SystemParam for MinibufferAsync {
 impl MinibufferAsync {
     /// Prompt the user for input.
     #[must_use]
-    pub fn prompt<T: Construct + Component + Submitter>(
+    pub fn prompt<T: Construct + Bundle + Submitter>(
         &mut self,
         props: impl Into<T::Props>,
     ) -> impl Future<Output = Result<T::Out, Error>>
     where
-        <T as Construct>::Props: Send,
+        <T as Construct>::Props: Send + Sync,
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
         self.asky
-            .prompt::<T, View>(props, Dest::ReplaceChildren(self.dest))
+            .prompt::<Add<T, View>>(props, Dest::ReplaceChildren(self.dest))
             .map_err(Error::from)
     }
 
-    #[must_use]
-    pub fn prompt_group<T: Construct + Component + Part>(
+    pub fn prompt_with<T: Submitter + Construct + Bundle>(
         &mut self,
-        group_prop: impl Into<<<T as Part>::Group as Construct>::Props>,
-        props: impl IntoIterator<Item = impl Into<T::Props>>,
-    ) -> impl Future<Output = Result<<<T as Part>::Group as Submitter>::Out, Error>>
+        props: impl Into<T::Props>,
+        f: impl FnOnce(&mut EntityCommands) + Send + 'static,
+    ) -> impl Future<Output = Result<T::Out, Error>>
     where
-        <T as Construct>::Props: Send,
-        <<T as Part>::Group as Construct>::Props: Send,
-        <T as Part>::Group: Component + Construct + Send + Sync + Submitter,
-        <<T as Part>::Group as Submitter>::Out: Clone + Debug + Send + Sync {
-        self.asky
-            .prompt_group::<T, View>(group_prop, props, Dest::ReplaceChildren(self.dest))
+        <T as Construct>::Props: Send + Sync,
+        <T as Submitter>::Out: Clone + Debug + Send + Sync + 'static {
+        let p = props.into();
+        self.asky.prompt_with::<Add<T, View>>(p, Dest::ReplaceChildren(self.dest), f)
             .map_err(Error::from)
+
     }
+
+    // #[must_use]
+    // pub fn prompt_group<T: Construct + Component + Part>(
+    //     &mut self,
+    //     group_prop: impl Into<<<T as Part>::Group as Construct>::Props>,
+    //     props: impl IntoIterator<Item = impl Into<T::Props>>,
+    // ) -> impl Future<Output = Result<<<T as Part>::Group as Submitter>::Out, Error>>
+    // where
+    //     <T as Construct>::Props: Send,
+    //     <<T as Part>::Group as Construct>::Props: Send,
+    //     <T as Part>::Group: Component + Construct + Send + Sync + Submitter,
+    //     <<T as Part>::Group as Submitter>::Out: Clone + Debug + Send + Sync {
+    //     self.asky
+    //         .prompt_group::<T, View>(group_prop, props, Dest::ReplaceChildren(self.dest))
+    //         .map_err(Error::from)
+    // }
 
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {

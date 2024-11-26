@@ -24,7 +24,6 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let _ = minibuffer.delay_or_chord(beat).await;
     let selection: Vec<bool> = minibuffer
         .prompt_with::<CheckboxGroup>("What game engines do you use?", |commands| {
-            // commands.construct_children::<Add<Checkbox, View>>(["Unity", "Unreal", "Godot", "Bevy", "other"]);
             commands.prompt_children::<Checkbox>(["Unity", "Unreal", "Godot", "Bevy", "other"]);
         }).await?;
     minibuffer.message(if selection[3] { "Well, have I got news for you!" }

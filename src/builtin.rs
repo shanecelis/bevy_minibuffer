@@ -383,8 +383,24 @@ impl Builtin {
     }
 }
 
-impl PluginOnce for Builtin {
-    fn build(self, app: &mut App) {
-        self.acts.build(app);
+impl From<Builtin> for Acts {
+    fn from(builtin: Builtin) -> Acts {
+        builtin.acts
     }
 }
+
+impl Plugin for Builtin {
+    fn build(&self, app: &mut bevy::app::App) {}
+}
+
+impl crate::universal::PluginWithActs for Builtin {
+    fn take_acts(&mut self) -> Acts {
+        self.acts.take()
+    }
+}
+
+// impl PluginOnce for Builtin {
+//     fn build(self, app: &mut App) {
+//         self.acts.build(app);
+//     }
+// }

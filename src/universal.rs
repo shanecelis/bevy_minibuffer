@@ -34,14 +34,34 @@ impl Default for UniversalPlugin {
     }
 }
 
-impl PluginOnce for UniversalPlugin {
-    fn build(mut self, app: &mut bevy::app::App) {
+pub trait PluginWithActs: Plugin {
+    fn take_acts(&mut self) -> Acts;
+}
+
+impl Plugin for UniversalPlugin {
+    fn build(&self, app: &mut bevy::app::App) {
         app.init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
-        // XXX: This is kind of funky.
-        self.acts.build(app);
+        if !self.acts.is_empty() {
+            warn!("universal plugin has acts were not added.");
+        }
     }
 }
+
+impl PluginWithActs for UniversalPlugin {
+    fn take_acts(&mut self) -> Acts {
+        self.acts.take()
+    }
+}
+
+// impl PluginOnce for UniversalPlugin {
+//     fn build(mut self, app: &mut bevy::app::App) {
+//         app.init_resource::<UniversalArg>()
+//             .add_systems(bevy::app::Last, clear_arg);
+//         // XXX: This is kind of funky.
+//         self.acts.build(app);
+//     }
+// }
 
 /// XXX: This shouldn't be here. It should be in an example.
 pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {

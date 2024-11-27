@@ -59,13 +59,6 @@ fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
 
-/// Add acts using [Commands].
-fn add_acts(mut commands: Commands) {
-    commands.add(
-        Act::new(demo.pipe(future_result_sink))
-            .hotkey(keyseq!(D)),
-    );
-}
 fn main() {
     let video_settings = common::VideoCaptureSettings {
         title: "Bevy Minibuffer Demo Example".into(),
@@ -78,10 +71,13 @@ fn main() {
         ))
         // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         // .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
-        .add_plugins(UniversalPlugin::default().into_plugin())
-        // Add builtin commands.
-        .add_plugins(Builtin::default().into_plugin())
-        .add_systems(Startup, (setup, add_acts))
+        .add_systems(Startup, setup)
         .add_systems(PostStartup, demo.pipe(future_result_sink))
+        .add_acts((
+            // Add builtin commands.
+            Builtin::default(),
+            UniversalPlugin::default(),
+            Act::new(demo.pipe(future_result_sink))
+            .hotkey(keyseq!(D))))
         .run();
 }

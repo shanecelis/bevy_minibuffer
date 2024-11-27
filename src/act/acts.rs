@@ -1,70 +1,124 @@
 use crate::act::{ActBuilder, PluginOnce};
 use bevy::prelude::*;
+use std::{borrow::Cow, collections::HashMap};
 
 /// Houses a collection of acts.
 ///
 /// Acts may be inspected and modified before adding to app.
 #[derive(Debug, Deref, DerefMut)]
-pub struct ActsPlugin {
-    // Why use RwLock? Because `Plugin` must be `Send` and `ActBuilder` is not
-    // `Clone`. In `build(&self)` we want to consume the acts but we only have
-    // `&self` so this is our workaround.
-    acts: Vec<ActBuilder>,
-}
+pub struct Acts(pub HashMap<Cow<'static, str>, ActBuilder>);
 
-// impl trait IndexMut<AsRef<str>> for ActsPlugin {
-//     type Output = Act;
-
-//     fn index(
-
-// }
-
-impl ActsPlugin {
+impl Acts {
     /// Create a new plugin with a set of acts.
-    pub fn new<I: IntoIterator<Item = ActBuilder>>(v: I) -> Self {
-        ActsPlugin {
-            acts: v.into_iter().collect(),
-        }
+    pub fn new<I: IntoIterator<Item = impl Into<ActBuilder>>>(v: I) -> Self {
+        Acts(v.into_iter().map(|act| { let act = act.into(); (act.name(), act) }).collect())
     }
-
-    /// Take an act from this collection.
-    pub fn take(&mut self, name: impl AsRef<str>) -> Option<ActBuilder> {
-        let name = name.as_ref();
-        self.acts
-            .iter()
-            .position(|act| act.name() == name)
-            .map(|index| self.acts.remove(index))
-    }
-
-    // /// Get the current acts readonly.
-    // pub fn get(&self) -> RwLockReadGuard<Vec<ActBuilder>> {
-    //     self.acts.read().unwrap()
-    // }
-
-    // /// Get the current acts mutable.
-    // pub fn get_mut(&self) -> RwLockWriteGuard<Vec<ActBuilder>> {
-    //     self.acts.write().unwrap()
-    // }
-
-    // /// Clear all the acts.
-    // pub fn clear(&self) {
-    //     let _ = self.get_mut().drain(..);
-    // }
 }
 
-impl Default for ActsPlugin {
+impl From<ActBuilder> for Acts {
+    fn from(builder: ActBuilder) -> Acts {
+        Acts::new([builder])
+    }
+}
+
+impl From<&mut ActBuilder> for Acts {
+    fn from(builder: &mut ActBuilder) -> Acts {
+        Acts::new([ActBuilder::from(builder)])
+    }
+}
+
+impl Default for Acts {
     fn default() -> Self {
-        ActsPlugin::new(vec![])
+        Acts(HashMap::new())
     }
 }
 
-impl PluginOnce for ActsPlugin {
+impl PluginOnce for Acts {
     fn build(mut self, app: &mut bevy::app::App) {
-        for act in self.acts.drain(..) {
+        for (_, act) in self.drain() {
             PluginOnce::build(act, app);
         }
     }
 }
+
+pub trait ActBuilders<Marker>: sealed::ActBuilders<Marker> {}
+impl <Marker, T> ActBuilders<Marker> for T where T: sealed::ActBuilders<Marker> {}
+
+mod sealed {
+    use bevy::app::App;
+    use crate::act::{Acts, PluginOnce, ActBuilder};
+    pub struct PluginOnceMarker;
+    pub struct ActBuilderMarker;
+    pub struct MutActBuilderMarker;
+    pub struct ActsMarker;
+    pub struct ActBuilderTupleMarker;
+
+    pub trait ActBuilders<Marker> {
+        fn add_to_app(self, app: &mut App);
+    }
+
+    // impl ActBuilders<ActBuilderMarker> for ActBuilder {
+    //     fn add_to_app(self, app: &mut App) {
+    //         app.add_plugins(Acts::from(self).into_plugin());
+    //     }
+    // }
+
+    impl<P: PluginOnce> ActBuilders<PluginOnceMarker> for P {
+        fn add_to_app(self, app: &mut App) {
+            self.build(app);
+        }
+    }
+
+    impl ActBuilders<MutActBuilderMarker> for &mut ActBuilder {
+        fn add_to_app(self, app: &mut App) {
+            app.add_plugins(Acts::from(ActBuilder::from(self)).into_plugin());
+        }
+    }
+
+    impl ActBuilders<ActsMarker> for Acts {
+        fn add_to_app(self, app: &mut App) {
+            app.add_plugins(self.into_plugin());
+        }
+    }
+
+    macro_rules! impl_plugins_tuples {
+        ($(($param: ident, $plugins: ident)),*) => {
+            impl<$($param, $plugins),*> ActBuilders<(ActBuilderTupleMarker, $($param,)*)> for ($($plugins,)*)
+            where
+                $($plugins: ActBuilders<$param>),*
+            {
+                #[allow(non_snake_case, unused_variables)]
+                #[track_caller]
+                fn add_to_app(self, app: &mut App) {
+                    let ($($plugins,)*) = self;
+                    $($plugins.add_to_app(app);)*
+                }
+            }
+        }
+    }
+
+    bevy::utils::all_tuples!(impl_plugins_tuples, 0, 15, P, S);
+}
+
+
+pub trait AddActs {
+    fn add_acts<M>(&mut self, acts: impl ActBuilders<M>) -> &mut Self;
+}
+
+impl AddActs for App {
+    fn add_acts<M>(&mut self, acts: impl ActBuilders<M>) -> &mut Self {
+        acts.add_to_app(self);
+        self
+    }
+}
+// pub struct PluginActsMarker;
+
+// impl bevy::app::Plugins<PluginActsMarker> for Acts {
+//     fn add_to_app(self, app: &mut App) {
+//         todo!();
+//         // app.add_plugins(self.into_plugin());
+//     }
+// }
 
 // #[cfg(test)]
 // mod tests {
@@ -74,13 +128,13 @@ impl PluginOnce for ActsPlugin {
 //     fn act1() {}
 //     #[test]
 //     fn check_acts() {
-//         let plugin = ActsPlugin::default();
+//         let plugin = Acts::default();
 //         assert_eq!(plugin.get().len(), 0);
 //     }
 
 //     #[test]
 //     fn check_drain_read() {
-//         let plugin = ActsPlugin::default();
+//         let plugin = Acts::default();
 //         plugin.get_mut().push(Act::new(act1));
 //         assert_eq!(plugin.get().len(), 1);
 //     }

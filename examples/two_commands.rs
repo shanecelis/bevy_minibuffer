@@ -36,18 +36,20 @@ fn main() {
     App::new()
         .add_plugins((DefaultPlugins, MinibufferPlugins))
         .add_systems(Startup, setup)
+
+        .add_acts((
+            Act::new(ask_name)
+                .named("ask_name")
+                .hotkey(keyseq!(Ctrl-A N)),
+            Act::new(ask_age)
+                .named("ask_age")
+                .hotkey(keyseq!(Ctrl-A A)),
+            // Add a builtin act but just one of them.
+            Builtin::default().remove("exec_act").unwrap()
+            ))
         .run();
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
-    commands.add(
-        Act::new(ask_name)
-            .named("ask_name")
-            .hotkey(keyseq!(Ctrl-A N)),
-    );
-    commands.add(Act::new(ask_age).named("ask_age").hotkey(keyseq!(Ctrl-A A)));
-
-    // Add a builtin act.
-    commands.add(Builtin::default().take("exec_act").unwrap());
 }

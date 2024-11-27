@@ -3,7 +3,7 @@ use crate::{
     act::{ActCache, ActFlags, PluginOnce},
     lookup::Resolve,
     prelude::*,
-    prelude::{keyseq, ActBuilder, ActsPlugin},
+    prelude::{keyseq, ActBuilder, Acts},
     prompt::{CompletionState, KeyChordEvent, PromptState},
     autocomplete::RequireMatch,
     Minibuffer,
@@ -119,7 +119,8 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Las
 }
 
 /// List acts currently operant.
-pub fn list_acts(mut minibuffer: Minibuffer, acts: Query<&Act>) {
+// pub fn list_acts<'a>(acts: impl Iterator<Item=&'a Act>) -> String {
+pub fn list_acts(acts: Query<&Act>) -> String {
     let mut table = Table::new("{:<}\t {:<}");
     table.add_row(Row::new().with_cell("ACT ").with_cell("KEY BINDING"));
     let mut acts: Vec<_> = acts.iter().collect();
@@ -146,12 +147,29 @@ pub fn list_acts(mut minibuffer: Minibuffer, acts: Query<&Act>) {
             }
         }
     }
-    let msg = format!("{}", table);
+    format!("{}", table)
+}
+
+/// Can pipe any string to the message buffer.
+///
+/// The minibuffer might not be visible when this is called. Consider adding
+/// [ActFlags::Show] to the act's flags to ensure it will be shown.
+///
+/// Used internally by `list_acts` for instance
+///
+/// ```ignore
+/// ActBuilder::new(list_acts.pipe(to_message))
+///     .named("list_acts")
+///     .add_flags(ActFlags::Show)
+///     .hotkey(keyseq! { Ctrl-H A }),
+/// ```
+
+pub fn to_message(In(msg): In<String>, mut minibuffer: Minibuffer) {
     minibuffer.message(msg);
 }
 
 /// List key bindings available.
-pub fn list_key_bindings(mut minibuffer: Minibuffer, acts: Query<&Act>) {
+pub fn list_key_bindings(acts: Query<&Act>) -> String {
     let mut table = Table::new("{:<}\t {:<}");
     table.add_row(Row::new().with_cell("KEY BINDING ").with_cell("ACT"));
 
@@ -183,8 +201,7 @@ pub fn list_key_bindings(mut minibuffer: Minibuffer, acts: Query<&Act>) {
     {
         table.add_row(Row::new().with_cell(binding).with_cell(act.into_owned()));
     }
-    let msg = format!("{}", table);
-    minibuffer.message(msg);
+    format!("{}", table)
 }
 
 /// Toggle visibility.
@@ -305,21 +322,24 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuff
 }
 
 #[derive(Debug, Deref, DerefMut)]
-/// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key.
+/// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key, and toggle_visibility.
+///
+/// Key bindings may be altered or removed prior to adding this as a
+/// plugin. Likewise acts may be altered or removed.
 pub struct Builtin {
     /// Set of builtin acts
-    pub acts: ActsPlugin,
+    pub acts: Acts,
 }
 
 impl Default for Builtin {
     fn default() -> Self {
         Self {
-            acts: ActsPlugin::new([
-                ActBuilder::new(list_acts)
+            acts: Acts::new([
+                ActBuilder::new(list_acts.pipe(to_message))
                     .named("list_acts")
                     .add_flags(ActFlags::Show)
                     .hotkey(keyseq! { Ctrl-H A }),
-                ActBuilder::new(list_key_bindings)
+                ActBuilder::new(list_key_bindings.pipe(to_message))
                     .named("list_key_bindings")
                     .add_flags(ActFlags::Show)
                     .hotkey(keyseq! { Ctrl-H B }),
@@ -330,7 +350,7 @@ impl Default for Builtin {
                 #[cfg(feature = "async")]
                 ActBuilder::new(exec_act.pipe(future_result_sink))
                     .named("exec_act")
-                    .hotkey(keyseq! { Shift-; })
+                    .hotkey_named(keyseq! { Shift-; }, ":")
                     .hotkey(keyseq! { Alt-X })
                     .in_exec_act(false),
                 #[cfg(not(feature = "async"))]
@@ -349,6 +369,17 @@ impl Default for Builtin {
                     .hotkey(keyseq! { Ctrl-H K }),
             ]),
         }
+    }
+
+}
+
+impl Builtin {
+    pub fn emacs() -> Self {
+        let mut builtin = Self::default();
+        let mut exec_act = builtin.get_mut("exec_act").unwrap();
+        exec_act.hotkeys.clear();
+        exec_act.hotkey_named(keyseq! { Alt-X }, "M-x ");
+        builtin
     }
 }
 

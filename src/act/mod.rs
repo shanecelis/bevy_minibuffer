@@ -15,7 +15,19 @@ use std::{
 };
 use trie_rs::map::{Trie, TrieBuilder};
 mod acts;
-pub use acts::ActsPlugin;
+pub use acts::{Acts, AddActs};
+
+// impl<'w, 's> AddActs for Commands<'w, 's> {
+//     fn add_acts(&mut self, acts: impl Into<Acts>) -> &mut Self {
+//         let builders = acts.into();
+//         self.add(move |world: &mut World| {
+//             for builder in builders {
+//                 let act = builder.build(world);
+
+
+//         })
+//     }
+// }
 
 bitflags! {
     /// Act flags
@@ -124,7 +136,7 @@ pub struct ActBuilder {
     pub(crate) name: Option<Cow<'static, str>>,
     /// Hotkeys
     pub hotkeys: Vec<Hotkey>,
-    pub(crate) system: BoxedSystem,
+    pub(crate) system: Option<BoxedSystem>,
     /// Flags for this act
     pub flags: ActFlags,
     pub shorten_name: bool,
@@ -145,7 +157,7 @@ impl ActBuilder {
         ActBuilder {
             name: None,
             hotkeys: Vec::new(),
-            system: Box::new(IntoSystem::into_system(system)),
+            system: Some(Box::new(IntoSystem::into_system(system))),
             flags: ActFlags::Active | ActFlags::ExecAct,
             shorten_name: true,
         }
@@ -153,11 +165,17 @@ impl ActBuilder {
 
     pub fn name(&self) -> Cow<'static, str> {
         self.name.clone().unwrap_or_else(|| {
-            let n = self.system.name();
-            if let Some(start) = n.find('(') {
-                if let Some(end) = n.find([',', ' ', ')']) {
-                    return n[start + 1..end].to_owned().into();
-                }
+            let mut n = self.system.as_ref().expect("system").name();
+            // Take name out of pipe.
+            //
+            // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result_sink<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"
+            // -> "cube_async::speed"
+            n = n.find('(').and_then(|start| {
+                n.find([',', ' ', ')']).map(|end|
+                    n[start + 1..end].to_owned().into())
+            }).unwrap_or(n);
+            if self.shorten_name {
+                n = n.rfind(':').map(|start| n[start + 1..].to_owned().into()).unwrap_or(n);
             }
             n
         })
@@ -166,35 +184,21 @@ impl ActBuilder {
     /// Build [Act].
     pub fn build(self, world: &mut World) -> Act {
         Act {
-            name: self.name.unwrap_or_else(|| {
-                let mut n = self.system.name();
-                // Take name out of pipe.
-                //
-                // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result_sink<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"
-                // -> "cube_async::speed"
-                n = n.find('(').and_then(|start| {
-                    n.find([',', ' ', ')']).map(|end|
-                        n[start + 1..end].to_owned().into())
-                }).unwrap_or(n);
-                if self.shorten_name {
-                    n = n.rfind(':').map(|start| n[start + 1..].to_owned().into()).unwrap_or(n);
-                }
-                n
-            }),
+            name: self.name(),
             hotkeys: self.hotkeys,
             flags: self.flags,
-            system_id: world.register_boxed_system(self.system),
+            system_id: world.register_boxed_system(self.system.expect("system")),
         }
     }
 
     /// Name the act.
-    pub fn named(mut self, name: impl Into<Cow<'static, str>>) -> Self {
+    pub fn named(&mut self, name: impl Into<Cow<'static, str>>) -> &mut Self {
         self.name = Some(name.into());
         self
     }
 
     /// Add a hotkey.
-    pub fn hotkey<T>(mut self, hotkey: impl IntoIterator<Item = T>) -> Self
+    pub fn hotkey<T>(&mut self, hotkey: impl IntoIterator<Item = T>) -> &mut Self
     where
         KeyChord: From<T>,
     {
@@ -202,7 +206,7 @@ impl ActBuilder {
         self
     }
 
-    pub fn hotkey_named<T>(mut self, hotkey: impl IntoIterator<Item = T>, name: impl Into<Cow<'static, str>>) -> Self
+    pub fn hotkey_named<T>(&mut self, hotkey: impl IntoIterator<Item = T>, name: impl Into<Cow<'static, str>>) -> &mut Self
     where
         KeyChord: From<T>,
     {
@@ -211,22 +215,36 @@ impl ActBuilder {
     }
 
     /// Set flags.
-    pub fn flags(mut self, flags: ActFlags) -> Self {
+    pub fn flags(&mut self, flags: ActFlags) -> &mut Self {
         self.flags = flags;
         self
     }
 
     /// Add the given the flags.
-    pub fn add_flags(mut self, flags: ActFlags) -> Self {
+    pub fn add_flags(&mut self, flags: ActFlags) -> &mut Self {
         self.flags |= flags;
         self
     }
 
     /// Specify whether act should show up in [crate::act::exec_act].
-    pub fn in_exec_act(mut self, yes: bool) -> Self {
+    pub fn in_exec_act(&mut self, yes: bool) -> &mut Self {
         self.flags.set(ActFlags::ExecAct, yes);
         self
     }
+}
+
+impl From<&mut ActBuilder> for ActBuilder {
+
+    fn from(builder: &mut ActBuilder) -> Self {
+        Self {
+            name: builder.name.take(),
+            system: builder.system.take(),
+            hotkeys: std::mem::replace(&mut builder.hotkeys, Vec::new()),
+            flags: builder.flags,
+            shorten_name: builder.shorten_name,
+        }
+    }
+
 }
 
 /// A plugin that can only be built once.
@@ -278,6 +296,10 @@ impl<T: PluginOnce + Sync + Send + 'static> Plugin for PluginOnceShim<T> {
         } else {
             warn!("plugin once shim called a second time");
         }
+    }
+
+    fn is_unique(&self) -> bool {
+        false
     }
 }
 

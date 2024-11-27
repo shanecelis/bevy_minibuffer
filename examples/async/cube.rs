@@ -25,17 +25,15 @@ fn main() {
             MinibufferPlugins.set(video_settings.minibuffer_plugin()),
         ))
         // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
-        .add_plugins(Builtin::default().into_plugin())
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
-        .add_plugins(
-            ActsPlugin::new([
-                Act::new(stop),
-                Act::new(start),
-                Act::new(speed.pipe(future_result_sink)),
-            ])
-            .into_plugin(),
-        )
+        // Add commands.
+        .add_acts((
+            Builtin::default(),
+            Act::new(stop),
+            Act::new(start),
+            Act::new(speed.pipe(future_result_sink)).hotkey(keyseq! { S })
+        ))
         .run();
 }
 

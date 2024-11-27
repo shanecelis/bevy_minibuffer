@@ -17,24 +17,23 @@ fn main() {
         title: "Bevy Minibuffer Cube Async Example".into(),
     };
     App::new()
+        // Normally, you'd do this:
         // .add_plugins((DefaultPlugins, MinibufferPlugins))
+        // For the demo, we do it slightly differently like this:
         .add_plugins((
             DefaultPlugins.set(video_settings.window_plugin()),
             MinibufferPlugins.set(video_settings.minibuffer_plugin()),
         ))
-        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
-        // .add_plugins(bevy_inspector_egui::quick::StateInspectorPlugin::<bevy_minibuffer::prompt::MinibufferState>::new())
-        .add_plugins(Builtin::default().into_plugin())
+        // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
-        .add_plugins(
-            ActsPlugin::new([
-                Act::new(stop),
-                Act::new(start),
-                Act::new(speed).hotkey(keyseq! { S }),
-            ])
-            .into_plugin(),
-        )
+        // Add commands.
+        .add_acts((
+            Builtin::default(),
+            Act::new(stop),
+            Act::new(start),
+            Act::new(speed).hotkey(keyseq! { S })
+        ))
         .run();
 }
 
@@ -93,9 +92,6 @@ fn setup(
 // This system will rotate any entity in the scene with a Rotatable component around its y-axis.
 fn rotate_cube(mut cubes: Query<(&mut Transform, &Rotatable)>, timer: Res<Time>) {
     for (mut transform, cube) in &mut cubes {
-        // The speed is first multiplied by TAU which is a full rotation (360deg) in radians,
-        // and then multiplied by delta_seconds which is the time that passed last frame.
-        // In other words. Speed is equal to the amount of rotations per second.
         transform.rotate_y(cube.speed * TAU * timer.delta_seconds());
     }
 }

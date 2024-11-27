@@ -1,6 +1,6 @@
 //! A universal argument, accepts a numerical prefix.
 use crate::{
-    act::{Act, ActFlags, ActsPlugin, PluginOnce},
+    act::{Act, ActFlags, Acts, PluginOnce},
     event::{RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
     Minibuffer, MinibufferAsync,
@@ -15,13 +15,13 @@ use std::{fmt::Debug, future::Future};
 /// Adds act "universal_argument" and resource [UniversalArg].
 pub struct UniversalPlugin {
     /// Acts
-    pub acts: ActsPlugin,
+    pub acts: Acts,
 }
 
 impl Default for UniversalPlugin {
     fn default() -> Self {
         Self {
-            acts: ActsPlugin::new(vec![
+            acts: Acts::new(vec![
                 Act::new(universal_argument.pipe(future_sink))
                     .named("universal_argument")
                     .hotkey(keyseq! { Ctrl-U })
@@ -117,7 +117,7 @@ mod tests {
     #[test]
     fn check_drain_read() {
         let mut plugin = UniversalPlugin::default();
-        let _ = plugin.acts.drain(..);
+        let _ = plugin.acts.drain();
         assert_eq!(plugin.acts.len(), 0);
     }
 }

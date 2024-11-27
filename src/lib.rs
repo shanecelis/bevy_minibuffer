@@ -41,7 +41,7 @@ pub mod input {
 
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
-    pub use super::act::{self, Act, ActBuilder, ActsPlugin, PluginOnce};
+    pub use super::act::{self, Act, ActBuilder, Acts, PluginOnce, AddActs};
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, Modifiers};
     pub use super::Builtin;

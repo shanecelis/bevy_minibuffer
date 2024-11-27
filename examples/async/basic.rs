@@ -25,20 +25,6 @@ async fn ask_age(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     Ok(())
 }
 
-/// Add acts using [Commands].
-fn add_acts(mut commands: Commands) {
-    commands.add(
-        Act::new(ask_name.pipe(future_result_sink))
-            .named("ask_name")
-            .hotkey(keyseq!(Ctrl-A N)),
-    );
-    commands.add(
-        Act::new(ask_age.pipe(future_result_sink))
-            .named("ask_age")
-            .hotkey(keyseq! { Ctrl-A A }),
-    );
-}
-
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2dBundle::default());
 }
@@ -55,9 +41,18 @@ fn main() {
         ))
         // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         // .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
-        .add_plugins(UniversalPlugin::default().into_plugin())
-        // Add builtin commands.
-        .add_plugins(Builtin::default().into_plugin())
-        .add_systems(Startup, (setup, add_acts))
+        .add_systems(Startup, setup)
+        .add_acts((
+            // Add builtin commands.
+            Builtin::default(),
+            // Add universal argument commands.
+            UniversalPlugin::default(),
+            Act::new(ask_name.pipe(future_result_sink))
+                .named("ask_name")
+                .hotkey(keyseq!(Ctrl-A N)),
+            Act::new(ask_age.pipe(future_result_sink))
+                .named("ask_age")
+                .hotkey(keyseq! { Ctrl-A A }),
+            ))
         .run();
 }

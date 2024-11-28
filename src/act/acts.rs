@@ -19,7 +19,7 @@ pub trait ActsPlugin: Plugin {
     // }
 }
 
-/// Houses a collection of acts.
+/// A collection of acts
 ///
 /// Acts may be inspected and modified before adding to app.
 #[derive(Debug, Deref, DerefMut, Default)]

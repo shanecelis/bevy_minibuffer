@@ -45,7 +45,7 @@ bitflags! {
     }
 }
 
-/// Hotkey is a key sequence and optionally an alias.
+/// A key sequence and an optional alias
 #[derive(Debug, Clone, Reflect)]
 pub struct Hotkey {
     /// Key chord sequence
@@ -108,7 +108,7 @@ pub struct Act {
     pub flags: ActFlags,
 }
 
-/// A cache that maps hotkeys to [Act]s.
+/// Maps hotkeys to [Act]s
 #[derive(Resource, Default)]
 pub struct ActCache {
     trie: Option<Trie<KeyChord, Act>>,
@@ -136,7 +136,7 @@ impl ActCache {
     }
 }
 
-/// Builds an act.
+/// Builds [Act]s
 #[derive(Debug)]
 pub struct ActBuilder {
     pub(crate) name: Option<Cow<'static, str>>,

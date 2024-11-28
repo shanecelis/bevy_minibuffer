@@ -15,8 +15,51 @@ The video above shows the [two_commands.rs](examples/two_commands.rs) example.
 # Goals
 
 - [x] Easily add acts, i.e., commands
+
+```no_run rust
+//! Add a command.
+use bevy::prelude::*;
+use bevy_minibuffer::prelude::*;
+
+fn hello_world() {
+    info!("Hello, world");
+}
+
+fn main() {
+    App::new()
+        .add_plugins((DefaultPlugins, MinibufferPlugins))
+        .add_acts(Act::new(hello_world))
+        .add_systems(Startup, |mut commands: Commands| {
+            commands.spawn(Camera2dBundle::default());
+        });
+        .run();
+}
+```
+
 - [x] Easily bind key chord sequences to acts via [bevy-input-sequences](https://github.com/not-elm/bevy-input-sequence)
+
+```no_run rust
+//! Add a command with a hotkey.
+use bevy::prelude::*;
+use bevy_minibuffer::prelude::*;
+
+fn hello_world() {
+    info!("Hello, world");
+}
+
+fn main() {
+    App::new()
+        .add_plugins((DefaultPlugins, MinibufferPlugins))
+        .add_acts(Act::new(hello_world).hotkey(keyseq! { Ctrl-H }))
+        .add_systems(Startup, |mut commands: Commands| {
+            commands.spawn(Camera2dBundle::default());
+        });
+        .run();
+}
+```
+
 - [x] Easily solicit user for input via [bevy_asky](https://github.com/shanecelis/bevy_asky)
+
 - [x] Tab completion where possible
 - [x] Easily opt-in to built-in functionality
 - [ ] Easily exclude from build
@@ -28,6 +71,9 @@ release build. But I'd like to affirm that in practice before checking that box.
 # Antigoals
 
 - No general-purpose text editing
+
+We are not making a text editor.
+
 - No windows or panels
 
 Try to force everything through the minibuffer at the bottom of the screen. It
@@ -59,7 +105,7 @@ command's help or usage to determine the right arguments. We tolerate this
 because we can then script these interactions.
 
 In general the Unix shell trades interactive convenience for non-interactive
-scriptability, and it's a good trade because of its scriptability. Minibuffer
+scriptability, and it is a good trade because of its scriptability. Minibuffer
 does not provide interactive scriptability[^1] but that means we can make it a
 better interactive experience. For instance instead of being required to know
 the arguments for any given command, Minibuffer commands will query the user for

@@ -1,4 +1,6 @@
-//! A sync version of the Minibuffer parameter.
+//! A sync version of the Minibuffer parameter
+//!
+//! It uses triggers rather than promises.
 use crate::{
     autocomplete::AutoComplete, lookup::Lookup, prompt::GetKeyChord, prompt::PromptState,
     ui::PromptContainer, view::View, Dest, Message,

@@ -111,7 +111,7 @@ pub(crate) fn get_key_chords(
     mut buffer: Local<VecDeque<KeyChord>>,
     mut commands: Commands,
 ) {
-    let mods = Modifiers::from_input(&keys);
+    let mods = Modifiers::from(&keys);
     let mut chords: VecDeque<KeyChord> = keys
         .get_just_pressed()
         .filter(|key| !is_modifier(**key))
@@ -134,7 +134,7 @@ pub(crate) fn get_key_chords(
 pub fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<Config>,
-    redraw: EventWriter<RequestRedraw>,
+    // redraw: EventWriter<RequestRedraw>,
     mut query: Query<Entity, With<T>>,
 ) {
     if !config.auto_hide {
@@ -261,8 +261,8 @@ pub(crate) fn listen_prompt_active(
 
 #[cfg(test)]
 mod tests {
-    // use crate::lookup::Lookup;
-    // use crate::prompt::Parse;
+    use crate::lookup::Lookup;
+    // use super::Parse;
 
     // #[derive(Debug)]
     // struct TomDickHarry(String);
@@ -288,14 +288,14 @@ mod tests {
     //     assert_eq!(a.0, "Tom");
     // }
 
-    // #[test]
-    // fn test_lookup() {
-    //     use trie_rs::Trie;
-    //     let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
-    //     assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");
-    //     let lookup: &dyn Lookup = &trie;
-    //     assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
-    //     assert_eq!(lookup.longest_prefix("b"), None);
-    //     // let lookup: &dyn Lookup = &trie;
-    // }
+    #[test]
+    fn test_lookup() {
+        use trie_rs::Trie;
+        let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
+        assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");
+        let lookup: &dyn Lookup = &trie;
+        assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
+        assert_eq!(lookup.longest_prefix("b"), None);
+        // let lookup: &dyn Lookup = &trie;
+    }
 }

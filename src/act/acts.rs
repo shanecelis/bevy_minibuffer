@@ -43,12 +43,6 @@ impl From<ActBuilder> for Acts {
     }
 }
 
-// impl From<&mut ActBuilder> for Acts {
-//     fn from(builder: &mut ActBuilder) -> Acts {
-//         Acts::new([ActBuilder::from(builder)])
-//     }
-// }
-
 pub trait ActBuilders<Marker>: sealed::ActBuilders<Marker> {}
 impl<Marker, T> ActBuilders<Marker> for T where T: sealed::ActBuilders<Marker> {}
 
@@ -58,13 +52,12 @@ mod sealed {
         app::App,
         ecs::world::{Command, World},
     };
-    pub struct PluginOnceMarker;
     pub struct ActsPluginMarker;
     pub struct ActBuilderMarker;
     pub struct MutActBuilderMarker;
     pub struct ActsMarker;
-    pub struct IntoActsMarker;
-    pub struct ActBuilderTupleMarker;
+    // pub struct IntoActsMarker;
+    pub struct ActBuildersTupleMarker;
 
     pub trait ActBuilders<Marker> {
         fn add_to_app(self, app: &mut App)
@@ -74,9 +67,9 @@ mod sealed {
             self.add_to_world(app.world_mut());
         }
 
-        fn add_to_world(self, world: &mut World); //  where Self: Sized {
-                                                  //     todo!("No add_to_world implementation.");
-                                                  // }
+        fn add_to_world(self, _world: &mut World) where Self: Sized {
+            todo!("No add_to_world implementation.");
+        }
     }
 
     impl ActBuilders<ActBuilderMarker> for ActBuilder {
@@ -101,8 +94,8 @@ mod sealed {
             app.add_plugins(self);
         }
 
-        fn add_to_world(self, world: &mut World) {
-            panic!("This shouldn't be called.");
+        fn add_to_world(self, _world: &mut World) {
+            panic!("This should not be called.");
         }
     }
 
@@ -129,7 +122,7 @@ mod sealed {
 
     macro_rules! impl_plugins_tuples {
         ($(($param: ident, $plugins: ident)),*) => {
-            impl<$($param, $plugins),*> ActBuilders<(ActBuilderTupleMarker, $($param,)*)> for ($($plugins,)*)
+            impl<$($param, $plugins),*> ActBuilders<(ActBuildersTupleMarker, $($param,)*)> for ($($plugins,)*)
             where
                 $($plugins: ActBuilders<$param>),*
             {
@@ -139,7 +132,7 @@ mod sealed {
                     let ($($plugins,)*) = self;
                     $($plugins.add_to_app(app);)*
                 }
-                fn add_to_world(self, world: &mut World) {
+                fn add_to_world(self, _world: &mut World) {
                 }
             }
         }
@@ -165,14 +158,6 @@ impl AddActs for App {
 //             acts.add_to_world(world);
 //         });
 //         self
-//     }
-// }
-// pub struct PluginActsMarker;
-
-// impl bevy::app::Plugins<PluginActsMarker> for Acts {
-//     fn add_to_world(self, app: &mut App) {
-//         todo!();
-//         // app.add_plugins(self.into_plugin());
 //     }
 // }
 

@@ -1,3 +1,6 @@
+//! An async version of the Minibuffer parameter
+//!
+//! It uses promises rather than triggers.
 use crate::{
     autocomplete::AutoComplete,
     event::DispatchEvent,
@@ -20,7 +23,6 @@ use bevy::{
 };
 use bevy_asky::{
     construct::{Add, Construct},
-    sync::{AskyCommands, AskyEntityCommands},
     AskyAsync, AskyEvent, Submitter,
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
@@ -77,7 +79,6 @@ unsafe impl SystemParam for MinibufferAsync {
 
 impl MinibufferAsync {
     /// Prompt the user for input.
-    #[must_use]
     pub fn prompt<T: Construct + Bundle + Submitter>(
         &mut self,
         props: impl Into<T::Props>,
@@ -106,29 +107,12 @@ impl MinibufferAsync {
             .map_err(Error::from)
     }
 
-    // #[must_use]
-    // pub fn prompt_group<T: Construct + Component + Part>(
-    //     &mut self,
-    //     group_prop: impl Into<<<T as Part>::Group as Construct>::Props>,
-    //     props: impl IntoIterator<Item = impl Into<T::Props>>,
-    // ) -> impl Future<Output = Result<<<T as Part>::Group as Submitter>::Out, Error>>
-    // where
-    //     <T as Construct>::Props: Send,
-    //     <<T as Part>::Group as Construct>::Props: Send,
-    //     <T as Part>::Group: Component + Construct + Send + Sync + Submitter,
-    //     <<T as Part>::Group as Submitter>::Out: Clone + Debug + Send + Sync {
-    //     self.asky
-    //         .prompt_group::<T, View>(group_prop, props, Dest::ReplaceChildren(self.dest))
-    //         .map_err(Error::from)
-    // }
-
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
         self.sender.send(DispatchEvent::EmitMessage(msg.into()));
     }
 
     /// Read input from user that must match a [Lookup].
-    #[must_use]
     pub fn read<L>(
         &mut self,
         prompt: impl Into<Cow<'static, str>>,
@@ -179,18 +163,16 @@ impl MinibufferAsync {
 
             async_world
                 .resource::<State<PromptState>>()
-                .get(|res| matches!(**res, PromptStateVisible))
+                .get(|res| matches!(**res, PromptState::Visible))
                 .map_err(Error::from)
         }
     }
 
     /// Wait a certain duration.
-    #[must_use]
     pub fn delay(&mut self, duration: Duration) -> impl Future<Output = ()> {
         AsyncWorld::new().sleep(duration)
     }
 
-    #[must_use]
     pub async fn delay_or_chord(&mut self, duration: Duration) -> Option<KeyChord> {
         let sleep = AsyncWorld::new().sleep(duration);
         let get_key = self.get_chord();
@@ -203,7 +185,6 @@ impl MinibufferAsync {
     }
 
     /// Get the next key chord.
-    #[must_use]
     pub fn get_chord(&mut self) -> impl Future<Output = Result<KeyChord, Error>> {
         async {
             let (promise, waiter) = oneshot::channel::<Result<KeyChord, Error>>();

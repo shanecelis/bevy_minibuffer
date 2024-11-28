@@ -1,3 +1,5 @@
+//! Implements Asky's views for Minibuffer
+#![allow(clippy::type_complexity)]
 use bevy::{
     ecs::{query::QueryEntityError, system::SystemParam},
     prelude::*,
@@ -206,7 +208,7 @@ pub fn plugin(app: &mut App) {
 }
 
 pub(crate) fn prompt_view(
-    mut query: Query<(Entity, &Prompt), Or<(Changed<View>, Changed<Prompt>)>>,
+    mut query: Query<(Entity, &Prompt), (With<View>, Changed<Prompt>)>,
     mut writer: Inserter<Text>,
 ) {
     for (id, prompt) in query.iter_mut() {
@@ -219,7 +221,7 @@ pub(crate) fn prompt_view(
 }
 
 pub(crate) fn feedback_view(
-    mut query: Query<(Entity, &Feedback), Or<(Changed<View>, Changed<Feedback>)>>,
+    mut query: Query<(Entity, &Feedback), (With<View>, Changed<Feedback>)>,
     mut writer: Inserter<Text>,
 ) {
     for (id, feedback) in query.iter_mut() {
@@ -232,28 +234,28 @@ pub(crate) fn feedback_view(
 }
 
 pub(crate) fn clear_feedback<T: Component>(
-    mut query: Query<&mut Feedback, Or<(Changed<View>, Changed<T>)>>,
+    mut query: Query<&mut Feedback, (With<View>, Changed<T>)>,
 ) {
     for mut feedback in query.iter_mut() {
         feedback.clear();
     }
 }
 
-pub(crate) fn focus_view(
-    focus: Focus,
-    query: Query<Entity, Or<(Changed<View>, Changed<Focusable>)>>,
-    writer: Inserter<Text>,
-    palette: Res<Palette>,
-) {
-    // for id in query.iter_mut() {
-    //     writer
-    //         .insert_or_get_mut(id, ViewPart::Focus as usize, |text| {
-    //             replace_or_insert(text, 0, if focus.is_focused(id) { "> " } else { "  " });
-    //             text.sections[0].style.color = palette.highlight.into();
-    //         })
-    //         .expect("focus");
-    // }
-}
+// pub(crate) fn focus_view(
+//     focus: Focus,
+//     query: Query<Entity, Or<(With<View>, Changed<Focusable>)>>,
+//     writer: Inserter<Text>,
+//     palette: Res<Palette>,
+// ) {
+//     // for id in query.iter_mut() {
+//     //     writer
+//     //         .insert_or_get_mut(id, ViewPart::Focus as usize, |text| {
+//     //             replace_or_insert(text, 0, if focus.is_focused(id) { "> " } else { "  " });
+//     //             text.sections[0].style.color = palette.highlight.into();
+//     //         })
+//     //         .expect("focus");
+//     // }
+// }
 
 pub fn text_view<F: bevy::ecs::query::QueryFilter>(
     query: Query<
@@ -261,7 +263,7 @@ pub fn text_view<F: bevy::ecs::query::QueryFilter>(
         (
             F,
             // Without<Password>,
-            Or<(Changed<View>, Changed<StringCursor>, Changed<Focusable>)>,
+            (With<View>, Or<(Changed<StringCursor>, Changed<Focusable>)>),
         ),
     >,
     mut texts: Query<&mut Text>, //, &mut BackgroundColor)>,
@@ -368,7 +370,7 @@ pub(crate) fn password_view(
         (Entity, &StringCursor, &Children, Option<&Placeholder>),
         (
             With<Password>,
-            Or<(Changed<View>, Changed<StringCursor>, Changed<Focusable>)>,
+            (With<View>, Or<(Changed<StringCursor>, Changed<Focusable>)>),
         ),
     >,
     mut texts: Query<&mut Text>, //, &mut BackgroundColor)>,
@@ -453,7 +455,7 @@ pub(crate) fn password_view(
 }
 
 pub(crate) fn toggle_view(
-    mut query: Query<(Entity, &Toggle), Or<(Changed<View>, Changed<Focusable>, Changed<Toggle>)>>,
+    mut query: Query<(Entity, &Toggle), (With<View>, Or<(Changed<Focusable>, Changed<Toggle>)>)>,
     palette: Res<Palette>,
     mut commands: Commands,
     mut writer: Inserter<BackgroundColor>,
@@ -511,7 +513,7 @@ pub(crate) fn toggle_view(
 }
 
 pub(crate) fn confirm_view(
-    mut query: Query<(Entity, &Confirm), Or<(Changed<View>, Changed<Focusable>, Changed<Confirm>)>>,
+    mut query: Query<(Entity, &Confirm), (With<View>, Or<(Changed<Focusable>, Changed<Confirm>)>)>,
     palette: Res<Palette>,
     mut commands: Commands,
     mut writer: Inserter<BackgroundColor>,
@@ -581,7 +583,7 @@ pub(crate) fn group_view(
 pub(crate) fn checkbox_view(
     mut query: Query<
         (Entity, &Checkbox),
-        Or<(Changed<View>, Changed<Checkbox>, Changed<Focusable>)>,
+        (With<View>, Or<(Changed<Checkbox>, Changed<Focusable>)>),
     >,
     palette: Res<Palette>,
     mut writer: Inserter<Text>,
@@ -603,7 +605,7 @@ pub(crate) fn checkbox_view(
 }
 
 pub(crate) fn radio_view(
-    mut query: Query<(Entity, &Radio), Or<(Changed<View>, Changed<Radio>, Changed<Focusable>)>>,
+    mut query: Query<(Entity, &Radio), (With<View>, Or<(Changed<Radio>, Changed<Focusable>)>)>,
     palette: Res<Palette>,
     mut writer: Inserter<Text>,
     focus: Focus,

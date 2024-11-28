@@ -57,12 +57,10 @@ impl ActsPlugin for UniversalArgPlugin {
 
 /// XXX: This shouldn't be here. It should be in an example.
 pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
-    eprintln!("BEGIN: check_accum");
     match arg.0 {
         Some(x) => minibuffer.message(format!("Univeral argument {x}")),
         None => minibuffer.message("No universal argument set"),
     }
-    eprintln!("END: check_accum");
 }
 
 fn clear_arg(
@@ -71,8 +69,8 @@ fn clear_arg(
     mut clear: Local<Option<Cow<'static, str>>>,
 ) {
     // Wait a frame to clear it.
-    if let Some(act) = clear.take() {
-        eprintln!("clear arg for {act}");
+    if let Some(_act) = clear.take() {
+        // info!("clear arg for {act}");
         arg.0 = None;
     }
     if let Some(act) = event.read().next() {
@@ -100,7 +98,7 @@ fn universal_argument(
                 .hotkey
                 .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
         })
-        .unwrap_or("universal_argument".into());
+        .unwrap_or("universal_argument ".into());
 
     minibuffer.message(format!("{prompt}"));
     async move {
@@ -121,9 +119,14 @@ fn universal_argument(
                 Digit8 => 8,
                 Digit9 => 9,
                 Minus => -1,
+                // TODO: If the key chord is hit multiple times, we should
+                // add some multiple to it like 4 or 8.
+                //
+                // KeyU => {
+                // }
                 _ => {
                     let world = AsyncWorld::new();
-                    eprintln!("set accum {accum}");
+                    // info!("set universal arg to {accum}");
                     let _ = world
                         .resource::<UniversalArg>()
                         .set(move |r| r.0 = Some(accum));

@@ -50,7 +50,7 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let _ = minibuffer.delay_or_chord(beat).await;
     minibuffer.message("So...");
     let _ = minibuffer.delay_or_chord(beat).await;
-    let signup = minibuffer
+    let _signup = minibuffer
         .prompt::<Confirm>("Let's sign you up on our email list.")
         .await?;
     let email: Result<String, Error> = minibuffer.prompt::<TextField>("What's your email? ").await;

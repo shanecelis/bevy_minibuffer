@@ -32,7 +32,7 @@ pub use future::MinibufferAsync;
 pub use sync::Minibuffer;
 // mod plugin_once;
 
-/// Input, mainly re-exports from [keyseq].
+/// Input, mainly re-exports from [keyseq]
 pub mod input {
     pub use keyseq::{
         bevy::{pkey as key, pkeyseq as keyseq},

@@ -1,5 +1,6 @@
 use crate::{
     act::{ActCache, ActFlags, ActsPlugin},
+    event::LastRunAct,
     lookup::Resolve,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
@@ -13,12 +14,21 @@ use std::{
 };
 
 #[cfg(feature = "async")]
-use crate::future_result_sink;
+use crate::{
+    future_result_sink,
+};
+#[cfg(not(feature = "async"))]
+use crate::{
+    autocomplete::RequireMatch,
+    prompt::KeyChordEvent,
+};
 use bevy::{prelude::*, window::RequestRedraw};
 #[cfg(feature = "async")]
 use bevy_defer::AsyncWorld;
 use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
+#[cfg(not(feature = "async"))]
+use trie_rs::inc_search::IncSearch;
 
 #[cfg(feature = "async")]
 use futures::Future;
@@ -28,7 +38,7 @@ use futures::Future;
 pub fn exec_act(
     mut minibuffer: MinibufferAsync,
     acts: Query<&Act>,
-) -> impl Future<Output = Result<(), crate::Error>> {
+    last_act: Res<LastRunAct>) -> impl Future<Output = Result<(), crate::Error>> {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
@@ -36,8 +46,16 @@ pub fn exec_act(
         }
     }
     let acts: Trie<u8, Act> = builder.build();
+    let prompt: Cow<'static, str> = (*last_act)
+        .as_ref()
+        .and_then(|run_act| {
+            run_act
+                .hotkey
+                .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
+        })
+        .unwrap_or("exec_act: ".into());
     async move {
-        match minibuffer.read(":", acts.clone()).await {
+        match minibuffer.read(prompt, acts.clone()).await {
             // TODO: Get rid of clone.
             Ok(act_name) => match acts.resolve(&act_name) {
                 Ok(act) => {
@@ -76,26 +94,13 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Las
                 .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
         })
         .unwrap_or("exec_act".into());
-
-    //     if let Some(ref run_act) = **last_act {
-    //     if let Some(index) = run_act.hotkey {
-    //         format!("{}", run_act.act.hotkeys[index]).into()
-    //     } else {
-    //     "exec_act".into()
-    //     }
-    // } else {
-    //     "exec_act".into()
-    // };
     minibuffer
         .read(prompt, acts.clone())
         .insert(RequireMatch)
         .observe(
             move |trigger: Trigger<AskyEvent<String>>,
-                  // query: Query<&AutoComplete>,
                   mut writer: EventWriter<RunActEvent>,
                   mut minibuffer: Minibuffer| {
-                // let autocomplete = query.get(trigger.entity()).unwrap();
-                // let act_name = trigger.event().0.unwrap().cloned();
                 match &trigger.event().0 {
                     Ok(act_name) => match acts.resolve(act_name) {
                         Ok(act) => {
@@ -159,7 +164,6 @@ pub fn list_acts(acts: Query<&Act>) -> String {
 ///     .add_flags(ActFlags::Show)
 ///     .hotkey(keyseq! { Ctrl-H A }),
 /// ```
-
 pub fn to_message(In(msg): In<String>, mut minibuffer: Minibuffer) {
     minibuffer.message(msg);
 }
@@ -274,7 +278,6 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuff
     let mut position = trie.inc_search().into();
     // search
     let mut accum = String::from("");
-    // let state = (trie, search);
 
     minibuffer.message("Press key: ");
     minibuffer.get_chord().observe(
@@ -283,9 +286,6 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuff
               mut minibuffer: Minibuffer| {
             use trie_rs::inc_search::Answer;
             let mut search = IncSearch::resume(&trie, position);
-            // let (trie, search) = state;
-            // let trie = trie;
-            // let search = search;
             let chord = &trigger.event().0;
             match search.query(chord) {
                 Some(x) => {
@@ -317,11 +317,17 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuff
     );
 }
 
-#[derive(Debug, Deref, DerefMut)]
-/// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key, and toggle_visibility.
+/// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key, and
+/// toggle_visibility.
 ///
 /// Key bindings may be altered or removed prior to adding this as a
 /// plugin. Likewise acts may be altered or removed.
+///
+/// Although it is a [Plugin], if you use [App::add_plugins], the acts will not
+/// be added. [ActBuilder] contains a non-cloneable that must be taken which
+/// [Plugin::build] does not permit with its read-only `&self` access. Instead
+/// use [AddActs::add_acts].
+#[derive(Debug, Deref, DerefMut)]
 pub struct Builtin {
     /// Set of builtin acts
     pub acts: Acts,
@@ -386,7 +392,7 @@ impl From<Builtin> for Acts {
 }
 
 impl Plugin for Builtin {
-    fn build(&self, app: &mut bevy::app::App) {}
+    fn build(&self, _app: &mut App) {}
 }
 
 impl ActsPlugin for Builtin {
@@ -394,9 +400,3 @@ impl ActsPlugin for Builtin {
         self.acts.take()
     }
 }
-
-// impl PluginOnce for Builtin {
-//     fn build(self, app: &mut App) {
-//         self.acts.build(app);
-//     }
-// }

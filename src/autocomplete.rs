@@ -1,4 +1,4 @@
-//! Provides autocomplete.
+//! Provides autocomplete
 use crate::{
     event::LookupEvent,
     lookup::{Lookup, LookupError},

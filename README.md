@@ -16,7 +16,7 @@ The video above shows the [two_commands.rs](examples/two_commands.rs) example.
 
 - [x] Easily add acts, i.e., commands
 
-```no_run rust
+```no_run,rust
 //! Add a command.
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
@@ -38,7 +38,27 @@ fn main() {
 
 - [x] Easily bind key chord sequences to acts via [bevy-input-sequences](https://github.com/not-elm/bevy-input-sequence)
 
-```no_run rust
+```rust no_run
+//! Add a command with a hotkey.
+use bevy::prelude::*;
+use bevy_minibuffer::prelude::*;
+
+fn hello_world() {
+    info!("Hello, world");
+}
+
+fn main() {
+    App::new()
+        .add_plugins((DefaultPlugins, MinibufferPlugins))
+        .add_acts(Act::new(hello_world).hotkey(keyseq! { Ctrl-H }))
+        .add_systems(Startup, |mut commands: Commands| {
+            commands.spawn(Camera2dBundle::default());
+        });
+        .run();
+}
+```
+
+```rust,no_run
 //! Add a command with a hotkey.
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;

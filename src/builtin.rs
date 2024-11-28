@@ -1,6 +1,6 @@
 use crate::{
     event::LastRunAct,
-    act::{ActCache, ActFlags, PluginOnce},
+    act::{ActCache, ActFlags, ActsPlugin},
     lookup::Resolve,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
@@ -344,21 +344,22 @@ impl Default for Builtin {
                     .add_flags(ActFlags::Show)
                     .hotkey(keyseq! { Ctrl-H B }),
                 ActBuilder::new(toggle_visibility)
-                    // .named("toggle_visibility")
+                    .named("toggle_visibility")
                     .hotkey(keyseq! { Backquote })
-                    .in_exec_act(false),
+                    .sub_flags(ActFlags::ExecAct),
                 #[cfg(feature = "async")]
                 ActBuilder::new(exec_act.pipe(future_result_sink))
                     .named("exec_act")
                     .hotkey_named(keyseq! { Shift-; }, ":")
                     .hotkey(keyseq! { Alt-X })
-                    .in_exec_act(false),
+                    .add_flags(ActFlags::Adverb)
+                    .sub_flags(ActFlags::ExecAct),
                 #[cfg(not(feature = "async"))]
                 ActBuilder::new(exec_act)
                     .named("exec_act")
                     .hotkey_named(keyseq! { Shift-; }, ":")
                     .hotkey(keyseq! { Alt-X })
-                    .in_exec_act(false),
+                    .add_flags(ActFlags::Adverb),
                 #[cfg(feature = "async")]
                 ActBuilder::new(describe_key.pipe(future_result_sink))
                     .named("describe_key")
@@ -393,7 +394,7 @@ impl Plugin for Builtin {
     fn build(&self, app: &mut bevy::app::App) {}
 }
 
-impl crate::universal::PluginWithActs for Builtin {
+impl ActsPlugin for Builtin {
     fn take_acts(&mut self) -> Acts {
         self.acts.take()
     }

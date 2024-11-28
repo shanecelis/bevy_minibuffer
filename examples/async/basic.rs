@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
-use bevy_minibuffer::universal::UniversalPlugin;
 use std::time::Duration;
 #[path = "../common/lib.rs"]
 mod common;
@@ -46,7 +45,7 @@ fn main() {
             // Add builtin commands.
             Builtin::default(),
             // Add universal argument commands.
-            UniversalPlugin::default(),
+            UniversalArgPlugin::default(),
             Act::new(ask_name.pipe(future_result_sink))
                 .named("ask_name")
                 .hotkey(keyseq!(Ctrl-A N)),

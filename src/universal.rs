@@ -1,31 +1,33 @@
 //! A universal argument, accepts a numerical prefix.
+//!
+//! Can be queried by other commands using the [UniversalArg] resource.
 use crate::{
-    act::{Act, ActFlags, Acts, PluginOnce},
-    event::{RunActEvent, RunInputSequenceEvent},
+    act::{Act, ActFlags, Acts, ActsPlugin},
+    event::{LastRunAct, RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
     Minibuffer, MinibufferAsync,
 };
 use bevy::prelude::*;
 use bevy_defer::{AsyncAccess, AsyncWorld};
 use bevy_input_sequence::KeyChord;
-use std::{fmt::Debug, future::Future};
+use std::{borrow::Cow, fmt::Debug, future::Future};
 
 /// Universal argument plugin
 ///
 /// Adds act "universal_argument" and resource [UniversalArg].
-pub struct UniversalPlugin {
+pub struct UniversalArgPlugin {
     /// Acts
     pub acts: Acts,
 }
 
-impl Default for UniversalPlugin {
+impl Default for UniversalArgPlugin {
     fn default() -> Self {
         Self {
             acts: Acts::new(vec![
                 Act::new(universal_argument.pipe(future_sink))
                     .named("universal_argument")
                     .hotkey(keyseq! { Ctrl-U })
-                    .in_exec_act(false),
+                    .sub_flags(ActFlags::ExecAct),
                 Act::new(check_accum)
                     .named("check_accum")
                     .hotkey(keyseq! { C A }),
@@ -34,48 +36,41 @@ impl Default for UniversalPlugin {
     }
 }
 
-pub trait PluginWithActs: Plugin {
-    fn take_acts(&mut self) -> Acts;
-}
-
-impl Plugin for UniversalPlugin {
+impl Plugin for UniversalArgPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         app.init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
         if !self.acts.is_empty() {
-            warn!("universal plugin has acts were not added.");
+            warn!("universal plugin has {} that acts were not added.", self.acts.len());
         }
     }
 }
 
-impl PluginWithActs for UniversalPlugin {
+impl ActsPlugin for UniversalArgPlugin {
     fn take_acts(&mut self) -> Acts {
         self.acts.take()
     }
 }
 
-// impl PluginOnce for UniversalPlugin {
-//     fn build(mut self, app: &mut bevy::app::App) {
-//         app.init_resource::<UniversalArg>()
-//             .add_systems(bevy::app::Last, clear_arg);
-//         // XXX: This is kind of funky.
-//         self.acts.build(app);
-//     }
-// }
-
 /// XXX: This shouldn't be here. It should be in an example.
 pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
+    eprintln!("BEGIN: check_accum");
     match arg.0 {
         Some(x) => minibuffer.message(format!("Univeral argument {x}")),
         None => minibuffer.message("No universal argument set"),
     }
+    eprintln!("END: check_accum");
 }
 
-fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>) {
+fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>, mut clear: Local<Option<Cow<'static, str>>>) {
+    // Wait a frame to clear it.
+    if let Some(act) = clear.take() {
+        eprintln!("clear arg for {act}");
+        arg.0 = None;
+    }
     if let Some(act) = event.read().next() {
         if !act.flags.contains(ActFlags::Adverb) {
-            // eprintln!("clear arg for {act}");
-            arg.0 = None;
+            *clear = Some(act.name.clone());
         }
     }
 }
@@ -85,8 +80,17 @@ fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>)
 #[derive(Debug, Clone, Resource, Default, Reflect)]
 pub struct UniversalArg(Option<i32>);
 
-fn universal_argument(mut minibuffer: MinibufferAsync) -> impl Future<Output = ()> {
+fn universal_argument(mut minibuffer: MinibufferAsync, last_act: Res<LastRunAct>) -> impl Future<Output = ()> {
     use bevy::prelude::KeyCode::*;
+
+    let prompt: Cow<'static, str> =
+        (*last_act).as_ref()
+                   .and_then(|run_act| {
+                       run_act.hotkey.map(|index| format!("{}", run_act.act.hotkeys[index]).into())
+                   })
+                   .unwrap_or("universal_argument".into());
+
+    minibuffer.message(format!("{prompt}"));
     async move {
         let mut accum = 0;
         loop {
@@ -120,7 +124,8 @@ fn universal_argument(mut minibuffer: MinibufferAsync) -> impl Future<Output = (
             } else {
                 accum *= digit;
             }
-            eprintln!("accum {accum}");
+
+            minibuffer.message(format!("{prompt}{accum}"));
         }
     }
 }
@@ -130,13 +135,13 @@ mod tests {
     use super::*;
     #[test]
     fn check_acts() {
-        let plugin = UniversalPlugin::default();
+        let plugin = UniversalArgPlugin::default();
         assert_eq!(plugin.acts.len(), 2);
     }
 
     #[test]
     fn check_drain_read() {
-        let mut plugin = UniversalPlugin::default();
+        let mut plugin = UniversalArgPlugin::default();
         let _ = plugin.acts.drain();
         assert_eq!(plugin.acts.len(), 0);
     }

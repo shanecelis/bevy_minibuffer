@@ -1,12 +1,14 @@
 #+title: Todo
 * TODO
-** Make tab complete scrollable
-** Modeline?
-** Toggle visibility with `
+- [ ] Make keys configurable.
+- [ ] Make tab complete scrollable
+- [/] Modeline?
+No. Not if we can help it.
+- [x] Toggle visibility with `
 * BUGS
-** C-h a doesn't show up readily at first
+** FIXED C-h a doesn't show up readily at first
 ** autocomplete hides when there are more choices
 One can match and be a prefix for other matches. Therefore, the Lookup trait
 must account for both with Result<String, LookupError> can't do.
 ** Cursor goes to second line when on edge of window
-** Can add two acts with same name
+** ADDTEST Can add two acts with same name

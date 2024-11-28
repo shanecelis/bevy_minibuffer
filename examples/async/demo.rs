@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 use bevy_minibuffer::{prelude::{*, Error}, view::View};
 use bevy_asky::prelude::*;
-use bevy_minibuffer::universal::UniversalPlugin;
 use std::time::Duration;
 #[path = "../common/lib.rs"]
 mod common;
@@ -76,7 +75,7 @@ fn main() {
         .add_acts((
             // Add builtin commands.
             Builtin::default(),
-            UniversalPlugin::default(),
+            UniversalArgPlugin::default(),
             Act::new(demo.pipe(future_result_sink))
             .hotkey(keyseq!(D))))
         .run();

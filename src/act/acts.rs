@@ -1,6 +1,11 @@
-use crate::act::{ActBuilder, PluginOnce};
+use crate::act::ActBuilder;
 use bevy::prelude::*;
 use std::{borrow::Cow, collections::HashMap};
+
+
+pub trait ActsPlugin: Plugin {
+    fn take_acts(&mut self) -> Acts;
+}
 
 /// Houses a collection of acts.
 ///
@@ -16,6 +21,14 @@ impl Acts {
 
     pub fn take(&mut self) -> Self {
         std::mem::replace(self, Acts::default())
+    }
+
+    pub fn push(&mut self, builder: impl Into<ActBuilder>) -> Option<ActBuilder> {
+        let builder = builder.into();
+        self.insert(builder.name(), builder).map(|builder| {
+            warn!("Replacing act '{}'.", builder.name());
+            builder
+        })
     }
 }
 
@@ -37,22 +50,14 @@ impl Default for Acts {
     }
 }
 
-impl PluginOnce for Acts {
-    fn build(mut self, app: &mut bevy::app::App) {
-        for (_, act) in self.drain() {
-            PluginOnce::build(act, app);
-        }
-    }
-}
-
 pub trait ActBuilders<Marker>: sealed::ActBuilders<Marker> {}
 impl <Marker, T> ActBuilders<Marker> for T where T: sealed::ActBuilders<Marker> {}
 
 mod sealed {
     use bevy::{app::App, ecs::world::{World, Command}};
-    use crate::{universal::PluginWithActs, act::{Acts, PluginOnce, ActBuilder}};
+    use crate::{act::{Acts, ActBuilder, ActsPlugin}};
     pub struct PluginOnceMarker;
-    pub struct PluginWithActsMarker;
+    pub struct ActsPluginMarker;
     pub struct ActBuilderMarker;
     pub struct MutActBuilderMarker;
     pub struct ActsMarker;
@@ -84,7 +89,7 @@ mod sealed {
     //     }
     // }
 
-    impl<P: PluginWithActs> ActBuilders<PluginWithActsMarker> for P {
+    impl<P: ActsPlugin> ActBuilders<ActsPluginMarker> for P {
         fn add_to_app(mut self, app: &mut App) {
             let acts: Acts = self.take_acts();
             <Acts as ActBuilders<ActsMarker>>::add_to_world(acts, app.world_mut());
@@ -167,22 +172,30 @@ impl AddActs for App {
 //     }
 // }
 
-// #[cfg(test)]
-// mod tests {
-//     use crate::prelude::*;
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+    use super::*;
 
-//     fn act1() {}
-//     #[test]
-//     fn check_acts() {
-//         let plugin = Acts::default();
-//         assert_eq!(plugin.get().len(), 0);
-//     }
+    fn act1() {}
+    #[test]
+    fn check_acts() {
+        let acts = Acts::default();
+        assert_eq!(acts.len(), 0);
+    }
 
-//     #[test]
-//     fn check_drain_read() {
-//         let plugin = Acts::default();
-//         plugin.get_mut().push(Act::new(act1));
-//         assert_eq!(plugin.get().len(), 1);
-//     }
-// }
+    #[test]
+    fn check_drain_read() {
+        let mut acts = Acts::default();
+        acts.push(Act::new(act1));
+        assert_eq!(acts.len(), 1);
+    }
+
+    #[test]
+    fn check_duplicate_names() {
+        let mut acts = Acts::default();
+        acts.push(Act::new(act1));
+        assert!(acts.push(Act::new(act1)).is_some());
+        assert_eq!(acts.len(), 1);
+    }
+}

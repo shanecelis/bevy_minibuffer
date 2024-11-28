@@ -30,6 +30,7 @@ pub use sink::{future_result_sink, future_sink};
 #[cfg(feature = "async")]
 pub use future::MinibufferAsync;
 pub use sync::Minibuffer;
+// mod plugin_once;
 
 /// Input, mainly re-exports from [keyseq].
 pub mod input {
@@ -41,7 +42,7 @@ pub mod input {
 
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
-    pub use super::act::{self, Act, ActBuilder, Acts, PluginOnce, AddActs};
+    pub use super::act::{self, Act, ActBuilder, Acts, AddActs};
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, Modifiers};
     pub use super::Builtin;
@@ -52,6 +53,8 @@ pub mod prelude {
     pub use super::MinibufferAsync;
     #[cfg(feature = "async")]
     pub use super::{future_result_sink, future_sink};
+    #[cfg(feature = "async")]
+    pub use super::universal::*;
     pub use super::{Error, MinibufferPlugin, MinibufferPlugins};
     pub use asky::{prompt::*, AskyEvent};
     pub use bevy_asky as asky;

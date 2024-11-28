@@ -5,8 +5,7 @@ use crate::{
     prompt::{GetKeyChord, KeyChordEvent, PromptState},
     ui::PromptContainer,
     view::View,
-    Dest,
-    Error,
+    Dest, Error,
 };
 use bevy::{
     ecs::{
@@ -16,18 +15,19 @@ use bevy::{
         system::{EntityCommands, Query, Res, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Trigger, State, DespawnRecursiveExt, Bundle},
+    prelude::{Bundle, DespawnRecursiveExt, State, Trigger},
     utils::Duration,
 };
 use bevy_asky::{
-    AskyAsync, AskyEvent, sync::{AskyEntityCommands, AskyCommands},
-    construct::{Add, Construct}, Submitter,
+    construct::{Add, Construct},
+    sync::{AskyCommands, AskyEntityCommands},
+    AskyAsync, AskyEvent, Submitter,
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
 use bevy_channel_trigger::ChannelSender;
-use bevy_defer::{AsyncWorld, AsyncAccess};
+use bevy_defer::{AsyncAccess, AsyncWorld};
 use bevy_input_sequence::KeyChord;
-use futures::{channel::oneshot, Future, future::Either, pin_mut, TryFutureExt};
+use futures::{channel::oneshot, future::Either, pin_mut, Future, TryFutureExt};
 use std::{borrow::Cow, fmt::Debug};
 
 /// MinibufferAsync, a [SystemParam] for async.
@@ -45,7 +45,7 @@ unsafe impl SystemParam for MinibufferAsync {
     type State = (
         Entity,
         // CrossbeamEventSender<DispatchEvent>,
-        ChannelSender<DispatchEvent>
+        ChannelSender<DispatchEvent>,
     );
     type Item<'w, 's> = MinibufferAsync;
 
@@ -98,11 +98,12 @@ impl MinibufferAsync {
     ) -> impl Future<Output = Result<T::Out, Error>>
     where
         <T as Construct>::Props: Send + Sync,
-        <T as Submitter>::Out: Clone + Debug + Send + Sync + 'static {
+        <T as Submitter>::Out: Clone + Debug + Send + Sync + 'static,
+    {
         let p = props.into();
-        self.asky.prompt_with::<Add<T, View>>(p, Dest::ReplaceChildren(self.dest), f)
+        self.asky
+            .prompt_with::<Add<T, View>>(p, Dest::ReplaceChildren(self.dest), f)
             .map_err(Error::from)
-
     }
 
     // #[must_use]
@@ -149,7 +150,9 @@ impl MinibufferAsync {
                 autocomplete.construct(commands, prompt).observe(
                     move |trigger: Trigger<AskyEvent<String>>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
-                            promise.send(trigger.event().0.clone().map_err(Error::from)).expect("send");
+                            promise
+                                .send(trigger.event().0.clone().map_err(Error::from))
+                                .expect("send");
                         }
                         commands.entity(trigger.entity()).despawn_recursive();
                     },
@@ -175,10 +178,9 @@ impl MinibufferAsync {
             let async_world = AsyncWorld::new();
 
             async_world
-            .resource::<State<PromptState>>()
-            .get(|res| matches!(**res, PromptStateVisible))
+                .resource::<State<PromptState>>()
+                .get(|res| matches!(**res, PromptStateVisible))
                 .map_err(Error::from)
-
         }
     }
 
@@ -196,7 +198,7 @@ impl MinibufferAsync {
         pin_mut!(get_key);
         match futures::future::select(sleep, get_key).await {
             Either::Left((_, _)) => None,
-            Either::Right((chord, _)) => chord.ok()
+            Either::Right((chord, _)) => chord.ok(),
         }
     }
 
@@ -212,7 +214,8 @@ impl MinibufferAsync {
                 commands.spawn(GetKeyChord).observe(
                     move |trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
-                            let _ = promise.send(Ok(trigger.event().0.clone()));//.expect("send");
+                            let _ = promise.send(Ok(trigger.event().0.clone()));
+                            //.expect("send");
                         }
                         commands.entity(trigger.entity()).despawn();
                     },

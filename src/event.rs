@@ -1,5 +1,5 @@
 //! Events
-use crate::{Minibuffer, act::Act, act::ActFlags, prompt::PromptState};
+use crate::{act::Act, act::ActFlags, prompt::PromptState, Minibuffer};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -32,7 +32,7 @@ pub(crate) fn plugin(app: &mut App) {
 pub struct RunActEvent {
     #[deref]
     pub act: Act,
-    pub hotkey: Option<usize>
+    pub hotkey: Option<usize>,
 }
 
 #[derive(Resource, Debug, Default, Deref, DerefMut)]
@@ -40,10 +40,7 @@ pub struct LastRunAct(Option<RunActEvent>);
 
 impl RunActEvent {
     pub fn new(act: Act) -> Self {
-        Self {
-            act,
-            hotkey: None
-        }
+        Self { act, hotkey: None }
     }
 
     pub fn hotkey(mut self, index: usize) -> Self {
@@ -199,10 +196,12 @@ pub(crate) fn dispatch_trigger(
 }
 
 /// Run act for any [RunActEvent].
-pub fn run_acts(mut events: EventReader<RunActEvent>,
-                mut next_prompt_state: ResMut<NextState<PromptState>>,
-                mut commands: Commands,
-                mut last_act: ResMut<LastRunAct>) {
+pub fn run_acts(
+    mut events: EventReader<RunActEvent>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
+    mut commands: Commands,
+    mut last_act: ResMut<LastRunAct>,
+) {
     for e in events.read() {
         if e.act.flags.contains(ActFlags::Show) {
             next_prompt_state.set(PromptState::Visible);

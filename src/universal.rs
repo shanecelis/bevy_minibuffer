@@ -41,7 +41,10 @@ impl Plugin for UniversalArgPlugin {
         app.init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
         if !self.acts.is_empty() {
-            warn!("universal plugin has {} that acts were not added.", self.acts.len());
+            warn!(
+                "universal plugin has {} that acts were not added.",
+                self.acts.len()
+            );
         }
     }
 }
@@ -62,7 +65,11 @@ pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
     eprintln!("END: check_accum");
 }
 
-fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>, mut clear: Local<Option<Cow<'static, str>>>) {
+fn clear_arg(
+    mut event: EventReader<RunActEvent>,
+    mut arg: ResMut<UniversalArg>,
+    mut clear: Local<Option<Cow<'static, str>>>,
+) {
     // Wait a frame to clear it.
     if let Some(act) = clear.take() {
         eprintln!("clear arg for {act}");
@@ -80,15 +87,20 @@ fn clear_arg(mut event: EventReader<RunActEvent>, mut arg: ResMut<UniversalArg>,
 #[derive(Debug, Clone, Resource, Default, Reflect)]
 pub struct UniversalArg(Option<i32>);
 
-fn universal_argument(mut minibuffer: MinibufferAsync, last_act: Res<LastRunAct>) -> impl Future<Output = ()> {
+fn universal_argument(
+    mut minibuffer: MinibufferAsync,
+    last_act: Res<LastRunAct>,
+) -> impl Future<Output = ()> {
     use bevy::prelude::KeyCode::*;
 
-    let prompt: Cow<'static, str> =
-        (*last_act).as_ref()
-                   .and_then(|run_act| {
-                       run_act.hotkey.map(|index| format!("{}", run_act.act.hotkeys[index]).into())
-                   })
-                   .unwrap_or("universal_argument".into());
+    let prompt: Cow<'static, str> = (*last_act)
+        .as_ref()
+        .and_then(|run_act| {
+            run_act
+                .hotkey
+                .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
+        })
+        .unwrap_or("universal_argument".into());
 
     minibuffer.message(format!("{prompt}"));
     async move {

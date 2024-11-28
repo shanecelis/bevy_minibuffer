@@ -33,8 +33,8 @@ fn main() {
                 .named("ask_age")
                 .hotkey(keyseq!(Ctrl-A A)),
             // Add a builtin act but just one of them.
-            Builtin::default().remove("exec_act").unwrap()
-            ))
+            Builtin::default().remove("exec_act").unwrap(),
+        ))
         .run();
 }
 

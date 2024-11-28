@@ -8,13 +8,16 @@ use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
 use bitflags::bitflags;
 use std::{
     borrow::Cow,
-    fmt::{self, Debug, Display,
-          // Write
+    fmt::{
+        self,
+        Debug,
+        Display,
+        // Write
     },
 };
 use trie_rs::map::{Trie, TrieBuilder};
 mod acts;
-pub use acts::{Acts, AddActs, ActsPlugin};
+pub use acts::{Acts, ActsPlugin, AddActs};
 
 // impl<'w, 's> AddActs for Commands<'w, 's> {
 //     fn add_acts(&mut self, acts: impl Into<Acts>) -> &mut Self {
@@ -22,7 +25,6 @@ pub use acts::{Acts, AddActs, ActsPlugin};
 //         self.add(move |world: &mut World| {
 //             for builder in builders {
 //                 let act = builder.build(world);
-
 
 //         })
 //     }
@@ -169,12 +171,18 @@ impl ActBuilder {
             //
             // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result_sink<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"
             // -> "cube_async::speed"
-            n = n.find('(').and_then(|start| {
-                n.find([',', ' ', ')']).map(|end|
-                    n[start + 1..end].to_owned().into())
-            }).unwrap_or(n);
+            n = n
+                .find('(')
+                .and_then(|start| {
+                    n.find([',', ' ', ')'])
+                        .map(|end| n[start + 1..end].to_owned().into())
+                })
+                .unwrap_or(n);
             if self.shorten_name {
-                n = n.rfind(':').map(|start| n[start + 1..].to_owned().into()).unwrap_or(n);
+                n = n
+                    .rfind(':')
+                    .map(|start| n[start + 1..].to_owned().into())
+                    .unwrap_or(n);
             }
             n
         })
@@ -205,7 +213,11 @@ impl ActBuilder {
         self
     }
 
-    pub fn hotkey_named<T>(&mut self, hotkey: impl IntoIterator<Item = T>, name: impl Into<Cow<'static, str>>) -> &mut Self
+    pub fn hotkey_named<T>(
+        &mut self,
+        hotkey: impl IntoIterator<Item = T>,
+        name: impl Into<Cow<'static, str>>,
+    ) -> &mut Self
     where
         KeyChord: From<T>,
     {
@@ -230,11 +242,9 @@ impl ActBuilder {
         self.flags -= flags;
         self
     }
-
 }
 
 impl From<&mut ActBuilder> for ActBuilder {
-
     fn from(builder: &mut ActBuilder) -> Self {
         Self {
             name: builder.name.take(),
@@ -244,7 +254,6 @@ impl From<&mut ActBuilder> for ActBuilder {
             shorten_name: builder.shorten_name,
         }
     }
-
 }
 
 impl Act {

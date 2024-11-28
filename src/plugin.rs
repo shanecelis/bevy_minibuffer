@@ -31,7 +31,7 @@ use bevy::{
 };
 use bevy_asky::AskyPlugin;
 use bevy_input_sequence::InputSequencePlugin;
-use std::{time::Duration, borrow::Cow};
+use std::{borrow::Cow, time::Duration};
 
 /// Minibuffer plugin
 #[derive(Debug, Default, Clone)]
@@ -149,4 +149,3 @@ impl bevy::app::Plugin for MinibufferPlugin {
             ;
     }
 }
-

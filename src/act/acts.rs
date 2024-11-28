@@ -2,7 +2,6 @@ use crate::act::ActBuilder;
 use bevy::prelude::*;
 use std::{borrow::Cow, collections::HashMap};
 
-
 pub trait ActsPlugin: Plugin {
     fn take_acts(&mut self) -> Acts;
 }
@@ -16,7 +15,14 @@ pub struct Acts(pub HashMap<Cow<'static, str>, ActBuilder>);
 impl Acts {
     /// Create a new plugin with a set of acts.
     pub fn new<I: IntoIterator<Item = impl Into<ActBuilder>>>(v: I) -> Self {
-        Acts(v.into_iter().map(|act| { let act = act.into(); (act.name(), act) }).collect())
+        Acts(
+            v.into_iter()
+                .map(|act| {
+                    let act = act.into();
+                    (act.name(), act)
+                })
+                .collect(),
+        )
     }
 
     pub fn take(&mut self) -> Self {
@@ -43,13 +49,15 @@ impl From<ActBuilder> for Acts {
 //     }
 // }
 
-
 pub trait ActBuilders<Marker>: sealed::ActBuilders<Marker> {}
-impl <Marker, T> ActBuilders<Marker> for T where T: sealed::ActBuilders<Marker> {}
+impl<Marker, T> ActBuilders<Marker> for T where T: sealed::ActBuilders<Marker> {}
 
 mod sealed {
-    use bevy::{app::App, ecs::world::{World, Command}};
-    use crate::{act::{Acts, ActBuilder, ActsPlugin}};
+    use crate::act::{ActBuilder, Acts, ActsPlugin};
+    use bevy::{
+        app::App,
+        ecs::world::{Command, World},
+    };
     pub struct PluginOnceMarker;
     pub struct ActsPluginMarker;
     pub struct ActBuilderMarker;
@@ -59,13 +67,16 @@ mod sealed {
     pub struct ActBuilderTupleMarker;
 
     pub trait ActBuilders<Marker> {
-        fn add_to_app(self, app: &mut App) where Self: Sized {
+        fn add_to_app(self, app: &mut App)
+        where
+            Self: Sized,
+        {
             self.add_to_world(app.world_mut());
         }
 
-        fn add_to_world(self, world: &mut World);//  where Self: Sized {
-        //     todo!("No add_to_world implementation.");
-        // }
+        fn add_to_world(self, world: &mut World); //  where Self: Sized {
+                                                  //     todo!("No add_to_world implementation.");
+                                                  // }
     }
 
     impl ActBuilders<ActBuilderMarker> for ActBuilder {
@@ -137,7 +148,6 @@ mod sealed {
     bevy::utils::all_tuples!(impl_plugins_tuples, 0, 15, P, S);
 }
 
-
 pub trait AddActs {
     fn add_acts<M>(&mut self, acts: impl ActBuilders<M>) -> &mut Self;
 }
@@ -168,8 +178,8 @@ impl AddActs for App {
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::*;
     use super::*;
+    use crate::prelude::*;
 
     fn act1() {}
     #[test]

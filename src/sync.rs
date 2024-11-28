@@ -1,7 +1,7 @@
 //! A sync version of the Minibuffer parameter.
 use crate::{
-    autocomplete::AutoComplete, lookup::Lookup, prompt::GetKeyChord, ui::PromptContainer, Dest,
-    Message, prompt::PromptState, view::View,
+    autocomplete::AutoComplete, lookup::Lookup, prompt::GetKeyChord, prompt::PromptState,
+    ui::PromptContainer, view::View, Dest, Message,
 };
 use bevy::{
     ecs::{
@@ -11,7 +11,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{Res, ResMut, NextState, State, DespawnRecursiveExt},
+    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Part};
 use std::fmt::Debug;
@@ -30,13 +30,11 @@ pub struct Minibuffer<'w, 's> {
     prompt_state: Res<'w, State<PromptState>>,
     /// next prompt state
     next_prompt_state: ResMut<'w, NextState<PromptState>>,
-
 }
 
 /// I don't know the entity without a query or something.
 pub trait MinibufferCommands {
-
-    fn prompt_children<T: Construct + Component + Part> (
+    fn prompt_children<T: Construct + Component + Part>(
         &mut self,
         props: impl IntoIterator<Item = impl Into<T::Props>>,
     ) -> EntityCommands
@@ -45,12 +43,13 @@ pub trait MinibufferCommands {
 }
 
 impl<'w> MinibufferCommands for EntityCommands<'w> {
-    fn prompt_children<T: Construct + Component + Part> (
+    fn prompt_children<T: Construct + Component + Part>(
         &mut self,
         props: impl IntoIterator<Item = impl Into<T::Props>>,
     ) -> EntityCommands
     where
-        <T as Construct>::Props: Send {
+        <T as Construct>::Props: Send,
+    {
         self.construct_children::<Add<T, View>>(props);
         self.reborrow()
     }
@@ -79,8 +78,6 @@ impl<'w, 's> Minibuffer<'w, 's> {
     // where
     //     <T as Submitter>::Out: Clone + Debug + Send + Sync + 'static,
     // {
-
-
 
     // }
 
@@ -119,7 +116,11 @@ impl<'w, 's> Minibuffer<'w, 's> {
     }
 
     pub fn set_visible(&mut self, show: bool) {
-        self.next_prompt_state.set(if show { PromptState::Visible } else { PromptState::Invisible });
+        self.next_prompt_state.set(if show {
+            PromptState::Visible
+        } else {
+            PromptState::Invisible
+        });
     }
 
     // Wait a certain duration.

@@ -51,12 +51,11 @@ pub(crate) fn completion_item(
 }
 
 pub(crate) fn plugin(app: &mut App) {
-    app
-        .register_type::<MinibufferRoot>()
+    app.register_type::<MinibufferRoot>()
         .add_systems(Startup, spawn_layout);
 }
 
-#[derive(Debug,Resource, Reflect)]
+#[derive(Debug, Resource, Reflect)]
 #[reflect(Resource)]
 pub struct MinibufferRoot(pub Entity);
 
@@ -169,7 +168,8 @@ fn spawn_layout(mut commands: Commands) {
                 })
                 .insert(Name::new("buffer"))
                 .insert(PromptContainer);
-        }).id();
+        })
+        .id();
     commands.insert_resource(MinibufferRoot(root));
 }
 

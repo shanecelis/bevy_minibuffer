@@ -116,7 +116,12 @@ unsafe impl Submitter for AutoComplete {
 
 fn autocomplete_controller(
     mut focus: FocusParam,
-    mut query: Query<(Entity, &mut StringCursor, &AutoComplete, Option<&RequireMatch>)>,
+    mut query: Query<(
+        Entity,
+        &mut StringCursor,
+        &AutoComplete,
+        Option<&RequireMatch>,
+    )>,
     mut input: EventReader<KeyboardInput>,
     mut commands: Commands,
     mut lookup_events: EventWriter<LookupEvent>,
@@ -145,7 +150,8 @@ fn autocomplete_controller(
                             Incomplete(v) => {
                                 lookup_events.send(LookupEvent::Completions(v));
                                 if let Some(new_input) =
-                                    autocomplete.longest_prefix(&text_state.value) {
+                                    autocomplete.longest_prefix(&text_state.value)
+                                {
                                     text_state.set_value(&new_input);
                                 }
                             }
@@ -170,14 +176,14 @@ fn autocomplete_controller(
                 Key::ArrowRight => text_state.move_cursor(CursorDirection::Right),
                 Key::Enter => {
                     if require_match.is_some() {
-
                         if let Err(e) = autocomplete.look_up(&text_state.value) {
                             use LookupError::*;
                             match e {
                                 Message(s) => {
                                     lookup_events.send(LookupEvent::Hide);
                                     if let Some(mut ecommands) = commands.get_entity(id) {
-                                        ecommands.try_insert(Feedback::info(s)); // Err(s),
+                                        ecommands.try_insert(Feedback::info(s));
+                                        // Err(s),
                                     }
                                 }
                                 Incomplete(v) => {
@@ -186,7 +192,8 @@ fn autocomplete_controller(
                                     }
                                     lookup_events.send(LookupEvent::Completions(v));
                                     if let Some(new_input) =
-                                        autocomplete.longest_prefix(&text_state.value) {
+                                        autocomplete.longest_prefix(&text_state.value)
+                                    {
                                         text_state.set_value(&new_input);
                                     }
                                 }

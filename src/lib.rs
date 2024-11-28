@@ -15,12 +15,12 @@ pub use plugin::Config;
 pub use plugin::Error;
 pub use plugin::MinibufferPlugin;
 pub use plugin::MinibufferPlugins;
-pub mod view;
 mod builtin;
 #[cfg(feature = "async")]
 mod sink;
 #[cfg(feature = "async")]
 pub mod universal;
+pub mod view;
 pub use bevy_asky::Dest;
 pub use builtin::Builtin;
 pub use message::Message;
@@ -45,6 +45,9 @@ pub mod prelude {
     pub use super::act::{self, Act, ActBuilder, Acts, AddActs};
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, Modifiers};
+    pub use super::sync::MinibufferCommands;
+    #[cfg(feature = "async")]
+    pub use super::universal::*;
     pub use super::Builtin;
     pub use super::Config;
     pub use super::Dest;
@@ -53,11 +56,8 @@ pub mod prelude {
     pub use super::MinibufferAsync;
     #[cfg(feature = "async")]
     pub use super::{future_result_sink, future_sink};
-    #[cfg(feature = "async")]
-    pub use super::universal::*;
     pub use super::{Error, MinibufferPlugin, MinibufferPlugins};
     pub use asky::{prompt::*, AskyEvent};
     pub use bevy_asky as asky;
     pub use std::time::Duration;
-    pub use super::sync::MinibufferCommands;
 }

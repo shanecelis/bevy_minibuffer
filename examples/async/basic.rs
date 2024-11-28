@@ -51,6 +51,6 @@ fn main() {
             Act::new(ask_age.pipe(future_result_sink))
                 .named("ask_age")
                 .hotkey(keyseq! { Ctrl-A A }),
-            ))
+        ))
         .run();
 }

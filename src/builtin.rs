@@ -68,12 +68,14 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Las
         }
     }
     let acts: Trie<u8, Act> = builder.build();
-    let prompt: Cow<'static, str> =
-        (*last_act).as_ref()
-                   .and_then(|run_act| {
-                       run_act.hotkey.map(|index| format!("{}", run_act.act.hotkeys[index]).into())
-                   })
-                   .unwrap_or("exec_act".into());
+    let prompt: Cow<'static, str> = (*last_act)
+        .as_ref()
+        .and_then(|run_act| {
+            run_act
+                .hotkey
+                .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
+        })
+        .unwrap_or("exec_act".into());
 
     //     if let Some(ref run_act) = **last_act {
     //     if let Some(index) = run_act.hotkey {
@@ -84,33 +86,34 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Las
     // } else {
     //     "exec_act".into()
     // };
-    minibuffer.read(prompt, acts.clone())
+    minibuffer
+        .read(prompt, acts.clone())
         .insert(RequireMatch)
-              .observe(
-        move |trigger: Trigger<AskyEvent<String>>,
-              // query: Query<&AutoComplete>,
-              mut writer: EventWriter<RunActEvent>,
-              mut minibuffer: Minibuffer| {
-            // let autocomplete = query.get(trigger.entity()).unwrap();
-            // let act_name = trigger.event().0.unwrap().cloned();
-            match &trigger.event().0 {
-                Ok(act_name) => match acts.resolve(act_name) {
-                    Ok(act) => {
-                        writer.send(RunActEvent::new(act));
-                    }
+        .observe(
+            move |trigger: Trigger<AskyEvent<String>>,
+                  // query: Query<&AutoComplete>,
+                  mut writer: EventWriter<RunActEvent>,
+                  mut minibuffer: Minibuffer| {
+                // let autocomplete = query.get(trigger.entity()).unwrap();
+                // let act_name = trigger.event().0.unwrap().cloned();
+                match &trigger.event().0 {
+                    Ok(act_name) => match acts.resolve(act_name) {
+                        Ok(act) => {
+                            writer.send(RunActEvent::new(act));
+                        }
+                        Err(e) => {
+                            minibuffer.message(format!(
+                                "Error: Could not resolve act named {:?}: {}",
+                                act_name, e
+                            ));
+                        }
+                    },
                     Err(e) => {
-                        minibuffer.message(format!(
-                            "Error: Could not resolve act named {:?}: {}",
-                            act_name, e
-                        ));
+                        minibuffer.message(format!("Error: {e}"));
                     }
-                },
-                Err(e) => {
-                    minibuffer.message(format!("Error: {e}"));
                 }
-            }
-        },
-    );
+            },
+        );
 }
 
 /// List acts currently operant.
@@ -129,9 +132,7 @@ pub fn list_acts(acts: Query<&Act>) -> String {
                     .with_cell(""),
             );
         } else {
-            let bindings = act.hotkeys.iter().map(|hotkey| {
-                hotkey.to_string()
-            });
+            let bindings = act.hotkeys.iter().map(|hotkey| hotkey.to_string());
 
             for binding in bindings {
                 table.add_row(
@@ -171,9 +172,9 @@ pub fn list_key_bindings(acts: Query<&Act>) -> String {
     let mut key_bindings: Vec<(String, Cow<'static, str>)> = acts
         .iter()
         .flat_map(|act| {
-            act.hotkeys.iter().map(|hotkey| {
-                (hotkey.to_string(), act.name.clone())
-            })
+            act.hotkeys
+                .iter()
+                .map(|hotkey| (hotkey.to_string(), act.name.clone()))
         })
         .collect();
     // Sort by key binding name? No.
@@ -366,7 +367,6 @@ impl Default for Builtin {
             ]),
         }
     }
-
 }
 
 impl Builtin {

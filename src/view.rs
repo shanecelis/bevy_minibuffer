@@ -1,8 +1,8 @@
-use bevy_asky::{construct::*, prelude::*, string_cursor::*};
 use bevy::{
     ecs::{query::QueryEntityError, system::SystemParam},
     prelude::*,
 };
+use bevy_asky::{construct::*, prelude::*, string_cursor::*};
 
 #[derive(Component, Reflect, Default)]
 pub struct View;
@@ -31,7 +31,6 @@ impl Construct for View {
         context: &mut ConstructContext,
         _props: Self::Props,
     ) -> Result<Self, ConstructError> {
-
         if let Some(mut eref) = context.world.get_entity_mut(context.id) {
             if !eref.contains::<Node>() {
                 eref.insert(NodeBundle {
@@ -40,8 +39,7 @@ impl Construct for View {
                         ..default()
                     },
                     ..default()
-                }
-                );
+                });
             }
         }
         Ok(View)
@@ -173,20 +171,22 @@ pub fn plugin(app: &mut App) {
         .add_systems(
             Update,
             (
-                (// focus_view,
-                 group_view,
-                 radio_view,
-                 checkbox_view,
-                 prompt_view,
-                 text_view::<Without<Password>>,
-                 password_view,
-                 confirm_view,
-                 toggle_view,
-                 feedback_view,
+                (
+                    // focus_view,
+                    group_view,
+                    radio_view,
+                    checkbox_view,
+                    prompt_view,
+                    text_view::<Without<Password>>,
+                    password_view,
+                    confirm_view,
+                    toggle_view,
+                    feedback_view,
                 )
                     .chain(),
                 blink_cursor,
-            ).in_set(crate::plugin::MinibufferSet::Output),
+            )
+                .in_set(crate::plugin::MinibufferSet::Output),
         )
         .add_systems(
             Update,
@@ -194,7 +194,8 @@ pub fn plugin(app: &mut App) {
                 clear_feedback::<StringCursor>,
                 clear_feedback::<Toggle>,
                 clear_feedback::<Radio>,
-            ).in_set(crate::plugin::MinibufferSet::Process),
+            )
+                .in_set(crate::plugin::MinibufferSet::Process),
         )
         // .add_systems(PostUpdate, replace_view)
         .insert_resource(CursorBlink(Timer::from_seconds(
@@ -431,8 +432,8 @@ pub(crate) fn password_view(
                     TextStyle::default(),
                 ));
                 // cursor
-                parent.spawn(
-                    TextBundle::from_section(
+                parent
+                    .spawn(TextBundle::from_section(
                         if text_state.index >= text_state.value.len() {
                             " "
                         } else {
@@ -569,11 +570,8 @@ pub(crate) fn confirm_view(
 
 /// Use a column layout for the group views.
 pub(crate) fn group_view(
-    query: Query<
-        Entity,
-        (With<View>, Or<(Added<RadioGroup>, Added<CheckboxGroup>)>)
-    >,
-    mut commands: Commands
+    query: Query<Entity, (With<View>, Or<(Added<RadioGroup>, Added<CheckboxGroup>)>)>,
+    mut commands: Commands,
 ) {
     for id in &query {
         commands.entity(id).column();
@@ -631,11 +629,13 @@ fn blink_cursor(
     mut count: Local<u8>,
     focus: Focus,
     palette: Res<Palette>,
-    parent: Query<&Parent>) {
+    parent: Query<&Parent>,
+) {
     if timer.tick(time.delta()).just_finished() {
         *count = count.checked_add(1).unwrap_or(0);
         for (root, mut color, mut text) in &mut query {
-            if focus.is_focused(root) || parent.iter_ancestors(root).any(|id| focus.is_focused(id)) {
+            if focus.is_focused(root) || parent.iter_ancestors(root).any(|id| focus.is_focused(id))
+            {
                 color.0 = if *count % 2 == 0 {
                     Color::WHITE
                 } else {

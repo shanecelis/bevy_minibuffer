@@ -32,7 +32,7 @@ fn main() {
             Builtin::default(),
             Act::new(stop),
             Act::new(start),
-            Act::new(speed).hotkey(keyseq! { S })
+            Act::new(speed).hotkey(keyseq! { S }),
         ))
         .run();
 }

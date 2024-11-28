@@ -252,7 +252,9 @@ pub(crate) fn listen_prompt_active(
     mut redraw: EventWriter<RequestRedraw>,
 ) {
     for transition in transitions.read() {
-        if let Some(MinibufferState::Active) = transition.entered { next_prompt_state.set(PromptState::Visible) }
+        if let Some(MinibufferState::Active) = transition.entered {
+            next_prompt_state.set(PromptState::Visible)
+        }
         redraw.send(RequestRedraw);
     }
 }

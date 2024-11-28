@@ -6,6 +6,7 @@ use bevy::{
 };
 use bevy_asky::{construct::*, prelude::*, string_cursor::*};
 
+/// Marks a component as having its View handling by this module.
 #[derive(Component, Reflect, Default)]
 pub struct View;
 
@@ -20,9 +21,11 @@ enum ViewPart {
     Feedback = 5,
 }
 
+/// This node is a cursor.
 #[derive(Debug, Component, Reflect)]
 pub struct Cursor;
 
+/// Keeps time of cursor blink.
 #[derive(Resource, Deref, DerefMut, Reflect)]
 pub struct CursorBlink(pub Timer);
 
@@ -141,13 +144,20 @@ impl<'w, 's, C: Component> Inserter<'w, 's, C> {
     }
 }
 
+/// The color palette for Minibuffer UI
 #[derive(Debug, Resource, Component, Reflect)]
 pub struct Palette {
+    /// Text color
     pub text_color: Srgba,
+    /// Background color
     pub background: Option<Srgba>,
+    /// Highlight color
     pub highlight: Srgba,
+    /// Complete color
     pub complete: Srgba,
+    /// Answered color
     pub answer: Srgba,
+    /// Lowlight color
     pub lowlight: Srgba,
 }
 
@@ -164,7 +174,7 @@ impl Default for Palette {
     }
 }
 
-pub fn plugin(app: &mut App) {
+pub(crate) fn plugin(app: &mut App) {
     app.register_type::<View>()
         .register_type::<ViewPart>()
         .register_type::<Cursor>()
@@ -257,7 +267,7 @@ pub(crate) fn clear_feedback<T: Component>(
 //     // }
 // }
 
-pub fn text_view<F: bevy::ecs::query::QueryFilter>(
+pub(crate) fn text_view<F: bevy::ecs::query::QueryFilter>(
     query: Query<
         (Entity, &StringCursor, &Children, Option<&Placeholder>),
         (

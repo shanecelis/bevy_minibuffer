@@ -34,6 +34,7 @@ use std::borrow::Cow;
 #[derive(Component, Deref)]
 pub struct AutoComplete(Box<dyn Lookup + Send + Sync>);
 
+/// Means that an auto completing read must match one of its lookups.
 #[derive(Component, Debug)]
 pub struct RequireMatch;
 // #[derive(Component)]

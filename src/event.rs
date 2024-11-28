@@ -30,19 +30,25 @@ pub(crate) fn plugin(app: &mut App) {
 #[derive(Clone, Event, Debug, Deref)]
 // pub struct RunActEvent(pub SystemId);
 pub struct RunActEvent {
+    /// The act that was one.
     #[deref]
     pub act: Act,
+    /// Which one if any of its hotkeys started it.
     pub hotkey: Option<usize>,
 }
 
+/// This holds the last run command. It is set prior to the command being run,
+/// so a command can look up its own run event using this.
 #[derive(Resource, Debug, Default, Deref, DerefMut)]
 pub struct LastRunAct(Option<RunActEvent>);
 
 impl RunActEvent {
+    /// Make a new run act event.
     pub fn new(act: Act) -> Self {
         Self { act, hotkey: None }
     }
 
+    /// Set the hotkey index.
     pub fn hotkey(mut self, index: usize) -> Self {
         self.hotkey = Some(index);
         self

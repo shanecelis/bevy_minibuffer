@@ -2,8 +2,21 @@ use crate::act::ActBuilder;
 use bevy::prelude::*;
 use std::{borrow::Cow, collections::HashMap};
 
+/// An ActsPlugin is a plugin with a collection of [Acts].
+///
+/// Although it is a [Plugin], if you use [App::add_plugins] with it, then its
+/// acts will not be added. [ActBuilder] contains a non-cloneable field that
+/// must be taken. [Plugin::build] does not permit this with its read-only
+/// `&self` access. Instead we use [AddActs::add_acts] to add both the acts and
+/// the Plugin comprising an ActsPlugin.
 pub trait ActsPlugin: Plugin {
+    // fn acts(&self) -> &Acts;
+    // fn acts_mut(&mut self) -> &mut Acts;
+    /// Take the acts.
     fn take_acts(&mut self) -> Acts;
+    // {
+    //     self.acts_mut().take()
+    // }
 }
 
 /// Houses a collection of acts.
@@ -25,10 +38,12 @@ impl Acts {
         )
     }
 
+    /// Take the acts replacing self with its default value.
     pub fn take(&mut self) -> Self {
         std::mem::take(self)
     }
 
+    /// Add an [ActBuilder].
     pub fn push(&mut self, builder: impl Into<ActBuilder>) -> Option<ActBuilder> {
         let builder = builder.into();
         self.insert(builder.name(), builder).inspect(|builder| {
@@ -43,6 +58,7 @@ impl From<ActBuilder> for Acts {
     }
 }
 
+/// A marker for [ActBuilder]s.
 pub trait ActBuilders<Marker>: sealed::ActBuilders<Marker> {}
 impl<Marker, T> ActBuilders<Marker> for T where T: sealed::ActBuilders<Marker> {}
 
@@ -141,7 +157,9 @@ mod sealed {
     bevy::utils::all_tuples!(impl_plugins_tuples, 0, 15, P, S);
 }
 
+/// An extension to App to add acts.
 pub trait AddActs {
+    /// Adds the given acts to itself.
     fn add_acts<M>(&mut self, acts: impl ActBuilders<M>) -> &mut Self;
 }
 

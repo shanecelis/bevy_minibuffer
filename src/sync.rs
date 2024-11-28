@@ -36,6 +36,7 @@ pub struct Minibuffer<'w, 's> {
 
 /// I don't know the entity without a query or something.
 pub trait MinibufferCommands {
+    /// Add a collection of children to self.
     fn prompt_children<T: Construct + Component + Part>(
         &mut self,
         props: impl IntoIterator<Item = impl Into<T::Props>>,
@@ -113,10 +114,12 @@ impl<'w, 's> Minibuffer<'w, 's> {
         self.commands.entity(dest).despawn_descendants();
     }
 
+    /// Return the visible state.
     pub fn visible(&self) -> bool {
         matches!(**self.prompt_state, PromptState::Visible)
     }
 
+    /// Set the visible state.
     pub fn set_visible(&mut self, show: bool) {
         self.next_prompt_state.set(if show {
             PromptState::Visible

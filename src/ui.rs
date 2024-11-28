@@ -11,6 +11,11 @@ use std::borrow::Cow;
 const PADDING: Val = Val::Px(3.);
 const LEFT_PADDING: Val = Val::Px(6.);
 
+/// The minibuffer root entity reference.
+#[derive(Debug, Resource, Reflect)]
+#[reflect(Resource)]
+pub struct MinibufferRoot(pub Entity);
+
 /// Root minibuffer node
 #[derive(Component)]
 struct MinibufferNode;
@@ -54,10 +59,6 @@ pub(crate) fn plugin(app: &mut App) {
     app.register_type::<MinibufferRoot>()
         .add_systems(Startup, spawn_layout);
 }
-
-#[derive(Debug, Resource, Reflect)]
-#[reflect(Resource)]
-pub struct MinibufferRoot(pub Entity);
 
 /// Create the UI layout.
 fn spawn_layout(mut commands: Commands) {

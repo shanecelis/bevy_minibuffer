@@ -92,6 +92,7 @@ impl MinibufferAsync {
             .map_err(Error::from)
     }
 
+    /// Builds a prompt and accepts a closure that may alter that element.
     pub fn prompt_with<T: Submitter + Construct + Bundle>(
         &mut self,
         props: impl Into<T::Props>,
@@ -173,6 +174,7 @@ impl MinibufferAsync {
         AsyncWorld::new().sleep(duration)
     }
 
+    /// Wait for a certain duration or a key chord, whichever comes first.
     pub async fn delay_or_chord(&mut self, duration: Duration) -> Option<KeyChord> {
         let sleep = AsyncWorld::new().sleep(duration);
         let get_key = self.get_chord();

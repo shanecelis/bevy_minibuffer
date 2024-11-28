@@ -45,13 +45,17 @@ bitflags! {
     }
 }
 
+/// Hotkey is a key sequence and optionally an alias.
 #[derive(Debug, Clone, Reflect)]
 pub struct Hotkey {
+    /// Key chord sequence
     pub chords: Vec<KeyChord>,
+    /// Alias
     pub alias: Option<Cow<'static, str>>,
 }
 
 impl Hotkey {
+    /// New hotkey from any [KeyChord]-able sequence.
     pub fn new<T>(chords: impl IntoIterator<Item = T>) -> Self
     where
         KeyChord: From<T>,
@@ -62,6 +66,7 @@ impl Hotkey {
         }
     }
 
+    /// Define an alias.
     pub fn alias(mut self, name: impl Into<Cow<'static, str>>) -> Self {
         self.alias = Some(name.into());
         self
@@ -140,6 +145,7 @@ pub struct ActBuilder {
     pub(crate) system: Option<BoxedSystem>,
     /// Flags for this act
     pub flags: ActFlags,
+    /// Shorten the name to just the first system.
     pub shorten_name: bool,
 }
 
@@ -164,6 +170,7 @@ impl ActBuilder {
         }
     }
 
+    /// Return the name of the act. Derived from system if not explicitly given.
     pub fn name(&self) -> Cow<'static, str> {
         self.name.clone().unwrap_or_else(|| {
             let mut n = self.system.as_ref().expect("system").name();
@@ -213,6 +220,7 @@ impl ActBuilder {
         self
     }
 
+    /// Add a hotkey with an alias.
     pub fn hotkey_named<T>(
         &mut self,
         hotkey: impl IntoIterator<Item = T>,

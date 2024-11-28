@@ -376,6 +376,7 @@ impl Default for Builtin {
 }
 
 impl Builtin {
+    /// Make exec_act look like 'M-x ' at the prompt.
     pub fn emacs() -> Self {
         let mut builtin = Self::default();
         let exec_act = builtin.get_mut("exec_act").unwrap();

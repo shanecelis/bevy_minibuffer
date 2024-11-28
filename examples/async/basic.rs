@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
-use std::time::Duration;
 #[path = "../common/lib.rs"]
 mod common;
 

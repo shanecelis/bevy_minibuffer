@@ -11,7 +11,6 @@ use std::{
     fmt::{self, Debug, Display,
           // Write
     },
-    sync::Mutex,
 };
 use trie_rs::map::{Trie, TrieBuilder};
 mod acts;
@@ -240,7 +239,7 @@ impl From<&mut ActBuilder> for ActBuilder {
         Self {
             name: builder.name.take(),
             system: builder.system.take(),
-            hotkeys: std::mem::replace(&mut builder.hotkeys, Vec::new()),
+            hotkeys: std::mem::take(&mut builder.hotkeys),
             flags: builder.flags,
             shorten_name: builder.shorten_name,
         }

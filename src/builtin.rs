@@ -1,11 +1,9 @@
 use crate::{
-    event::LastRunAct,
     act::{ActCache, ActFlags, ActsPlugin},
     lookup::Resolve,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
-    prompt::{CompletionState, KeyChordEvent, PromptState},
-    autocomplete::RequireMatch,
+    prompt::{CompletionState, PromptState},
     Minibuffer,
 };
 
@@ -15,15 +13,12 @@ use std::{
 };
 
 #[cfg(feature = "async")]
-use crate::{future_result_sink, future_sink};
+use crate::future_result_sink;
 use bevy::{prelude::*, window::RequestRedraw};
 #[cfg(feature = "async")]
 use bevy_defer::AsyncWorld;
 use tabular::{Row, Table};
-use trie_rs::{
-    inc_search::IncSearch,
-    map::{Trie, TrieBuilder},
-};
+use trie_rs::map::{Trie, TrieBuilder};
 
 #[cfg(feature = "async")]
 use futures::Future;
@@ -377,7 +372,7 @@ impl Default for Builtin {
 impl Builtin {
     pub fn emacs() -> Self {
         let mut builtin = Self::default();
-        let mut exec_act = builtin.get_mut("exec_act").unwrap();
+        let exec_act = builtin.get_mut("exec_act").unwrap();
         exec_act.hotkeys.clear();
         exec_act.hotkey_named(keyseq! { Alt-X }, "M-x ");
         builtin

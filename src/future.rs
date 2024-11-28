@@ -10,25 +10,24 @@ use crate::{
 };
 use bevy::{
     ecs::{
-        component::Component,
         entity::Entity,
         prelude::Commands,
         query::With,
-        system::{EntityCommands, Query, Res, Resource, SystemMeta, SystemParam, SystemState},
+        system::{EntityCommands, Query, Res, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Deref, Reflect, TextBundle, TextStyle, Trigger, State, DespawnRecursiveExt, Bundle},
+    prelude::{Trigger, State, DespawnRecursiveExt, Bundle},
     utils::Duration,
 };
 use bevy_asky::{
-    Part, AskyAsync, AskyEvent, sync::{AskyEntityCommands, AskyCommands},
+    AskyAsync, AskyEvent, sync::{AskyEntityCommands, AskyCommands},
     construct::{Add, Construct}, Submitter,
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
 use bevy_channel_trigger::ChannelSender;
 use bevy_defer::{AsyncWorld, AsyncAccess};
 use bevy_input_sequence::KeyChord;
-use futures::{channel::oneshot, Future, future::{Either, select_all}, FutureExt, pin_mut, TryFutureExt};
+use futures::{channel::oneshot, Future, future::Either, pin_mut, TryFutureExt};
 use std::{borrow::Cow, fmt::Debug};
 
 /// MinibufferAsync, a [SystemParam] for async.
@@ -69,7 +68,7 @@ unsafe impl SystemParam for MinibufferAsync {
     ) -> Self::Item<'w, 's> {
         let state = state.clone();
         MinibufferAsync {
-            asky: AskyAsync::default(),
+            asky: AskyAsync,
             dest: state.0,
             sender: state.1,
         }
@@ -145,7 +144,7 @@ impl MinibufferAsync {
             let async_world = AsyncWorld::new();
             async_world.apply_command(move |world: &mut World| {
                 let mut commands = world.commands();
-                let mut commands = Dest::ReplaceChildren(dest).entity(&mut commands);
+                let commands = Dest::ReplaceChildren(dest).entity(&mut commands);
                 let autocomplete = AutoComplete::new(lookup);
                 autocomplete.construct(commands, prompt).observe(
                     move |trigger: Trigger<AskyEvent<String>>, mut commands: Commands| {
@@ -190,24 +189,15 @@ impl MinibufferAsync {
     }
 
     #[must_use]
-    pub fn delay_or_chord(&mut self, duration: Duration) -> impl Future<Output = Option<KeyChord>> + use<'_> {
-        async move {
-            let sleep = AsyncWorld::new().sleep(duration);
-            let get_key = self.get_chord();
-            pin_mut!(sleep);
-            pin_mut!(get_key);
-            match futures::future::select(sleep, get_key).await {
-                Either::Left((_, _)) => None,
-                Either::Right((chord, _)) => chord.ok()
-            }
+    pub async fn delay_or_chord(&mut self, duration: Duration) -> Option<KeyChord> {
+        let sleep = AsyncWorld::new().sleep(duration);
+        let get_key = self.get_chord();
+        pin_mut!(sleep);
+        pin_mut!(get_key);
+        match futures::future::select(sleep, get_key).await {
+            Either::Left((_, _)) => None,
+            Either::Right((chord, _)) => chord.ok()
         }
-        // async move {
-        //     let (output, _index, _futures) = select_all([async move { AsyncWorld::new().sleep(duration).await; None }, //.boxed(),
-        //                                                   async move { self.get_chord().await.ok() }//.boxed()
-        //     ]).await;
-
-        //     output
-        // }
     }
 
     /// Get the next key chord.

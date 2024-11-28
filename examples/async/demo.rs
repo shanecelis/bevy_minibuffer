@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_minibuffer::{prelude::{*, Error}, view::View};
+use bevy_minibuffer::prelude::{*, Error};
 use bevy_asky::prelude::*;
 use std::time::Duration;
 #[path = "../common/lib.rs"]

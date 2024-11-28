@@ -10,7 +10,7 @@ pub trait ActsPlugin: Plugin {
 /// Houses a collection of acts.
 ///
 /// Acts may be inspected and modified before adding to app.
-#[derive(Debug, Deref, DerefMut)]
+#[derive(Debug, Deref, DerefMut, Default)]
 pub struct Acts(pub HashMap<Cow<'static, str>, ActBuilder>);
 
 impl Acts {
@@ -20,14 +20,13 @@ impl Acts {
     }
 
     pub fn take(&mut self) -> Self {
-        std::mem::replace(self, Acts::default())
+        std::mem::take(self)
     }
 
     pub fn push(&mut self, builder: impl Into<ActBuilder>) -> Option<ActBuilder> {
         let builder = builder.into();
-        self.insert(builder.name(), builder).map(|builder| {
+        self.insert(builder.name(), builder).inspect(|builder| {
             warn!("Replacing act '{}'.", builder.name());
-            builder
         })
     }
 }
@@ -44,11 +43,6 @@ impl From<ActBuilder> for Acts {
 //     }
 // }
 
-impl Default for Acts {
-    fn default() -> Self {
-        Acts(HashMap::new())
-    }
-}
 
 pub trait ActBuilders<Marker>: sealed::ActBuilders<Marker> {}
 impl <Marker, T> ActBuilders<Marker> for T where T: sealed::ActBuilders<Marker> {}
@@ -65,7 +59,7 @@ mod sealed {
     pub struct ActBuilderTupleMarker;
 
     pub trait ActBuilders<Marker> {
-        fn add_to_app(mut self, app: &mut App) where Self: Sized {
+        fn add_to_app(self, app: &mut App) where Self: Sized {
             self.add_to_world(app.world_mut());
         }
 

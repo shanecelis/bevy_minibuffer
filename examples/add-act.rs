@@ -1,15 +1,13 @@
-//! Add an act with a hotkey.
+//! Add an act.
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 
 fn hello_world(mut minibuffer: Minibuffer) {
-    minibuffer.message("Hello, world");
-    minibuffer.set_visible(true);
+    minibuffer.message("Hello, World!");
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_acts(Act::new(hello_world).bind(keyseq! { Ctrl-H }));
+    app.add_acts((Act::new(hello_world), Builtin::default()));
 }
 
 fn main() {

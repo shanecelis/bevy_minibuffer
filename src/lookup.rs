@@ -165,7 +165,7 @@ impl<T: AsRef<str>> Lookup for [T] {
             s.starts_with(input).then(|| s.chars().skip(count))
         }).collect();
         let mut a_match = false;
-        'outer: loop {
+        loop {
             let mut c: Option<char> = None;
             for entry in &mut entries {
                 a_match = true;

@@ -13,107 +13,92 @@ the Unix shell.
 The video above shows the [two_commands.rs](examples/two_commands.rs) example.
 
 # Goals
+## Easily opt-in to built-in functionality
 
-- [x] Easily add acts, i.e., commands
+``` rust ignore
+fn plugin(app: &mut App) {
+    app.add_plugins(MinibufferPlugins)
+       .add_acts(Builtin::default());
+}
+```
+
+Adding the `Builtin` acts provides the following:
+
+| ACT               | KEY BINDING |
+|-------------------|-------------|
+| describe_key      | Ctrl-H K    |
+| exec_act          | :<br>Alt-X  |
+| list_acts         | Ctrl-H A    |
+| list_key_bindings | Ctrl-H B    |
+| toggle_visibility | `           |
+
+``` sh
+cargo run --example opt-in
+```
+## Easily add acts, i.e., commands
 
 ```rust ignore 
-//! Add an act.
-fn hello_world() {
-    info!("Hello, world");
+fn hello_world(mut minibuffer: Minibuffer) {
+    minibuffer.message("Hello, World!");
 }
 
-fn main() {
-    App::new()
-        .add_acts(Act::new(hello_world))
-        .run();
+fn plugin(app: &mut App) {
+    app.add_acts((Act::new(hello_world), Builtin::default()));
 }
 ```
 
-- [x] Easily bind key chord sequences to acts 
+Acts are systems. Any system will do.
 
-```rust no_run
-//! Add a command with a hotkey.
-use bevy::prelude::*;
-use bevy_minibuffer::prelude::*;
-
-fn hello_world() {
-    info!("Hello, world");
-}
-
-fn main() {
-    App::new()
-        .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_acts(Act::new(hello_world).bind(keyseq! { Ctrl-H }))
-        .add_systems(Startup, |mut commands: Commands| {
-            commands.spawn(Camera2dBundle::default());
-        })
-        .run();
-}
+NOTE: We add `Builtin` acts here only because there would be no way to run an act without a key binding.
+``` sh
+cargo run --example add-act
 ```
 
-- [x] Easily solicit user for input via [bevy_asky](https://github.com/shanecelis/bevy_asky)
+## Easily bind key chord sequences to acts 
 
-```rust no_run
-//! Ask user a question.
-use bevy::prelude::*;
-use bevy_minibuffer::prelude::*;
-
-fn hello_name(mut minibuffer: Minibuffer) {
-    minibuffer.prompt::<TextField>("What's your name? ")
-        .observe(|trigger: Trigger<Submit<String>>| {
-            info!("Hello, {}", trigger.event_mut().take().unwrap());
-        });
+```rust ignore
+fn hello_world(mut minibuffer: Minibuffer) {
+    minibuffer.message("Hello, World!");
+    minibuffer.set_visible(true);
 }
 
-fn main() {
-    App::new()
-        .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_systems(Startup, |mut commands: Commands| {
-            commands.spawn(Camera2dBundle::default());
-        })
-        .add_systems(Startup, hello_name)
-        .run();
+fn plugin(app: &mut App) {
+    app.add_acts(Act::new(hello_world).bind(keyseq! { Ctrl-H }));
 }
 ```
-- [x] Tab completion where possible
-``` rust no_run
-//! Ask user a question with tab completion.
-use bevy::prelude::*;
-use bevy_minibuffer::prelude::*;
+``` sh
+cargo run --example bind-hotkey
+```
+## Easily solicit user for input 
 
+```rust ignore fn hello_name(mut minibuffer: Minibuffer) { minibuffer.prompt::<TextField>("What's your name? ") .observe(|mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| { minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap())); }); }
+
+fn plugin(app: &mut App) {
+    app.add_systems(PostStartup, hello_name);
+}
+```
+``` sh
+cargo run --example solicit-user
+```
+## Tab completion where possible
+``` rust ignore
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer.read("What's your name? ",
                     vec!["John", "Sean", "Shane"])
-        .observe(|trigger: Trigger<Submit<String>>| {
-            info!("Hello, {}", trigger.event().as_ref().clone().unwrap());
+        .observe(|mut trigger: Trigger<Submit<String>>, 
+                  mut minibuffer: Minibuffer| {
+            minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
         });
 }
 
-fn main() {
-    App::new()
-        .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_systems(Startup, |mut commands: Commands| {
-            commands.spawn(Camera2dBundle::default());
-        })
-        .add_systems(PostStartup, hello_name)
-        .run();
+fn plugin(app: &mut App) {
+    app.add_systems(PostStartup, hello_name);
 }
 ```
-
-- [x] Easily opt-in to built-in functionality
-``` rust no_run
-//! Add builtin acts.
-use bevy::prelude::*;
-use bevy_minibuffer::prelude::*;
-
-fn main() {
-    App::new()
-        .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_acts(Builtin)
-        .run();
-}
+``` sh
+cargo run --example tab-completion
 ```
-- [ ] Easily exclude from build
+## Easily exclude from build
 
 I believe a project with a "minibuffer" feature flag and rust conditional
 compilation facilities ought to make it easy and practical to exclude it from a
@@ -121,16 +106,16 @@ release build. But I'd like to affirm that in practice before checking that box.
 
 # Antigoals
 
-- No general-purpose text editing
+## No general-purpose text editing
 
 We are not making a text editor.
 
-- No windows or panels
+## No windows or panels
 
 Try to force everything through the minibuffer at the bottom of the screen. It
 can resize to accommodate more than one-line of text.
 
-- No default kitchen sink
+## No default kitchen sink
 
 The default functionality should be a blank slate that does nothing if no
 commands or key bindings have been added. Built-in functions like `exec_act` and

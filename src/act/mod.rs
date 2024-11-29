@@ -224,9 +224,9 @@ impl ActBuilder {
     ///
     /// ```no_compile
     /// // Bring comfort to Emacs users.
-    /// act.bind_named(keyseq! { Alt-X }, "M-x");
+    /// act.bind_aliased(keyseq! { Alt-X }, "M-x");
     /// ```
-    pub fn bind_named<T>(
+    pub fn bind_aliased<T>(
         &mut self,
         hotkey: impl IntoIterator<Item = T>,
         name: impl Into<Cow<'static, str>>,

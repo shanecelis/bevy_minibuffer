@@ -352,14 +352,14 @@ impl Default for Builtin {
                 #[cfg(feature = "async")]
                 ActBuilder::new(exec_act.pipe(future_result_sink))
                     .named("exec_act")
-                    .bind_named(keyseq! { Shift-; }, ":")
+                    .bind_aliased(keyseq! { Shift-; }, ":")
                     .bind(keyseq! { Alt-X })
                     .add_flags(ActFlags::Adverb)
                     .sub_flags(ActFlags::ExecAct),
                 #[cfg(not(feature = "async"))]
                 ActBuilder::new(exec_act)
                     .named("exec_act")
-                    .bind_named(keyseq! { Shift-; }, ":")
+                    .bind_aliased(keyseq! { Shift-; }, ":")
                     .bind(keyseq! { Alt-X })
                     .add_flags(ActFlags::Adverb),
                 #[cfg(feature = "async")]
@@ -381,7 +381,7 @@ impl Builtin {
         let mut builtin = Self::default();
         let exec_act = builtin.get_mut("exec_act").unwrap();
         exec_act.hotkeys.clear();
-        exec_act.bind_named(keyseq! { Alt-X }, "M-x ");
+        exec_act.bind_aliased(keyseq! { Alt-X }, "M-x ");
         builtin
     }
 }

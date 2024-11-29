@@ -340,36 +340,36 @@ impl Default for Builtin {
                 ActBuilder::new(list_acts.pipe(to_message))
                     .named("list_acts")
                     .add_flags(ActFlags::Show)
-                    .hotkey(keyseq! { Ctrl-H A }),
+                    .bind(keyseq! { Ctrl-H A }),
                 ActBuilder::new(list_key_bindings.pipe(to_message))
                     .named("list_key_bindings")
                     .add_flags(ActFlags::Show)
-                    .hotkey(keyseq! { Ctrl-H B }),
+                    .bind(keyseq! { Ctrl-H B }),
                 ActBuilder::new(toggle_visibility)
                     .named("toggle_visibility")
-                    .hotkey(keyseq! { Backquote })
+                    .bind(keyseq! { Backquote })
                     .sub_flags(ActFlags::ExecAct),
                 #[cfg(feature = "async")]
                 ActBuilder::new(exec_act.pipe(future_result_sink))
                     .named("exec_act")
-                    .hotkey_named(keyseq! { Shift-; }, ":")
-                    .hotkey(keyseq! { Alt-X })
+                    .bind_named(keyseq! { Shift-; }, ":")
+                    .bind(keyseq! { Alt-X })
                     .add_flags(ActFlags::Adverb)
                     .sub_flags(ActFlags::ExecAct),
                 #[cfg(not(feature = "async"))]
                 ActBuilder::new(exec_act)
                     .named("exec_act")
-                    .hotkey_named(keyseq! { Shift-; }, ":")
-                    .hotkey(keyseq! { Alt-X })
+                    .bind_named(keyseq! { Shift-; }, ":")
+                    .bind(keyseq! { Alt-X })
                     .add_flags(ActFlags::Adverb),
                 #[cfg(feature = "async")]
                 ActBuilder::new(describe_key.pipe(future_result_sink))
                     .named("describe_key")
-                    .hotkey(keyseq! { Ctrl-H K }),
+                    .bind(keyseq! { Ctrl-H K }),
                 #[cfg(not(feature = "async"))]
                 ActBuilder::new(describe_key)
                     .named("describe_key")
-                    .hotkey(keyseq! { Ctrl-H K }),
+                    .bind(keyseq! { Ctrl-H K }),
             ]),
         }
     }
@@ -381,7 +381,7 @@ impl Builtin {
         let mut builtin = Self::default();
         let exec_act = builtin.get_mut("exec_act").unwrap();
         exec_act.hotkeys.clear();
-        exec_act.hotkey_named(keyseq! { Alt-X }, "M-x ");
+        exec_act.bind_named(keyseq! { Alt-X }, "M-x ");
         builtin
     }
 }

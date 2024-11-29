@@ -9,7 +9,7 @@ fn hello_world() {
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_acts(Act::new(hello_world).hotkey(keyseq! { Ctrl-H }))
+        .add_acts(Act::new(hello_world).bind(keyseq! { Ctrl-H }))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

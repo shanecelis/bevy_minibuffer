@@ -28,10 +28,10 @@ fn main() {
         .add_acts((
             Act::new(ask_name.pipe(future_result_sink))
                 .named("ask_name")
-                .hotkey(keyseq!(Ctrl-A N)),
+                .bind(keyseq!(Ctrl-A N)),
             Act::new(ask_age.pipe(future_result_sink))
                 .named("ask_age")
-                .hotkey(keyseq!(Ctrl-A A)),
+                .bind(keyseq!(Ctrl-A A)),
             // Add a builtin act but just one of them.
             Builtin::default().remove("exec_act").unwrap(),
         ))

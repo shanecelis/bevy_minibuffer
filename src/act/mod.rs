@@ -211,8 +211,8 @@ impl ActBuilder {
         self
     }
 
-    /// Add a hotkey.
-    pub fn hotkey<T>(&mut self, hotkey: impl IntoIterator<Item = T>) -> &mut Self
+    /// Bind a hotkey.
+    pub fn bind<T>(&mut self, hotkey: impl IntoIterator<Item = T>) -> &mut Self
     where
         KeyChord: From<T>,
     {
@@ -220,8 +220,13 @@ impl ActBuilder {
         self
     }
 
-    /// Add a hotkey with an alias.
-    pub fn hotkey_named<T>(
+    /// Bind a hotkey with an alias for that key sequence.
+    ///
+    /// ```no_compile
+    /// // Bring comfort to Emacs users.
+    /// act.bind_named(keyseq! { Alt-X }, "M-x");
+    /// ```
+    pub fn bind_named<T>(
         &mut self,
         hotkey: impl IntoIterator<Item = T>,
         name: impl Into<Cow<'static, str>>,

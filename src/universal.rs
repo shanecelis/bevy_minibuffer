@@ -26,11 +26,11 @@ impl Default for UniversalArgPlugin {
             acts: Acts::new(vec![
                 Act::new(universal_argument.pipe(future_sink))
                     .named("universal_argument")
-                    .hotkey(keyseq! { Ctrl-U })
+                    .bind(keyseq! { Ctrl-U })
                     .sub_flags(ActFlags::ExecAct),
                 Act::new(check_accum)
                     .named("check_accum")
-                    .hotkey(keyseq! { C A }),
+                    .bind(keyseq! { C A }),
             ]),
         }
     }

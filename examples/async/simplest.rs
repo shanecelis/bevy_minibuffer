@@ -28,7 +28,7 @@ fn main() {
         ))
         // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
-        .add_acts(Act::new(ask_name.pipe(future_result_sink)).hotkey(keyseq! { Ctrl-A N }))
+        .add_acts(Act::new(ask_name.pipe(future_result_sink)).bind(keyseq! { Ctrl-A N }))
         .run();
 }
 

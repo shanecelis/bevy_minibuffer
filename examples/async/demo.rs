@@ -99,7 +99,7 @@ fn main() {
             // Add builtin commands.
             Builtin::default(),
             UniversalArgPlugin::default(),
-            Act::new(demo.pipe(future_result_sink)).hotkey(keyseq!(D)),
+            Act::new(demo.pipe(future_result_sink)).bind(keyseq!(D)),
         ))
         .run();
 }

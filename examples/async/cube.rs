@@ -32,7 +32,7 @@ fn main() {
             Builtin::default(),
             Act::new(stop),
             Act::new(start),
-            Act::new(speed.pipe(future_result_sink)).hotkey(keyseq! { S }),
+            Act::new(speed.pipe(future_result_sink)).bind(keyseq! { S }),
         ))
         .run();
 }

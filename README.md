@@ -159,7 +159,7 @@ cargo run --example tab-completion
 ### Use a `Trie`
 One can provide a trie for more performant completion. 
 
-``` rust
+``` rust ignore
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer.read("What's your name? ",
                     Trie::from_iter(["John", "Sean", "Shane"]))

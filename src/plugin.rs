@@ -112,7 +112,7 @@ pub enum Error {
     /// A lookup error
     #[error("look up error{0}")]
     Lookup(#[from] LookupError),
-    /// An [asky] error
+    /// An Asky error
     #[error("{0}")]
     Asky(#[from] bevy_asky::Error),
     /// An async error

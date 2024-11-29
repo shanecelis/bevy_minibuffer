@@ -89,18 +89,18 @@ impl Lookup for trie_rs::Trie<u8> {
 
 impl<T: AsRef<str>> Lookup for Vec<T> {
     fn look_up(&self, input: &str) -> Result<(), LookupError> {
-        (&self[..]).look_up(input)
+        self[..].look_up(input)
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
-        (&self[..]).longest_prefix(input)
+        self[..].longest_prefix(input)
     }
 }
 
 impl<T: AsRef<str>> Resolve for Vec<T> {
     type Item = String;
     fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
-        (&self[..]).resolve(input)
+        self[..].resolve(input)
     }
 }
 
@@ -204,13 +204,13 @@ mod test {
     #[test]
     fn lookup_slice() {
         let a = ["abc", "abcd", "abcde"];
-        assert_eq!((&a[..]).longest_prefix(""), Some(String::from("abc")));
-        assert_eq!((&a[..]).longest_prefix("a"), Some(String::from("abc")));
-        assert_eq!((&a[..]).longest_prefix("ab"), Some(String::from("abc")));
-        assert_eq!((&a[..]).longest_prefix("abcd"), Some(String::from("abcd")));
-        assert_eq!((&a[..]).longest_prefix("abcde"), Some(String::from("abcde")));
-        assert_eq!((&a[..]).longest_prefix("abcdef"), None);
-        assert_eq!((&a[..]).longest_prefix("e"), None);
+        assert_eq!(a[..].longest_prefix(""), Some(String::from("abc")));
+        assert_eq!(a[..].longest_prefix("a"), Some(String::from("abc")));
+        assert_eq!(a[..].longest_prefix("ab"), Some(String::from("abc")));
+        assert_eq!(a[..].longest_prefix("abcd"), Some(String::from("abcd")));
+        assert_eq!(a[..].longest_prefix("abcde"), Some(String::from("abcde")));
+        assert_eq!(a[..].longest_prefix("abcdef"), None);
+        assert_eq!(a[..].longest_prefix("e"), None);
     }
 
     #[test]

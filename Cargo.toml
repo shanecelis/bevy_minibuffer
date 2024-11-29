@@ -25,12 +25,8 @@ bevy-inspector-egui = "0.25"
 rand = "0.8.5"
 version-sync = "0.9.5"
 
-[patch.'https://github.com/shanecelis/bevy_asky.git']
-bevy_asky = { path = "../bevy_asky" }
-
 [patch.crates-io]
-bevy-input-sequence = { path = "../bevy-input-sequence" }
-keyseq = { path = "../keyseq" }
+bevy-input-sequence = { git = "https://github.com/shanecelis/bevy-input-sequence.git" }
 
 [[example]]
 name = "simplest-async"

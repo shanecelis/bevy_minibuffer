@@ -55,6 +55,3 @@ name = "two-commands-async"
 path = "examples/async/two_commands.rs"
 required-features = [ "async" ]
 
-[[example]]
-name = "tab-completion"
-path = "examples/readme/tab-completion.rs"

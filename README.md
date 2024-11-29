@@ -17,7 +17,7 @@ The video above shows the [two_commands.rs](examples/two_commands.rs) example.
 - [x] Easily add acts, i.e., commands
 
 ```rust ignore 
-//! Add a command.
+//! Add an act.
 fn hello_world() {
     info!("Hello, world");
 }
@@ -29,7 +29,7 @@ fn main() {
 }
 ```
 
-- [x] Easily bind key chord sequences to acts via [bevy-input-sequences](https://github.com/not-elm/bevy-input-sequence)
+- [x] Easily bind key chord sequences to acts 
 
 ```rust no_run
 //! Add a command with a hotkey.

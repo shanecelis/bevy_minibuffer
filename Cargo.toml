@@ -22,6 +22,7 @@ async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_
 
 [dev-dependencies]
 bevy-inspector-egui = "0.25"
+version-sync = "0.9.5"
 
 [patch.'https://github.com/shanecelis/bevy_asky.git']
 bevy_asky = { path = "../bevy_asky" }

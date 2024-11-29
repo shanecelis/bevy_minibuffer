@@ -10,7 +10,7 @@ pub mod lookup;
 mod message;
 mod plugin;
 pub mod prompt;
-pub mod sync;
+mod sync;
 pub mod ui;
 pub use plugin::Config;
 pub use plugin::Error;
@@ -44,7 +44,7 @@ pub mod input {
 
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
-    pub use super::act::{self, Act, ActBuilder, Acts, AddActs};
+    pub use super::act::{self, Act, ActBuilder, Acts, AddActs, ActFlags};
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, Modifiers};
     pub use super::lookup::Resolve;

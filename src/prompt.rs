@@ -19,8 +19,7 @@ pub(crate) fn plugin(app: &mut App) {
         .register_type::<GetKeyChord>();
 }
 
-/// The state of... something???
-/// XXX: What is this?
+/// Is the minibuffer visible?
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum MinibufferState {
     /// Inactive
@@ -30,7 +29,7 @@ pub enum MinibufferState {
     Active,
 }
 
-/// The state of the minibuffer
+/// Is the prompt active?
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum PromptState {
     // Uninit,
@@ -41,7 +40,7 @@ pub enum PromptState {
     Visible,
 }
 
-/// The state of the autocomplete panel
+/// Is the autocomplete panel visible?
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum CompletionState {
     // Uninit,

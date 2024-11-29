@@ -5,7 +5,7 @@ use crate::{
     act::{Act, ActFlags, Acts, ActsPlugin},
     event::{LastRunAct, RunActEvent, RunInputSequenceEvent},
     prelude::{future_sink, keyseq},
-    Minibuffer, MinibufferAsync,
+    MinibufferAsync,
 };
 use bevy::prelude::*;
 use bevy_defer::{AsyncAccess, AsyncWorld};
@@ -28,9 +28,6 @@ impl Default for UniversalArgPlugin {
                     .named("universal_argument")
                     .bind(keyseq! { Ctrl-U })
                     .sub_flags(ActFlags::ExecAct),
-                Act::new(check_accum)
-                    .named("check_accum")
-                    .bind(keyseq! { C A }),
             ]),
         }
     }
@@ -55,14 +52,6 @@ impl ActsPlugin for UniversalArgPlugin {
     }
 }
 
-/// XXX: This shouldn't be here. It should be in an example.
-pub fn check_accum(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
-    match arg.0 {
-        Some(x) => minibuffer.message(format!("Univeral argument {x}")),
-        None => minibuffer.message("No universal argument set"),
-    }
-}
-
 fn clear_arg(
     mut event: EventReader<RunActEvent>,
     mut arg: ResMut<UniversalArg>,
@@ -83,7 +72,7 @@ fn clear_arg(
 /// This resources stores the last given universal argument. It is cleared after
 /// any act---that is not specifically marked [ActFlags::Adverb]---runs.
 #[derive(Debug, Clone, Resource, Default, Reflect)]
-pub struct UniversalArg(Option<i32>);
+pub struct UniversalArg(pub Option<i32>);
 
 fn universal_argument(
     mut minibuffer: MinibufferAsync,

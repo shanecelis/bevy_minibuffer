@@ -12,11 +12,11 @@ use std::{borrow::Cow, collections::HashMap};
 pub trait ActsPlugin: Plugin {
     // fn acts(&self) -> &Acts;
     // fn acts_mut(&mut self) -> &mut Acts;
-    /// Take the acts.
+
+    /// Take the acts. This removes them from the plugin so that they may be
+    /// altered and the plugin may be added with [App::add_plugins] or
+    /// [AddActs::add_acts].
     fn take_acts(&mut self) -> Acts;
-    // {
-    //     self.acts_mut().take()
-    // }
 }
 
 /// A collection of acts
@@ -85,10 +85,7 @@ mod sealed {
 
         fn add_to_world(self, _world: &mut World)
         where
-            Self: Sized,
-        {
-            todo!("No add_to_world implementation.");
-        }
+            Self: Sized;
     }
 
     impl ActBuilders<ActBuilderMarker> for ActBuilder {

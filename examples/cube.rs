@@ -52,9 +52,9 @@ fn stop(mut query: Query<&mut Rotatable>) {
 /// Set the speed of the spinning cube with input.
 fn speed(mut minibuffer: Minibuffer) {
     minibuffer.prompt::<Number<f32>>("speed: ").observe(
-        |trigger: Trigger<AskyEvent<f32>>, mut query: Query<&mut Rotatable>| {
+        |mut trigger: Trigger<Submit<f32>>, mut query: Query<&mut Rotatable>| {
             for mut r in &mut query {
-                r.speed = *trigger.event().0.as_ref().expect("speed");
+                r.speed = trigger.event_mut().take_result().expect("speed");
             }
         },
     );

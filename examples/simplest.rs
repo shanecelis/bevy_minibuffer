@@ -1,3 +1,4 @@
+//! Consider dumping this example.
 use bevy::prelude::*;
 use bevy_minibuffer::{prelude::*, sync::Minibuffer};
 
@@ -9,13 +10,13 @@ fn ask_name(mut minibuffer: Minibuffer) {
     minibuffer
         .prompt::<TextField>("What's your first name? ")
         .observe(
-            |trigger: Trigger<AskyEvent<String>>, mut minibuffer: Minibuffer| {
-                let first_name = trigger.event().0.clone().unwrap();
+            |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
+                let first_name = trigger.event_mut().take_result().unwrap();
                 minibuffer
                     .prompt::<TextField>("What's your last name? ")
                     .observe(
-                        move |trigger: Trigger<AskyEvent<String>>, mut minibuffer: Minibuffer| {
-                            let last_name = trigger.event().0.clone().unwrap();
+                        move |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
+                            let last_name = trigger.event_mut().take_result().unwrap();
                             minibuffer.message(format!("Hello, {first_name} {last_name}!"));
                         },
                     );

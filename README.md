@@ -16,22 +16,15 @@ The video above shows the [two_commands.rs](examples/two_commands.rs) example.
 
 - [x] Easily add acts, i.e., commands
 
-```rust no_run
+```rust ignore 
 //! Add a command.
-use bevy::prelude::*;
-use bevy_minibuffer::prelude::*;
-
 fn hello_world() {
     info!("Hello, world");
 }
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, MinibufferPlugins))
         .add_acts(Act::new(hello_world))
-        .add_systems(Startup, |mut commands: Commands| {
-            commands.spawn(Camera2dBundle::default());
-        })
         .run();
 }
 ```
@@ -67,8 +60,8 @@ use bevy_minibuffer::prelude::*;
 
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer.prompt::<TextField>("What's your name? ")
-        .observe(|trigger: AskyEvent<String>| {
-            info!("Hello, {}", trigger.event().unwrap());
+        .observe(|trigger: Trigger<Submit<String>>| {
+            info!("Hello, {}", trigger.event_mut().take().unwrap());
         });
 }
 
@@ -83,11 +76,47 @@ fn main() {
 }
 ```
 - [x] Tab completion where possible
+``` rust no_run
+//! Ask user a question with tab completion.
+use bevy::prelude::*;
+use bevy_minibuffer::prelude::*;
+
+fn hello_name(mut minibuffer: Minibuffer) {
+    minibuffer.read("What's your name? ",
+                    vec!["John", "Sean", "Shane"])
+        .observe(|trigger: Trigger<Submit<String>>| {
+            info!("Hello, {}", trigger.event().as_ref().clone().unwrap());
+        });
+}
+
+fn main() {
+    App::new()
+        .add_plugins((DefaultPlugins, MinibufferPlugins))
+        .add_systems(Startup, |mut commands: Commands| {
+            commands.spawn(Camera2dBundle::default());
+        })
+        .add_systems(PostStartup, hello_name)
+        .run();
+}
+```
+
 - [x] Easily opt-in to built-in functionality
+``` rust no_run
+//! Add builtin acts.
+use bevy::prelude::*;
+use bevy_minibuffer::prelude::*;
+
+fn main() {
+    App::new()
+        .add_plugins((DefaultPlugins, MinibufferPlugins))
+        .add_acts(Builtin)
+        .run();
+}
+```
 - [ ] Easily exclude from build
 
 I believe a project with a "minibuffer" feature flag and rust conditional
-compilation facilities ought to make it easy and practical to exclude from a
+compilation facilities ought to make it easy and practical to exclude it from a
 release build. But I'd like to affirm that in practice before checking that box.
 
 # Antigoals

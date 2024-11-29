@@ -98,11 +98,11 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Las
         .read(prompt, acts.clone())
         .insert(RequireMatch)
         .observe(
-            move |trigger: Trigger<AskyEvent<String>>,
+            move |mut trigger: Trigger<Submit<String>>,
                   mut writer: EventWriter<RunActEvent>,
                   mut minibuffer: Minibuffer| {
-                match &trigger.event().0 {
-                    Ok(act_name) => match acts.resolve(act_name) {
+                match trigger.event_mut().take().unwrap() {
+                    Ok(act_name) => match acts.resolve(&act_name) {
                         Ok(act) => {
                             writer.send(RunActEvent::new(act));
                         }

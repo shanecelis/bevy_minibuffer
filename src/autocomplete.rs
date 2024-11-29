@@ -1,7 +1,7 @@
 //! Provides autocomplete
 use crate::{
     event::LookupEvent,
-    lookup::{Lookup, LookupError, *},
+    lookup::{Lookup, LookupError},
     prelude::*,
 };
 use bevy::{
@@ -32,7 +32,7 @@ use std::borrow::Cow;
 /// | `Right`     | Move cursor right            |
 ///
 #[derive(Component, Deref)]
-pub struct AutoComplete<M>(Box<dyn Lookup<M> + Send + Sync>);
+pub struct AutoComplete(Box<dyn Lookup + Send + Sync>);
 
 /// Means that an auto completing read must match one of its lookups.
 #[derive(Component, Debug)]
@@ -43,11 +43,11 @@ pub struct RequireMatch;
 //     Resolve(Box<dyn Resolve<Item = T> + Send + Sync>)
 // }
 
-impl<M: 'static> AutoComplete<M> {
+impl AutoComplete {
     /// Wrap a prompt in autocomplete.
     pub fn new<L>(look_up: L) -> Self
     where
-        L: Lookup<M> + Send + Sync + 'static,
+        L: Lookup + Send + Sync + 'static,
     {
         Self(Box::new(look_up))
     }
@@ -85,13 +85,11 @@ impl<M: 'static> AutoComplete<M> {
 }
 
 pub(crate) fn plugin(app: &mut App) {
-    app.add_systems(PreUpdate, autocomplete_controller::<TrieLookup>)
-       .add_systems(PreUpdate, autocomplete_controller::<SliceLookup>)
-        .add_systems(Update, crate::view::text_view::<With<AutoComplete<TrieLookup>>>)
-        .add_systems(Update, crate::view::text_view::<With<AutoComplete<SliceLookup>>>);
+    app.add_systems(PreUpdate, autocomplete_controller)
+        .add_systems(Update, crate::view::text_view::<With<AutoComplete>>);
 }
 
-unsafe impl<M> Submitter for AutoComplete<M> {
+unsafe impl Submitter for AutoComplete {
     type Out = String;
 }
 
@@ -117,12 +115,12 @@ unsafe impl<M> Submitter for AutoComplete<M> {
 //     }
 // }
 
-fn autocomplete_controller<M: 'static>(
+fn autocomplete_controller(
     mut focus: FocusParam,
     mut query: Query<(
         Entity,
         &mut StringCursor,
-        &AutoComplete<M>,
+        &AutoComplete,
         Option<&RequireMatch>,
     )>,
     mut input: EventReader<KeyboardInput>,
@@ -211,11 +209,11 @@ fn autocomplete_controller<M: 'static>(
                         }
                     }
                     lookup_events.send(LookupEvent::Hide);
-                    commands.trigger_targets(AskyEvent(Ok(text_state.value.clone())), id);
+                    commands.trigger_targets(Submit::new(Ok(text_state.value.clone())), id);
                     focus.block_and_move(id);
                 }
                 Key::Escape => {
-                    commands.trigger_targets(AskyEvent::<String>(Err(asky::Error::Cancel)), id);
+                    commands.trigger_targets(Submit::<String>::new(Err(asky::Error::Cancel)), id);
                     if let Some(mut ecommands) = commands.get_entity(id) {
                         ecommands.try_insert(Feedback::error("canceled"));
                     }

@@ -58,7 +58,7 @@ pub mod prelude {
     #[cfg(feature = "async")]
     pub use super::{future_result_sink, future_sink};
     pub use super::{Error, MinibufferPlugin, MinibufferPlugins};
-    pub use asky::{prompt::*, AskyEvent};
+    pub use asky::{prompt::*, Submit};
     pub use bevy_asky as asky;
     pub use std::time::Duration;
 }

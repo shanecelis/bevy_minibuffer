@@ -23,7 +23,7 @@ use bevy::{
 };
 use bevy_asky::{
     construct::{Add, Construct},
-    AskyAsync, AskyEvent, Submitter,
+    AskyAsync, Submit, Submitter,
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
 use bevy_channel_trigger::ChannelSender;
@@ -133,10 +133,10 @@ impl MinibufferAsync {
                 let commands = Dest::ReplaceChildren(dest).entity(&mut commands);
                 let autocomplete = AutoComplete::new(lookup);
                 autocomplete.construct(commands, prompt).observe(
-                    move |trigger: Trigger<AskyEvent<String>>, mut commands: Commands| {
+                    move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             promise
-                                .send(trigger.event().0.clone().map_err(Error::from))
+                                .send(trigger.event_mut().take().unwrap().map_err(Error::from))
                                 .expect("send");
                         }
                         commands.entity(trigger.entity()).despawn_recursive();

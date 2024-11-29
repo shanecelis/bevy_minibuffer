@@ -3,11 +3,12 @@
 //! It uses triggers rather than promises.
 use crate::{
     autocomplete::AutoComplete,
-    lookup::{Resolve, Lookup},
-    prompt::{GetKeyChord, PromptState},
+    lookup::{Lookup, Resolve},
     plugin::Mapped,
-    ui::PromptContainer, view::View, Dest, Message,
-    Error,
+    prompt::{GetKeyChord, PromptState},
+    ui::PromptContainer,
+    view::View,
+    Dest, Error, Message,
 };
 use bevy::{
     ecs::{
@@ -17,7 +18,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{Trigger, DespawnRecursiveExt, NextState, Res, ResMut, State},
+    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Trigger},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Part};
 use std::fmt::Debug;
@@ -122,7 +123,7 @@ impl<'w, 's> Minibuffer<'w, 's> {
     ) -> EntityCommands
     where
         L: Lookup + Clone + Resolve + Send + Sync + 'static,
-        <L as Resolve>::Item: Sync
+        <L as Resolve>::Item: Sync,
     {
         let dest = self.dest.single();
         let commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);
@@ -131,19 +132,22 @@ impl<'w, 's> Minibuffer<'w, 's> {
         ecommands
             // .insert(RequireMatch)
             // TODO: We should probably return something other than submit.
-            .observe(move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
-                let mut mapped = Mapped::empty();
-                let r: Result<L::Item, Error> = trigger.event_mut()
-                                                       .take_result()
-                                                       .map_err(Error::from)
-                                                       .and_then(|s| {
-                                                           let r = lookup.resolve(&s).map_err(Error::from);
-                                                           mapped.input = Some(s);
-                                                           r
-                                                       });
-                mapped.result = Some(r);
-                commands.trigger_targets(mapped, trigger.entity());
-            });
+            .observe(
+                move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
+                    let mut mapped = Mapped::empty();
+                    let r: Result<L::Item, Error> = trigger
+                        .event_mut()
+                        .take_result()
+                        .map_err(Error::from)
+                        .and_then(|s| {
+                            let r = lookup.resolve(&s).map_err(Error::from);
+                            mapped.input = Some(s);
+                            r
+                        });
+                    mapped.result = Some(r);
+                    commands.trigger_targets(mapped, trigger.entity());
+                },
+            );
         ecommands
     }
 

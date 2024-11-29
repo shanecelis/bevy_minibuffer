@@ -45,9 +45,9 @@ pub mod input {
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
     pub use super::act::{self, Act, ActBuilder, Acts, AddActs};
-    pub use super::lookup::Resolve;
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, Modifiers};
+    pub use super::lookup::Resolve;
     pub use super::sync::MinibufferCommands;
     #[cfg(feature = "async")]
     pub use super::universal::*;
@@ -59,7 +59,7 @@ pub mod prelude {
     pub use super::MinibufferAsync;
     #[cfg(feature = "async")]
     pub use super::{future_result_sink, future_sink};
-    pub use super::{Mapped, Error, MinibufferPlugin, MinibufferPlugins};
+    pub use super::{Error, Mapped, MinibufferPlugin, MinibufferPlugins};
     pub use asky::{prompt::*, Submit};
     pub use bevy_asky as asky;
     pub use std::time::Duration;

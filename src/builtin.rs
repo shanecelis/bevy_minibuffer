@@ -14,21 +14,16 @@ use std::{
 };
 
 #[cfg(feature = "async")]
-use crate::{
-    future_result_sink,
-};
+use crate::future_result_sink;
 #[cfg(not(feature = "async"))]
-use crate::{
-    autocomplete::RequireMatch,
-    prompt::KeyChordEvent,
-};
+use crate::{autocomplete::RequireMatch, prompt::KeyChordEvent};
 use bevy::{prelude::*, window::RequestRedraw};
 #[cfg(feature = "async")]
 use bevy_defer::AsyncWorld;
 use tabular::{Row, Table};
-use trie_rs::map::{Trie, TrieBuilder};
 #[cfg(not(feature = "async"))]
 use trie_rs::inc_search::IncSearch;
+use trie_rs::map::{Trie, TrieBuilder};
 
 #[cfg(feature = "async")]
 use futures::Future;
@@ -38,7 +33,8 @@ use futures::Future;
 pub fn exec_act(
     mut minibuffer: MinibufferAsync,
     acts: Query<&Act>,
-    last_act: Res<LastRunAct>) -> impl Future<Output = Result<(), crate::Error>> {
+    last_act: Res<LastRunAct>,
+) -> impl Future<Output = Result<(), crate::Error>> {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
         if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {

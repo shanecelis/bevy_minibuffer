@@ -83,7 +83,10 @@ mod sealed {
             self.add_to_world(app.world_mut());
         }
 
-        fn add_to_world(self, _world: &mut World) where Self: Sized {
+        fn add_to_world(self, _world: &mut World)
+        where
+            Self: Sized,
+        {
             todo!("No add_to_world implementation.");
         }
     }

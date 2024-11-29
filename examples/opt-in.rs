@@ -3,8 +3,7 @@ use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
+    app.add_plugins(MinibufferPlugins)
         .add_acts(Builtin::default());
 }
 

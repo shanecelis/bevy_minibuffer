@@ -155,10 +155,13 @@ impl<T: AsRef<str>> Lookup for [T] {
     fn longest_prefix(&self, input: &str) -> Option<String> {
         let mut accum: Option<String> = None;
         let count = input.chars().count();
-        let mut entries: Vec<_> = self.iter().filter_map(|s| {
-            let s = s.as_ref();
-            s.starts_with(input).then(|| s.chars().skip(count))
-        }).collect();
+        let mut entries: Vec<_> = self
+            .iter()
+            .filter_map(|s| {
+                let s = s.as_ref();
+                s.starts_with(input).then(|| s.chars().skip(count))
+            })
+            .collect();
         let mut a_match = false;
         loop {
             let mut c: Option<char> = None;
@@ -169,7 +172,6 @@ impl<T: AsRef<str>> Lookup for [T] {
                         if a != d {
                             c = None;
                             break;
-
                         }
                     } else {
                         c = Some(d);
@@ -188,10 +190,8 @@ impl<T: AsRef<str>> Lookup for [T] {
                     accum = Some(s);
                 }
             } else {
-
                 break;
             }
-
         }
         accum.or_else(|| a_match.then(|| String::from(input)))
     }
@@ -216,7 +216,10 @@ mod test {
     #[test]
     fn lookup_array() {
         let a = ["abc", "abcd", "abcde"];
-        assert_eq!(["abc", "abcd", "abcde"].longest_prefix(""), Some(String::from("abc")));
+        assert_eq!(
+            ["abc", "abcd", "abcde"].longest_prefix(""),
+            Some(String::from("abc"))
+        );
         assert_eq!(a.longest_prefix(""), Some(String::from("abc")));
         assert_eq!(a.longest_prefix("a"), Some(String::from("abc")));
         assert_eq!(a.longest_prefix("ab"), Some(String::from("abc")));

@@ -8,8 +8,7 @@ fn hello_world(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_acts(Act::new(hello_world).bind(keyseq! { Ctrl-H }));
+    app.add_acts(Act::new(hello_world).bind(keyseq! { Ctrl-H }));
 }
 
 fn main() {

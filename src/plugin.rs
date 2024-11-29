@@ -19,7 +19,7 @@ use bevy::{
         },
         system::Resource,
     },
-    prelude::{Deref, DerefMut, IntoSystemConfigs, Event, on_event, OnEnter, OnExit, PluginGroup},
+    prelude::{on_event, Deref, DerefMut, Event, IntoSystemConfigs, OnEnter, OnExit, PluginGroup},
     reflect::Reflect,
     state::{
         app::AppExtStates,
@@ -79,7 +79,7 @@ impl<T> Mapped<T> {
     pub fn new(result: Result<T, Error>) -> Self {
         Self {
             result: Some(result),
-            input: None
+            input: None,
         }
     }
 
@@ -87,7 +87,7 @@ impl<T> Mapped<T> {
     pub fn empty() -> Self {
         Self {
             result: None,
-            input: None
+            input: None,
         }
     }
 

@@ -215,6 +215,36 @@ fn plugin(app: &mut App) {
  
 ```
 
+# Plugins
+
+## Builtin
+
+The `Bulitin` plugin has the bare necessities of acts: 
+- exec_act,
+- list_acts,
+- list_key_bindings,
+- describe_key,
+- and toggle_visibility.
+
+But you can trim it down further if you like by calling `take_acts()`,
+manipulating them, and submitting that to `add_acts()`.
+
+## `UniversalArgPlugin`
+
+Provides a univeral argument that acts can use by accessing the
+`Res<UniveralArg>`. It simply holds an option of a signed number.
+
+``` rust ignore
+pub struct UniversalArg(pub Option<i32>);
+```
+
+One uses it like so, type `Ctrl-U 1 0` and this would place 10 into the
+`UniversalArg` resource. It is cleared after the next act runs. See the example.
+
+``` sh
+cargo run --example universal-arg --features async
+```
+
 # FAQ
 
 ## Why are Minibuffer commands called acts?

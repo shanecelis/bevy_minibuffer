@@ -39,7 +39,7 @@ impl Plugin for UniversalArgPlugin {
             .add_systems(bevy::app::Last, clear_arg);
         if !self.acts.is_empty() {
             warn!(
-                "universal plugin has {} that acts were not added.",
+                "universal plugin has {} that acts were not added; consider using add_acts() on the plugin.",
                 self.acts.len()
             );
         }

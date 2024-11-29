@@ -261,7 +261,7 @@ pub(crate) fn listen_prompt_active(
 
 #[cfg(test)]
 mod tests {
-    use crate::lookup::Lookup;
+    use crate::lookup::{Lookup, TrieLookup};
     // use super::Parse;
 
     // #[derive(Debug)]
@@ -293,7 +293,7 @@ mod tests {
         use trie_rs::Trie;
         let trie: Trie<u8> = ["ask_name", "ask_name2", "asky_age"].into_iter().collect();
         assert_eq!(trie.longest_prefix::<String, _>("a").unwrap(), "ask");
-        let lookup: &dyn Lookup = &trie;
+        let lookup: &dyn Lookup<TrieLookup> = &trie;
         assert_eq!(lookup.longest_prefix("a").unwrap(), "ask");
         assert_eq!(lookup.longest_prefix("b"), None);
         // let lookup: &dyn Lookup = &trie;

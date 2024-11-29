@@ -1,10 +1,11 @@
-//! Ask user a question.
+//! Ask user a question with tab completion.
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 
 fn hello_name(mut minibuffer: Minibuffer) {
+    let names = vec!["John", "Sean", "Shane"];
     minibuffer.read("What's your name? ",
-                    &["John", "Sean", "Shane"][..])
+                    names)
         .observe(|trigger: Trigger<AskyEvent<String>>| {
             info!("Hello, {}", trigger.event().as_ref().clone().unwrap());
         });

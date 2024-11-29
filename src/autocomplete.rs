@@ -1,7 +1,7 @@
 //! Provides autocomplete
 use crate::{
     event::LookupEvent,
-    lookup::{Lookup, LookupError},
+    lookup::{Lookup, LookupError, *},
     prelude::*,
 };
 use bevy::{
@@ -32,7 +32,7 @@ use std::borrow::Cow;
 /// | `Right`     | Move cursor right            |
 ///
 #[derive(Component, Deref)]
-pub struct AutoComplete(Box<dyn Lookup + Send + Sync>);
+pub struct AutoComplete<M>(Box<dyn Lookup<M> + Send + Sync>);
 
 /// Means that an auto completing read must match one of its lookups.
 #[derive(Component, Debug)]
@@ -43,11 +43,11 @@ pub struct RequireMatch;
 //     Resolve(Box<dyn Resolve<Item = T> + Send + Sync>)
 // }
 
-impl AutoComplete {
+impl<M: 'static> AutoComplete<M> {
     /// Wrap a prompt in autocomplete.
     pub fn new<L>(look_up: L) -> Self
     where
-        L: Lookup + Send + Sync + 'static,
+        L: Lookup<M> + Send + Sync + 'static,
     {
         Self(Box::new(look_up))
     }
@@ -85,11 +85,13 @@ impl AutoComplete {
 }
 
 pub(crate) fn plugin(app: &mut App) {
-    app.add_systems(PreUpdate, autocomplete_controller)
-        .add_systems(Update, crate::view::text_view::<With<AutoComplete>>);
+    app.add_systems(PreUpdate, autocomplete_controller::<TrieLookup>)
+       .add_systems(PreUpdate, autocomplete_controller::<SliceLookup>)
+        .add_systems(Update, crate::view::text_view::<With<AutoComplete<TrieLookup>>>)
+        .add_systems(Update, crate::view::text_view::<With<AutoComplete<SliceLookup>>>);
 }
 
-unsafe impl Submitter for AutoComplete {
+unsafe impl<M> Submitter for AutoComplete<M> {
     type Out = String;
 }
 
@@ -115,12 +117,12 @@ unsafe impl Submitter for AutoComplete {
 //     }
 // }
 
-fn autocomplete_controller(
+fn autocomplete_controller<M: 'static>(
     mut focus: FocusParam,
     mut query: Query<(
         Entity,
         &mut StringCursor,
-        &AutoComplete,
+        &AutoComplete<M>,
         Option<&RequireMatch>,
     )>,
     mut input: EventReader<KeyboardInput>,

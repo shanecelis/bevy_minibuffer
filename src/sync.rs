@@ -94,13 +94,14 @@ impl<'w, 's> Minibuffer<'w, 's> {
     }
 
     /// Read input from user that must match a [Lookup].
-    pub fn read<L>(
+    pub fn read<L,M>(
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
         lookup: L,
     ) -> EntityCommands
     where
-        L: Lookup + Clone + Send + Sync + 'static,
+        L: Lookup<M> + Send + Sync + 'static,
+        M: 'static
     {
         let dest = self.dest.single();
         let commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);

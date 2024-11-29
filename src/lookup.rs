@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use std::borrow::Cow;
 use trie_rs::{iter::KeysExt, map};
+use as_slice::AsSlice;
 
 use crate::Error;
 
@@ -22,10 +23,17 @@ pub enum LookupError {
     Incomplete(Vec<String>),
 }
 
+#[doc(hidden)]
+/// Marker for trie lookup.
+pub struct TrieLookup;
+#[doc(hidden)]
+/// Marker for slice lookup.
+pub struct SliceLookup;
+
 /// Look up possible completions
 ///
 /// This trait is object-safe.
-pub trait Lookup {
+pub trait Lookup<Marker> {
     /// Look up the `input`. If it matches exactly, this returns `Ok(())`.
     /// Otherwise it returns [LookupError], which can include its partial matches.
     fn look_up(&self, input: &str) -> Result<(), LookupError>;
@@ -64,7 +72,7 @@ impl<V: Send + Sync + Clone> Resolve for map::Trie<u8, V> {
     }
 }
 
-impl<V: Send + Sync + Clone> Lookup for map::Trie<u8, V> {
+impl<V: Send + Sync + Clone> Lookup<TrieLookup> for map::Trie<u8, V> {
     fn look_up(&self, input: &str) -> Result<(), LookupError> {
         self.resolve(input).map(|_| ())
     }
@@ -82,7 +90,7 @@ impl Resolve for trie_rs::Trie<u8> {
     }
 }
 
-impl Lookup for trie_rs::Trie<u8> {
+impl Lookup<TrieLookup> for trie_rs::Trie<u8> {
     fn look_up(&self, input: &str) -> Result<(), LookupError> {
         self.0.resolve(input)
     }
@@ -92,8 +100,25 @@ impl Lookup for trie_rs::Trie<u8> {
     }
 }
 
+impl<T: AsRef<str>> Lookup<SliceLookup> for Vec<T> {
+    fn look_up(&self, input: &str) -> Result<(), LookupError> {
+        (&self[..]).look_up(input)
+    }
+
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        (&self[..]).longest_prefix(input)
+    }
+}
+
+impl<T: AsRef<str>> Resolve for Vec<T> {
+    type Item = String;
+    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
+        (&self[..]).resolve(input)
+    }
+}
+
 /// Handles arrays of &str, String, Cow<'_, str>. Does it all.
-impl<T: AsRef<str>> Resolve for &[T] {
+impl<T: AsRef<str>> Resolve for [T] {
     type Item = String;
     fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
         // Collecting and matching is nice expressively. But manually iterating
@@ -135,7 +160,55 @@ impl<T: AsRef<str>> Resolve for &[T] {
     }
 }
 
-impl<T: AsRef<str>> Lookup for [T] {
+// impl<T: AsSlice<Element=X> + Resolve, X: AsRef<str>> Lookup<SliceLookup> for T {
+//     fn look_up(&self, input: &str) -> Result<(), LookupError> {
+//         self.resolve(input).map(|_| ())
+//     }
+
+//     fn longest_prefix(&self, input: &str) -> Option<String> {
+//         let mut accum: Option<String> = None;
+//         let count = input.chars().count();
+//         let mut entries: Vec<_> = self.as_slice().iter().filter_map(|s| {
+//             let s = s.as_ref();
+//             s.starts_with(input).then(|| s.chars().skip(count))
+//         }).collect();
+//         let mut a_match = false;
+//         loop {
+//             let mut c: Option<char> = None;
+//             for entry in &mut entries {
+//                 a_match = true;
+//                 if let Some(d) = entry.next() {
+//                     if let Some(a) = c {
+//                         if a != d {
+//                             c = None;
+//                             break;
+
+//                         }
+//                     } else {
+//                         c = Some(d);
+//                     }
+//                 } else {
+//                     break;
+//                 }
+//             }
+//             if let Some(c) = c {
+//                 if let Some(ref mut s) = accum {
+//                     s.push(c);
+//                 } else {
+//                     let mut s = String::from(input);
+//                     s.push(c);
+//                     accum = Some(s);
+//                 }
+//             } else {
+//                 break;
+//             }
+//         }
+//         accum.or_else(|| a_match.then(|| String::from(input)))
+//     }
+// }
+
+
+impl<T: AsRef<str>> Lookup<SliceLookup> for [T] {
     fn look_up(&self, input: &str) -> Result<(), LookupError> {
         self.resolve(input).map(|_| ())
     }
@@ -148,7 +221,7 @@ impl<T: AsRef<str>> Lookup for [T] {
             s.starts_with(input).then(|| s.chars().skip(count))
         }).collect();
         let mut a_match = false;
-        'outer: loop {
+        loop {
             let mut c: Option<char> = None;
             for entry in &mut entries {
                 a_match = true;
@@ -166,7 +239,6 @@ impl<T: AsRef<str>> Lookup for [T] {
                     break;
                 }
             }
-
             if let Some(c) = c {
                 if let Some(ref mut s) = accum {
                     s.push(c);
@@ -176,10 +248,8 @@ impl<T: AsRef<str>> Lookup for [T] {
                     accum = Some(s);
                 }
             } else {
-
                 break;
             }
-
         }
         accum.or_else(|| a_match.then(|| String::from(input)))
     }
@@ -204,6 +274,19 @@ mod test {
     #[test]
     fn lookup_array() {
         let a = ["abc", "abcd", "abcde"];
+        assert_eq!(["abc", "abcd", "abcde"].longest_prefix(""), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix(""), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix("a"), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix("ab"), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix("abcd"), Some(String::from("abcd")));
+        assert_eq!(a.longest_prefix("abcde"), Some(String::from("abcde")));
+        assert_eq!(a.longest_prefix("abcdef"), None);
+        assert_eq!(a.longest_prefix("e"), None);
+    }
+
+    #[test]
+    fn lookup_vec() {
+        let a = vec!["abc", "abcd", "abcde"];
         assert_eq!(a.longest_prefix(""), Some(String::from("abc")));
         assert_eq!(a.longest_prefix("a"), Some(String::from("abc")));
         assert_eq!(a.longest_prefix("ab"), Some(String::from("abc")));

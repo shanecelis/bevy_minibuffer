@@ -65,7 +65,7 @@ cargo run --example opt-in
 Acts are systems. Any system will do.
 
 NOTE: We add `Builtin` acts here only because there would be no way to run an
-act without a key binding.
+act otherwise without a key binding.
 
 ```rust ignore 
 fn hello_world(mut minibuffer: Minibuffer) {
@@ -83,7 +83,7 @@ cargo run --example add-act
 
 ## Easily bind key chord sequences to acts 
 
-We can bind key chord `Ctrl-H` or a key chord sequence `Ctrl-H W`.
+We can bind key chord `Ctrl-H` or even a key chord sequence `Ctrl-H W` to an act.
 
 ```rust ignore
 fn hello_world(mut minibuffer: Minibuffer) {
@@ -125,6 +125,7 @@ Minibuffer supports the following prompts:
 - Radio buttons
 - Toggle
 - TextField
+  - Tab completion
 
 See the "demo-async" example to see more prompts in action.
 ``` sh
@@ -173,7 +174,8 @@ cargo run --example tab-completion-trie
 ```
 
 ### Use a `map::Trie`
-Further one can provide a trie map to an arbitary value type `V`.
+Further one can provide a trie that maps to an arbitary value type `V` and
+receive the value `V` type in reponse in addition to the string.
 
 ```rust ignore
 #[derive(Debug, Clone)]
@@ -202,7 +204,7 @@ cargo run --example tab-completion-trie-map
 ```
 ## Easily exclude from build
 
-I believe a project with a "minibuffer" feature flag and rust conditional
+I _believe_ a project with a "minibuffer" feature flag and rust conditional
 compilation facilities ought to make it easy and practical to exclude it from a
 release build. But I'd like to affirm that in practice before checking that box.
 
@@ -220,14 +222,31 @@ fn plugin(app: &mut App) {
 ## Builtin
 
 The `Bulitin` plugin has the bare necessities of acts: 
-- exec_act,
-- list_acts,
-- list_key_bindings,
-- describe_key,
-- and toggle_visibility.
+- exec_act
 
-But you can trim it down further if you like by calling `take_acts()`,
-manipulating them, and submitting that to `add_acts()`.
+Asks for what act to run, provides tab completion.
+- list_acts
+
+Lists acts and their key bindings.
+- list_key_bindings
+
+Lists key bindings and their acts.
+- describe_key
+
+Listens for key chords and reveals what act they would run.
+- toggle_visibility
+
+Hides and shows the minibuffer.
+
+But one can trim it down further if one likes by calling `take_acts()`,
+manipulating them, and submitting that to `add_acts()`. For instance to only use exec_act, one would do the following:
+
+``` rust ignore
+fn plugin(app: &mut App) {
+    app.add_plugins(MinibufferPlugins)
+       .add_acts(Builtin::default().take_acts().remove("exec_act").unwrap());
+}
+```
 
 ## `UniversalArgPlugin`
 

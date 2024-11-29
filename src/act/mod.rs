@@ -279,7 +279,7 @@ impl Act {
         ActBuilder::new(system)
     }
 
-    /// Return the name of this act or [Self::ANONYMOUS].
+    /// Return the name of this act.
     pub fn name(&self) -> &str {
         &self.name
     }

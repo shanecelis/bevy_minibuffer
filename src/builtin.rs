@@ -357,7 +357,8 @@ impl Default for Builtin {
                     .named("exec_act")
                     .bind_aliased(keyseq! { Shift-; }, ":")
                     .bind(keyseq! { Alt-X })
-                    .add_flags(ActFlags::Adverb),
+                    .add_flags(ActFlags::Adverb)
+                    .sub_flags(ActFlags::ExecAct),
                 #[cfg(feature = "async")]
                 ActBuilder::new(describe_key.pipe(future_result_sink))
                     .named("describe_key")

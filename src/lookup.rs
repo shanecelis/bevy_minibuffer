@@ -135,12 +135,81 @@ impl<T: AsRef<str>> Resolve for &[T] {
     }
 }
 
-impl<T: AsRef<str>> Lookup for &[T] {
+impl<T: AsRef<str>> Lookup for [T] {
     fn look_up(&self, input: &str) -> Result<(), LookupError> {
         self.resolve(input).map(|_| ())
     }
 
-    fn longest_prefix(&self, _input: &str) -> Option<String> {
-        todo!();
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        let mut accum: Option<String> = None;
+        let count = input.chars().count();
+        let mut entries: Vec<_> = self.iter().filter_map(|s| {
+            let s = s.as_ref();
+            s.starts_with(input).then(|| s.chars().skip(count))
+        }).collect();
+        let mut a_match = false;
+        'outer: loop {
+            let mut c: Option<char> = None;
+            for entry in &mut entries {
+                a_match = true;
+                if let Some(d) = entry.next() {
+                    if let Some(a) = c {
+                        if a != d {
+                            c = None;
+                            break;
+
+                        }
+                    } else {
+                        c = Some(d);
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            if let Some(c) = c {
+                if let Some(ref mut s) = accum {
+                    s.push(c);
+                } else {
+                    let mut s = String::from(input);
+                    s.push(c);
+                    accum = Some(s);
+                }
+            } else {
+
+                break;
+            }
+
+        }
+        accum.or_else(|| a_match.then(|| String::from(input)))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn lookup_slice() {
+        let a = ["abc", "abcd", "abcde"];
+        assert_eq!((&a[..]).longest_prefix(""), Some(String::from("abc")));
+        assert_eq!((&a[..]).longest_prefix("a"), Some(String::from("abc")));
+        assert_eq!((&a[..]).longest_prefix("ab"), Some(String::from("abc")));
+        assert_eq!((&a[..]).longest_prefix("abcd"), Some(String::from("abcd")));
+        assert_eq!((&a[..]).longest_prefix("abcde"), Some(String::from("abcde")));
+        assert_eq!((&a[..]).longest_prefix("abcdef"), None);
+        assert_eq!((&a[..]).longest_prefix("e"), None);
+    }
+
+    #[test]
+    fn lookup_array() {
+        let a = ["abc", "abcd", "abcde"];
+        assert_eq!(a.longest_prefix(""), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix("a"), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix("ab"), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix("abcd"), Some(String::from("abcd")));
+        assert_eq!(a.longest_prefix("abcde"), Some(String::from("abcde")));
+        assert_eq!(a.longest_prefix("abcdef"), None);
+        assert_eq!(a.longest_prefix("e"), None);
     }
 }

@@ -3,8 +3,6 @@ use bevy::prelude::*;
 use std::borrow::Cow;
 use trie_rs::{iter::KeysExt, map};
 
-use crate::Error;
-
 /// Look up error
 ///
 /// Alternatives to having an exact match for lookup.
@@ -14,9 +12,6 @@ pub enum LookupError {
     /// An error message
     #[error("{0}")]
     Message(Cow<'static, str>),
-    /// An minibuffer error
-    #[error("minibuffer {0}")]
-    Minibuffer(#[from] Error),
     /// A list of possible matches
     #[error("incomplete {0:?}")]
     Incomplete(Vec<String>),

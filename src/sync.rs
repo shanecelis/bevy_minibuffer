@@ -2,8 +2,12 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
-    autocomplete::AutoComplete, lookup::Lookup, prompt::GetKeyChord, prompt::PromptState,
+    autocomplete::AutoComplete,
+    lookup::{Resolve, Lookup},
+    prompt::{GetKeyChord, PromptState},
+    plugin::Mapped,
     ui::PromptContainer, view::View, Dest, Message,
+    Error,
 };
 use bevy::{
     ecs::{
@@ -13,7 +17,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State},
+    prelude::{Trigger, DespawnRecursiveExt, NextState, Res, ResMut, State},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Part};
 use std::fmt::Debug;
@@ -100,12 +104,47 @@ impl<'w, 's> Minibuffer<'w, 's> {
         lookup: L,
     ) -> EntityCommands
     where
-        L: Lookup + Clone + Send + Sync + 'static,
+        L: Lookup + Send + Sync + 'static,
     {
         let dest = self.dest.single();
         let commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);
         let autocomplete = AutoComplete::new(lookup);
         autocomplete.construct(commands, prompt)
+    }
+
+    /// Read input from user that maps to other another type.
+    ///
+    /// Instead of triggering [`Submit<String>`] it will trigger [`Mapped<T>`].
+    pub fn resolve<L>(
+        &mut self,
+        prompt: impl Into<<TextField as Construct>::Props>,
+        lookup: L,
+    ) -> EntityCommands
+    where
+        L: Lookup + Clone + Resolve + Send + Sync + 'static,
+        <L as Resolve>::Item: Sync
+    {
+        let dest = self.dest.single();
+        let commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);
+        let autocomplete = AutoComplete::new(lookup.clone());
+        let mut ecommands = autocomplete.construct(commands, prompt);
+        ecommands
+            // .insert(RequireMatch)
+            // TODO: We should probably return something other than submit.
+            .observe(move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
+                let mut mapped = Mapped::empty();
+                let r: Result<L::Item, Error> = trigger.event_mut()
+                                                       .take_result()
+                                                       .map_err(Error::from)
+                                                       .and_then(|s| {
+                                                           let r = lookup.resolve(&s).map_err(Error::from);
+                                                           mapped.input = Some(s);
+                                                           r
+                                                       });
+                mapped.result = Some(r);
+                commands.trigger_targets(mapped, trigger.entity());
+            });
+        ecommands
     }
 
     /// Clear the minibuffer.

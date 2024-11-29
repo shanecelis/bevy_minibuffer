@@ -1,7 +1,7 @@
 use crate::{
     act,
     event::{dispatch_events, run_acts, LookupEvent, RunActEvent, RunInputSequenceEvent},
-    // lookup::AutoComplete,
+    lookup::LookupError,
     prompt::{
         self, get_key_chords, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
         look_up_events, show, CompletionState, KeyChordEvent, MinibufferState, PromptState,
@@ -19,8 +19,7 @@ use bevy::{
         },
         system::Resource,
     },
-    prelude::IntoSystemConfigs,
-    prelude::{on_event, OnEnter, OnExit, PluginGroup},
+    prelude::{Deref, DerefMut, IntoSystemConfigs, Event, on_event, OnEnter, OnExit, PluginGroup},
     reflect::Reflect,
     state::{
         app::AppExtStates,
@@ -65,12 +64,54 @@ pub struct Config {
     pub text_style: TextStyle,
 }
 
+/// When we resolve a string, it can be mapped to another value T.
+#[derive(Event, Deref, DerefMut, Debug)]
+pub struct Mapped<T> {
+    /// The result if not taken yet.
+    #[deref]
+    pub result: Option<Result<T, Error>>,
+    /// Input string mapped from if available.
+    pub input: Option<String>,
+}
+
+impl<T> Mapped<T> {
+    /// Create a new mapped event.
+    pub fn new(result: Result<T, Error>) -> Self {
+        Self {
+            result: Some(result),
+            input: None
+        }
+    }
+
+    /// Create an empty mapped event.
+    pub fn empty() -> Self {
+        Self {
+            result: None,
+            input: None
+        }
+    }
+
+    /// Provide input string if available.
+    pub fn with_input(mut self, input: String) -> Self {
+        self.input = Some(input);
+        self
+    }
+
+    /// Unwrap the result assuming it hasn't been taken already.
+    pub fn take_result(&mut self) -> Result<T, Error> {
+        self.result.take().expect("mapped has been taken already")
+    }
+}
+
 /// Minibuffer error
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     /// An error message
     #[error("{0}")]
     Message(Cow<'static, str>),
+    /// A lookup error
+    #[error("look up error{0}")]
+    Lookup(#[from] LookupError),
     /// An [asky] error
     #[error("{0}")]
     Asky(#[from] bevy_asky::Error),

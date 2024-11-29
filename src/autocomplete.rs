@@ -156,12 +156,12 @@ fn autocomplete_controller(
                                     text_state.set_value(&new_input);
                                 }
                             }
-                            Minibuffer(e) => {
-                                lookup_events.send(LookupEvent::Hide);
-                                if let Some(mut ecommands) = commands.get_entity(id) {
-                                    ecommands.try_insert(Feedback::warn(format!("{:?}", e)));
-                                }
-                            }
+                            // Minibuffer(e) => {
+                            //     lookup_events.send(LookupEvent::Hide);
+                            //     if let Some(mut ecommands) = commands.get_entity(id) {
+                            //         ecommands.try_insert(Feedback::warn(format!("{:?}", e)));
+                            //     }
+                            // }
                         }
                     }
                 }
@@ -198,12 +198,12 @@ fn autocomplete_controller(
                                         text_state.set_value(&new_input);
                                     }
                                 }
-                                Minibuffer(e) => {
-                                    lookup_events.send(LookupEvent::Hide);
-                                    if let Some(mut ecommands) = commands.get_entity(id) {
-                                        ecommands.try_insert(Feedback::warn(format!("{:?}", e)));
-                                    }
-                                }
+                                // Minibuffer(e) => {
+                                //     lookup_events.send(LookupEvent::Hide);
+                                //     if let Some(mut ecommands) = commands.get_entity(id) {
+                                //         ecommands.try_insert(Feedback::warn(format!("{:?}", e)));
+                                //     }
+                                // }
                             }
                             continue;
                         }

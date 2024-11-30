@@ -82,7 +82,7 @@ cargo run --example add-act
 ```
 
 ## Easily bind key chord sequences to acts 
-
+<img align="right" src="https://github.com/user-attachments/assets/336a79c1-f934-4d69-a3fe-6b55778663be"/>
 We can bind key chord `Ctrl-H` or even a key chord sequence `Ctrl-H W` to an act.
 
 ```rust ignore

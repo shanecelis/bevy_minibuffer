@@ -11,8 +11,10 @@ the Unix shell.
 <p align="center">
   <img src="https://github.com/user-attachments/assets/8d8dc5cf-b20c-4d8d-97f4-de8fdf176a24"/>
 </p>
-The video above shows the [demo.rs](examples/async/demo.rs) example.
-
+The video above shows the [demo-async](/examples/async/demo.rs) example.
+``` sh
+cargo run --example demo-async --features async
+```
 # Goals
 - Easily opt-in to basic functionality
 - Easily add acts, i.e., commands

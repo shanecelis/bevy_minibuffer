@@ -35,7 +35,7 @@ use std::{borrow::Cow, fmt::Debug};
 /// MinibufferAsync, a [SystemParam] for async.
 ///
 /// This is distinct from the [crate::sync::Minibuffer] because it does not have
-/// any lifetimes which allow it to be captured by a closure.
+/// any lifetimes which allow it to be captured by closures.
 #[derive(Clone)]
 pub struct MinibufferAsync {
     asky: AskyAsync,

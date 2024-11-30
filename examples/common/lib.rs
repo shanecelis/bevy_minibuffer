@@ -1,20 +1,29 @@
-use bevy::{
-    prelude::*,
-    render::{
-        camera::RenderTarget,
-        render_resource::{
-            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-        },
-        RenderPlugin,
-    },
-};
-use bevy_minibuffer::prelude::*;
+//! Common example facilities like video capture
+//!
+//! This provides examples with a few commonalities:
+//! - A window title name
+//! - A settable window size that defaults to 400 x 400
+//! - An optional color background
+//!
+//! The most important part of this code, however, is it captures the frames of
+//! an example when "dev-capture" is named as a feature. This changes several
+//! aspects of how the examples are run, namely:
+//!
+//! - A second camera is attached to the primary camera.
+//! - The UI is rendered directly to the second camera.
+//!
+//! - A node that spans the screen is spawned for the primary camera; it renders
+//!   the secondary camera's captured image. (This was the only way I found I
+//!   could have the UI displayed in two cameras at once.)
+//!
+//! - The FPS is set to 12 to reduce the number of PNGs generated during
+//!   capture.
+//!
+//! - An AppExit event, we wait for the threads writing images to finish.
+//!
+use bevy::prelude::*;
 #[cfg(feature = "dev-capture")]
 use bevy_image_export::{ImageExportBundle, ImageExportPlugin, ImageExportSource, ImageExportSettings};
-// use std::collections::hash_map::DefaultHasher;
-// use std::hash::{Hash, Hasher};
-// use rand_chacha::ChaCha8Rng;
-// use rand::{Rng, SeedableRng};
 
 pub struct VideoCapturePlugin {
     pub resolution: Vec2,
@@ -25,7 +34,6 @@ pub struct VideoCapturePlugin {
 impl Plugin for VideoCapturePlugin {
     fn build(&self, app: &mut bevy::app::App) {
 
-        let res = self.resolution;
         let background = self.background;
 
         app
@@ -39,6 +47,7 @@ impl Plugin for VideoCapturePlugin {
         }
         #[cfg(feature = "dev-capture")]
         {
+            let res = self.resolution;
             let fps = 12.0;
             let plugin = ImageExportPlugin::default();
             let export_threads = plugin.threads.clone();
@@ -56,49 +65,25 @@ impl Plugin for VideoCapturePlugin {
                         export_threads.finish();
                     }
                 });
-                if let Some(background) = background {
-                    app
-                        .add_systems(PostStartup, ((move || res ).pipe(setup_capture),
-                                                   (move || background).pipe(set_background)).chain());
-                } else {
-                    app
-                        .add_systems(PostStartup, (move || res ).pipe(setup_capture));
-                }
+            if let Some(background) = background {
+                app
+                    .add_systems(PostStartup, ((move || res ).pipe(setup_capture),
+                                               (move || background).pipe(set_background)).chain());
+            } else {
+                app
+                    .add_systems(PostStartup, (move || res ).pipe(setup_capture));
+            }
         }
     }
 }
 
-// impl PluginGroup for VideoCapturePlugin {
-//     fn build(self) -> PluginGroupBuilder {
-//         PluginGroupBuilder::start::<Self>()
-//             .add(self.export_plugin.expect("export plugin called with start"))
-//             .add_group(DefaultPlugins.set(self.window_plugin()))
-//             .add_group(MinibufferPlugins.set(self.minibuffer_plugin()))
-//     }
-// }
-// fn hash<T: Hash>(obj: &T) -> u64 {
-//     let mut hasher = DefaultHasher::new();
-//     obj.hash(&mut hasher);
-//     hasher.finish()
-// }
-
-
 impl VideoCapturePlugin {
     pub fn new(title: impl Into<String>) -> Self {
         let title = title.into();
-        // let h = hash(&title);
-        // let mut rng = ChaCha8Rng::seed_from_u64(h);
-        // let value: f32 = rng.gen_range(0.5..=1.0);
-        // let hue: f32 = rng.gen_range(0.0..=1.0);
-        // // let hue: f32 = h as f32 / u64::MAX as f32;
-        // // let value: f32 = ((h >> 1) as f32 / u64::MAX as f32) / 2.0 + 0.5;
-        // eprintln!("Using hash {h} to make hue {hue} and value {value}");
-        // let background = Hsva::new(hue, 0.9, value, 1.0).into();
         Self {
             title,
             resolution: Vec2::new(400.0, 300.0),
             background: None
-            // export_plugin: None,
         }
     }
 
@@ -107,17 +92,11 @@ impl VideoCapturePlugin {
         self
     }
 
+    #[allow(dead_code)]
     pub fn resolution(mut self, res: Vec2) -> Self {
         self.resolution = res;
         self
     }
-
-    // pub fn start(&mut self) -> ExportThreads {
-    //     let plugin = ImageExportPlugin::default();
-    //     let export_threads = plugin.threads.clone();
-    //     self.export_plugin = Some(plugin);
-    //     export_threads
-    // }
 
     pub fn window_plugin(&self) -> WindowPlugin {
         WindowPlugin {
@@ -130,31 +109,24 @@ impl VideoCapturePlugin {
         }
     }
 
-    pub fn minibuffer_plugin(&self) -> MinibufferPlugin {
-        MinibufferPlugin {
-            config: Config {
-                // auto_hide: true,
-                auto_hide: false,
-                hide_delay: Duration::from_millis(5000),
-                text_style: TextStyle {
-                    font_size: 20.0,
-                    ..default()
-                },
-            },
-        }
-    }
+    // pub fn minibuffer_plugin(&self) -> MinibufferPlugin {
+    //     MinibufferPlugin {
+    //         config: Config {
+    //             // auto_hide: true,
+    //             auto_hide: false,
+    //             hide_delay: Duration::from_millis(5000),
+    //             text_style: TextStyle {
+    //                 font_size: 20.0,
+    //                 ..default()
+    //             },
+    //         },
+    //     }
+    // }
 }
-
-// fn frame_duration(fps: u32) -> Duration {
-//     Duration::from_millis(((1.0 / fps as f32) * 1000.0) as u64)
-// }
-//
-//
 
 fn set_background(
     In(background): In<Color>,
     mut cameras: Query<&mut Camera>,
-    mut commands: Commands,
 ) {
     for mut camera in &mut cameras {
         camera.clear_color = background.into();
@@ -200,7 +172,7 @@ fn setup_capture(
 
     if let Ok(id) = camera2d.get_single() {
         commands.entity(id)
-                // .insert(IsDefaultUiCamera)
+        // .insert(IsDefaultUiCamera)
                 .with_children(|parent| {
                     parent.spawn((Camera2dBundle {
                         camera: Camera {
@@ -232,10 +204,9 @@ fn setup_capture(
                 ..default()
             },
             TargetCamera(id),
-            ));
+        ));
     } else if let Ok(id) = camera3d.get_single() {
         commands.entity(id)
-                // .insert(IsDefaultUiCamera)
                 .with_children(|parent| {
                     parent
                         .spawn((Camera3dBundle {

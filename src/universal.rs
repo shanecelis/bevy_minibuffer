@@ -124,7 +124,11 @@ fn universal_argument(
                 }
             };
             if digit >= 0 {
-                accum = accum * 10 + digit;
+                if accum >= 0 {
+                    accum = accum * 10 + digit;
+                } else {
+                    accum = accum * 10 - digit;
+                }
             } else {
                 accum *= digit;
             }

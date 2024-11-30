@@ -12,6 +12,7 @@ fn rnd_vec<R: Rng>(rng: &mut R) -> Vec3 {
 
 fn make_cube(
     arg: Res<UniversalArg>,
+    cubes: Query<Entity, With<Handle<Mesh>>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -26,20 +27,31 @@ fn make_cube(
     });
 
     let count = arg.0.unwrap_or(1);
-    for _ in 0..count {
-
-        let v = 2.0 * rnd_vec(&mut rng);
-        commands
-            .spawn((
-                PbrBundle {
-                    mesh: cube_handle.clone(),
-                    material: cube_material_handle.clone(),
-                    transform: Transform::from_translation(v),
-                    ..default()
-                },
-            ));
+    if count < 0 {
+        let mut despawned = 0;
+        for id in &cubes {
+            commands.entity(id).despawn();
+            despawned += 1;
+            if despawned >= -count {
+                break;
+            }
+        }
+        minibuffer.message(format!("Removed {} cubes.", despawned));
+    } else {
+        for _ in 0..count {
+            let v = 2.0 * rnd_vec(&mut rng);
+            commands
+                .spawn((
+                    PbrBundle {
+                        mesh: cube_handle.clone(),
+                        material: cube_material_handle.clone(),
+                        transform: Transform::from_translation(v),
+                        ..default()
+                    },
+                ));
+        }
+        minibuffer.message(format!("Made {} cubes.", count));
     }
-    minibuffer.message(format!("Made {} cubes.", count));
 }
 pub fn check_arg(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
     match arg.0 {
@@ -50,6 +62,7 @@ pub fn check_arg(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
 
 fn plugin(app: &mut App) {
     app
+        .add_plugins(MinibufferPlugins)
         .add_acts((BasicActs::default(),
                    UniversalArgActs::default(),
                    Act::new(make_cube)
@@ -74,18 +87,11 @@ fn setup(mut commands: Commands) {
 }
 
 fn main() {
-    let video_settings = common::VideoCaptureSettings {
-        title: "Bevy Minibuffer Universal Argument Example".into(),
-    };
     App::new()
-        // Normally, you'd do this:
-        // .add_plugins((DefaultPlugins, MinibufferPlugins, plugin))
-        // For the demo, we do it slightly differently like this:
-        .add_plugins((
-            DefaultPlugins.set(video_settings.window_plugin()),
-            MinibufferPlugins.set(video_settings.minibuffer_plugin()),
-            plugin
-        ))
+        // .add_plugins((DefaultPlugins, plugin))
+        .add_plugins((common::VideoCapturePlugin::new("universal-arg")
+                      .background(Srgba::hex("7678ed").unwrap()),
+                      plugin))
         .add_systems(Startup, setup)
         .run();
 }

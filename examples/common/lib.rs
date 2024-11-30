@@ -23,6 +23,15 @@
 //!
 use bevy::prelude::*;
 #[cfg(feature = "dev-capture")]
+use bevy::{
+    render::{
+        camera::RenderTarget,
+        render_resource::{
+            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+        },
+    },
+};
+#[cfg(feature = "dev-capture")]
 use bevy_image_export::{ImageExportBundle, ImageExportPlugin, ImageExportSource, ImageExportSettings};
 
 pub struct VideoCapturePlugin {
@@ -87,6 +96,7 @@ impl VideoCapturePlugin {
         }
     }
 
+    #[allow(dead_code)]
     pub fn background(mut self, color: impl Into<Color>) -> Self {
         self.background = Some(color.into());
         self
@@ -220,6 +230,25 @@ fn setup_capture(
                                 IsDefaultUiCamera
                         ));
                 });
+        commands.spawn((
+            ImageBundle {
+                image: UiImage {
+                    texture: output_texture_handle.clone(),
+                    ..default()
+                },
+                style: Style {
+                    // Cover the whole image
+                    width: Val::Percent(100.),
+                    height: Val::Percent(100.),
+                    // flex_direction: FlexDirection::Column,
+                    // justify_content: JustifyContent::Center,
+                    // align_items: AlignItems::Center,
+                    ..default()
+                },
+                ..default()
+            },
+            TargetCamera(id),
+        ));
     } else {
         panic!("No camera found!");
     }

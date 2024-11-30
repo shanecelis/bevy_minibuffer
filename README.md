@@ -176,6 +176,7 @@ cargo run --example tab-completion-trie
 ```
 
 ### Use a `map::Trie`
+<img align="right" src="https://github.com/user-attachments/assets/af7b33e0-135d-4d6c-b748-a489a1245000"/>
 Further one can provide a trie that maps to an arbitary value type `V` and
 receive the value `V` type in reponse in addition to the string.
 

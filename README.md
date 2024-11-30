@@ -37,7 +37,7 @@ the ":" key binding should be opt-in.
 An example for every goal.
 
 ## Easily opt-in to built-in functionality
-
+<img align="right" src="https://github.com/user-attachments/assets/0e5e77a2-7c91-4660-8962-bb356d91bf98"/>
 `MinibufferPlugins` does not include any builtin acts or key bindings.
 
 Adding the `Builtin` acts provides the following:

@@ -1,7 +1,7 @@
 //! Demonstrate universal argument
-use rand::prelude::*;
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
+use rand::prelude::*;
 
 #[path = "common/lib.rs"]
 mod common;
@@ -16,7 +16,7 @@ fn make_cube(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut minibuffer: Minibuffer
+    mut minibuffer: Minibuffer,
 ) {
     let mut rng = rand::thread_rng();
 
@@ -40,15 +40,12 @@ fn make_cube(
     } else {
         for _ in 0..count {
             let v = 2.0 * rnd_vec(&mut rng);
-            commands
-                .spawn((
-                    PbrBundle {
-                        mesh: cube_handle.clone(),
-                        material: cube_material_handle.clone(),
-                        transform: Transform::from_translation(v),
-                        ..default()
-                    },
-                ));
+            commands.spawn((PbrBundle {
+                mesh: cube_handle.clone(),
+                material: cube_material_handle.clone(),
+                transform: Transform::from_translation(v),
+                ..default()
+            },));
         }
         minibuffer.message(format!("Made {} cubes.", count));
     }
@@ -61,15 +58,13 @@ pub fn check_arg(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
-        .add_acts((BasicActs::default(),
-                   UniversalArgActs::default(),
-                   Act::new(make_cube)
-                   .bind(keyseq! { Space }),
-                   Act::new(check_arg)
-                  .bind(keyseq! { C })
-                  .add_flags(ActFlags::Show),
+    app.add_plugins(MinibufferPlugins).add_acts((
+        BasicActs::default(),
+        UniversalArgActs::default(),
+        Act::new(make_cube).bind(keyseq! { Space }),
+        Act::new(check_arg)
+            .bind(keyseq! { C })
+            .add_flags(ActFlags::Show),
     ));
 }
 
@@ -89,9 +84,11 @@ fn setup(mut commands: Commands) {
 fn main() {
     App::new()
         // .add_plugins((DefaultPlugins, plugin))
-        .add_plugins((common::VideoCapturePlugin::new("universal-arg")
-                      .background(Srgba::hex("7678ed").unwrap()),
-                      plugin))
+        .add_plugins((
+            common::VideoCapturePlugin::new("universal-arg")
+                .background(Srgba::hex("7678ed").unwrap()),
+            plugin,
+        ))
         .add_systems(Startup, setup)
         .run();
 }

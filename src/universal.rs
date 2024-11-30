@@ -23,12 +23,10 @@ pub struct UniversalArgActs {
 impl Default for UniversalArgActs {
     fn default() -> Self {
         Self {
-            acts: Acts::new(vec![
-                Act::new(universal_argument.pipe(future_sink))
-                    .named("universal_argument")
-                    .bind(keyseq! { Ctrl-U })
-                    .sub_flags(ActFlags::ExecAct),
-            ]),
+            acts: Acts::new(vec![Act::new(universal_argument.pipe(future_sink))
+                .named("universal_argument")
+                .bind(keyseq! { Ctrl-U })
+                .sub_flags(ActFlags::ExecAct)]),
         }
     }
 }

@@ -14,17 +14,17 @@ mod sync;
 pub mod ui;
 pub use plugin::Config;
 pub use plugin::Error;
-pub use plugin::Resolved;
 pub use plugin::MinibufferPlugin;
 pub use plugin::MinibufferPlugins;
+pub use plugin::Resolved;
 mod basic;
 #[cfg(feature = "async")]
 mod sink;
 #[cfg(feature = "async")]
 pub mod universal;
 pub mod view;
-pub use bevy_asky::Dest;
 pub use basic::BasicActs;
+pub use bevy_asky::Dest;
 pub use message::Message;
 #[cfg(feature = "async")]
 pub use sink::{future_result_sink, future_sink};
@@ -43,7 +43,7 @@ pub mod input {
 
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
-    pub use super::act::{self, Act, ActBuilder, Acts, AddActs, ActFlags, ActsPlugin};
+    pub use super::act::{self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, AddActs};
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, Modifiers};
     pub use super::lookup::Resolve;
@@ -58,7 +58,7 @@ pub mod prelude {
     pub use super::MinibufferAsync;
     #[cfg(feature = "async")]
     pub use super::{future_result_sink, future_sink};
-    pub use super::{Error, Resolved, MinibufferPlugin, MinibufferPlugins};
+    pub use super::{Error, MinibufferPlugin, MinibufferPlugins, Resolved};
     pub use asky::{prompt::*, Submit};
     pub use bevy_asky as asky;
     pub use std::time::Duration;

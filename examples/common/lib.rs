@@ -23,16 +23,16 @@
 //!
 use bevy::prelude::*;
 #[cfg(feature = "dev-capture")]
-use bevy::{
-    render::{
-        camera::RenderTarget,
-        render_resource::{
-            Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-        },
+use bevy::render::{
+    camera::RenderTarget,
+    render_resource::{
+        Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
     },
 };
 #[cfg(feature = "dev-capture")]
-use bevy_image_export::{ImageExportBundle, ImageExportPlugin, ImageExportSource, ImageExportSettings};
+use bevy_image_export::{
+    ImageExportBundle, ImageExportPlugin, ImageExportSettings, ImageExportSource,
+};
 
 pub struct VideoCapturePlugin {
     pub resolution: Vec2,
@@ -42,16 +42,13 @@ pub struct VideoCapturePlugin {
 
 impl Plugin for VideoCapturePlugin {
     fn build(&self, app: &mut bevy::app::App) {
-
         let background = self.background;
 
-        app
-            .add_plugins(DefaultPlugins.set(self.window_plugin()));
+        app.add_plugins(DefaultPlugins.set(self.window_plugin()));
         #[cfg(not(feature = "dev-capture"))]
         {
             if let Some(background) = background {
-                app
-                    .add_systems(PostStartup, (move || background).pipe(set_background));
+                app.add_systems(PostStartup, (move || background).pipe(set_background));
             }
         }
         #[cfg(feature = "dev-capture")]
@@ -60,27 +57,30 @@ impl Plugin for VideoCapturePlugin {
             let fps = 12.0;
             let plugin = ImageExportPlugin::default();
             let export_threads = plugin.threads.clone();
-            app
-                .add_plugins((
-                    bevy_framepace::FramepacePlugin,
-                    plugin,
-                    // MinibufferPlugins.set(self.minibuffer_plugin()),
-                ))
-                .insert_resource(bevy_framepace::FramepaceSettings {
-                    limiter: bevy_framepace::Limiter::from_framerate(fps)
-                })
-                .add_systems(Update, move |events: EventReader<AppExit>| {
-                    if !events.is_empty() {
-                        export_threads.finish();
-                    }
-                });
+            app.add_plugins((
+                bevy_framepace::FramepacePlugin,
+                plugin,
+                // MinibufferPlugins.set(self.minibuffer_plugin()),
+            ))
+            .insert_resource(bevy_framepace::FramepaceSettings {
+                limiter: bevy_framepace::Limiter::from_framerate(fps),
+            })
+            .add_systems(Update, move |events: EventReader<AppExit>| {
+                if !events.is_empty() {
+                    export_threads.finish();
+                }
+            });
             if let Some(background) = background {
-                app
-                    .add_systems(PostStartup, ((move || res ).pipe(setup_capture),
-                                               (move || background).pipe(set_background)).chain());
+                app.add_systems(
+                    PostStartup,
+                    (
+                        (move || res).pipe(setup_capture),
+                        (move || background).pipe(set_background),
+                    )
+                        .chain(),
+                );
             } else {
-                app
-                    .add_systems(PostStartup, (move || res ).pipe(setup_capture));
+                app.add_systems(PostStartup, (move || res).pipe(setup_capture));
             }
         }
     }
@@ -92,7 +92,7 @@ impl VideoCapturePlugin {
         Self {
             title,
             resolution: Vec2::new(400.0, 300.0),
-            background: None
+            background: None,
         }
     }
 
@@ -134,10 +134,7 @@ impl VideoCapturePlugin {
     // }
 }
 
-fn set_background(
-    In(background): In<Color>,
-    mut cameras: Query<&mut Camera>,
-) {
+fn set_background(In(background): In<Color>, mut cameras: Query<&mut Camera>) {
     for mut camera in &mut cameras {
         camera.clear_color = background.into();
     }
@@ -181,10 +178,12 @@ fn setup_capture(
     };
 
     if let Ok(id) = camera2d.get_single() {
-        commands.entity(id)
-        // .insert(IsDefaultUiCamera)
-                .with_children(|parent| {
-                    parent.spawn((Camera2dBundle {
+        commands
+            .entity(id)
+            // .insert(IsDefaultUiCamera)
+            .with_children(|parent| {
+                parent.spawn((
+                    Camera2dBundle {
                         camera: Camera {
                             order: 100,
                             // Connect the output texture to a camera as a RenderTarget.
@@ -193,9 +192,9 @@ fn setup_capture(
                         },
                         ..default()
                     },
-                                  IsDefaultUiCamera
-                    ));
-                });
+                    IsDefaultUiCamera,
+                ));
+            });
         commands.spawn((
             ImageBundle {
                 image: UiImage {
@@ -216,20 +215,19 @@ fn setup_capture(
             TargetCamera(id),
         ));
     } else if let Ok(id) = camera3d.get_single() {
-        commands.entity(id)
-                .with_children(|parent| {
-                    parent
-                        .spawn((Camera3dBundle {
-                            camera: Camera {
-                                // Connect the output texture to a camera as a RenderTarget.
-                                target: RenderTarget::Image(output_texture_handle.clone()),
-                                ..default()
-                            },
-                            ..default()
-                        },
-                                IsDefaultUiCamera
-                        ));
-                });
+        commands.entity(id).with_children(|parent| {
+            parent.spawn((
+                Camera3dBundle {
+                    camera: Camera {
+                        // Connect the output texture to a camera as a RenderTarget.
+                        target: RenderTarget::Image(output_texture_handle.clone()),
+                        ..default()
+                    },
+                    ..default()
+                },
+                IsDefaultUiCamera,
+            ));
+        });
         commands.spawn((
             ImageBundle {
                 image: UiImage {

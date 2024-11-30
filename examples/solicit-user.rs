@@ -19,8 +19,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
+    app.add_plugins(MinibufferPlugins)
         // .add_acts(BasicActs::default())
         .add_systems(PostStartup, hello_name);
 }
@@ -28,9 +27,11 @@ fn plugin(app: &mut App) {
 fn main() {
     App::new()
         // .add_plugins((DefaultPlugins, plugin))
-        .add_plugins((common::VideoCapturePlugin::new("solicit-user")
-                      .background(Srgba::hex("8338ec").unwrap()),
-                      plugin))
+        .add_plugins((
+            common::VideoCapturePlugin::new("solicit-user")
+                .background(Srgba::hex("8338ec").unwrap()),
+            plugin,
+        ))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

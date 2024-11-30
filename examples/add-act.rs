@@ -9,16 +9,16 @@ fn hello_world(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
+    app.add_plugins(MinibufferPlugins)
         .add_acts((Act::new(hello_world), BasicActs::default()));
 }
 
 fn main() {
     App::new()
-        .add_plugins((common::VideoCapturePlugin::new("add-act")
-                      .background(Srgba::hex("fb5607").unwrap()),
-                      plugin))
+        .add_plugins((
+            common::VideoCapturePlugin::new("add-act").background(Srgba::hex("fb5607").unwrap()),
+            plugin,
+        ))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

@@ -4,7 +4,7 @@ use bevy_minibuffer::prelude::*;
 
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
-       .add_acts(BasicActs::default().take_acts().remove("exec_act").unwrap());
+        .add_acts(BasicActs::default().take_acts().remove("exec_act").unwrap());
 }
 
 fn main() {

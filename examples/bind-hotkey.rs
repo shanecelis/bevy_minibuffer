@@ -10,18 +10,20 @@ fn hello_world(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
-        .add_acts((Act::new(hello_world).bind(keyseq! { Ctrl-W }),
-                  BasicActs::default()));
+    app.add_plugins(MinibufferPlugins).add_acts((
+        Act::new(hello_world).bind(keyseq! { Ctrl-W }),
+        BasicActs::default(),
+    ));
 }
 
 fn main() {
     App::new()
         // .add_plugins((DefaultPlugins, plugin))
-        .add_plugins((common::VideoCapturePlugin::new("bind-hotkey")
-                      .background(Srgba::hex("ff006e").unwrap()),
-                      plugin))
+        .add_plugins((
+            common::VideoCapturePlugin::new("bind-hotkey")
+                .background(Srgba::hex("ff006e").unwrap()),
+            plugin,
+        ))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

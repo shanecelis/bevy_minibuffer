@@ -54,7 +54,7 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let signup = minibuffer
         .prompt::<Confirm>("Let's sign you up on our email list.")
         .await?;
-    if ! signup {
+    if !signup {
         minibuffer.message("Come on. It'll be fun!");
         let _ = minibuffer.delay_or_chord(beat).await;
     }
@@ -85,19 +85,19 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
-        .add_systems(PostStartup, demo.pipe(future_result_sink))
-        ;
+    app.add_plugins(MinibufferPlugins)
+        .add_systems(PostStartup, demo.pipe(future_result_sink));
 }
 
 fn main() {
     App::new()
         // .add_plugins((DefaultPlugins, plugin))
-        .add_plugins((common::VideoCapturePlugin::new("demo")
-                      .resolution(Vec2::new(600.0, 200.0))
-                      .background(Srgba::hex("f94144").unwrap()),
-                      plugin))
+        .add_plugins((
+            common::VideoCapturePlugin::new("demo")
+                .resolution(Vec2::new(600.0, 200.0))
+                .background(Srgba::hex("f94144").unwrap()),
+            plugin,
+        ))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

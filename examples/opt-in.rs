@@ -13,9 +13,10 @@ fn plugin(app: &mut App) {
 fn main() {
     App::new()
         // .add_plugins((DefaultPlugins, plugin))
-        .add_plugins((common::VideoCapturePlugin::new("opt-in")
-                      .background(Srgba::hex("ffbe0b").unwrap()),
-                      plugin))
+        .add_plugins((
+            common::VideoCapturePlugin::new("opt-in").background(Srgba::hex("ffbe0b").unwrap()),
+            plugin,
+        ))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

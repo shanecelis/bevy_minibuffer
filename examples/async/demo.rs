@@ -104,7 +104,7 @@ fn main() {
         .add_acts((
             // Add builtin commands.
             Builtin::default(),
-            UniversalArgPlugin::default(),
+            UniversalArgActs::default(),
             Act::new(demo.pipe(future_result_sink)).bind(keyseq!(D)),
         ))
         .run();

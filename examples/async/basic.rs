@@ -44,7 +44,7 @@ fn main() {
             // Add builtin commands.
             Builtin::default(),
             // Add universal argument commands.
-            UniversalArgPlugin::default(),
+            UniversalArgActs::default(),
             Act::new(ask_name.pipe(future_result_sink))
                 .named("ask_name")
                 .bind(keyseq!(Ctrl-A N)),

@@ -51,7 +51,7 @@ pub fn check_arg(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
 fn plugin(app: &mut App) {
     app
         .add_acts((Builtin::default(),
-                   UniversalArgPlugin::default(),
+                   UniversalArgActs::default(),
                    Act::new(make_cube)
                    .bind(keyseq! { Space }),
                    Act::new(check_arg)

@@ -11,10 +11,10 @@ the Unix shell.
 <p align="center">
   <img src="https://github.com/user-attachments/assets/8d8dc5cf-b20c-4d8d-97f4-de8fdf176a24"/>
 </p>
-The video above shows the [demo-async](examples/async/demo.rs) example.
+The video above shows the [demo.rs](examples/async/demo.rs) example.
 
 # Goals
-- Easily opt-in to built-in functionality
+- Easily opt-in to basic functionality
 - Easily add acts, i.e., commands
 - Easily bind key chord sequences to acts 
 - Easily solicit user for input 
@@ -22,17 +22,16 @@ The video above shows the [demo-async](examples/async/demo.rs) example.
 - Easily exclude from build
 
 # Antigoals
+- No default kitchen sink
+
+The default functionality should be a blank slate that does nothing if no
+commands or key bindings have been added. Basic functions like `exec_act` and
+the ":" key binding should be opt-in.
 - No general-purpose text editing
 - No windows or panels
 
 Try to force everything through the minibuffer at the bottom of the screen. It
 can resize to accommodate more than one-line of text.
-
-- No default kitchen sink
-
-The default functionality should be a blank slate that does nothing if no
-commands or key bindings have been added. Built-in functions like `exec_act` and
-the ":" key binding should be opt-in.
 
 # Examples
 An example for every goal.
@@ -221,7 +220,7 @@ fn plugin(app: &mut App) {
  
 ```
 
-# ActsPlugin
+# Acts and Plugins
 
 An `ActsPlugin` is a `Plugin` that also contains `Act`s. The `Builtin` is an `ActsPlugin`.
 
@@ -254,7 +253,7 @@ fn plugin(app: &mut App) {
 }
 ```
 
-## `UniversalArgPlugin`
+## `UniversalArgActs`
 
 Provides a univeral argument that acts can use by accessing the
 `Res<UniveralArg>`. It simply holds an option of a signed number.

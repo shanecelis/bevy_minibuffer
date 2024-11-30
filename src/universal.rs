@@ -15,12 +15,12 @@ use std::{borrow::Cow, fmt::Debug, future::Future};
 /// Universal argument plugin
 ///
 /// Adds act "universal_argument" and resource [UniversalArg].
-pub struct UniversalArgPlugin {
+pub struct UniversalArgActs {
     /// Acts
     pub acts: Acts,
 }
 
-impl Default for UniversalArgPlugin {
+impl Default for UniversalArgActs {
     fn default() -> Self {
         Self {
             acts: Acts::new(vec![
@@ -33,7 +33,7 @@ impl Default for UniversalArgPlugin {
     }
 }
 
-impl Plugin for UniversalArgPlugin {
+impl Plugin for UniversalArgActs {
     fn build(&self, app: &mut bevy::app::App) {
         app.init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
@@ -46,7 +46,7 @@ impl Plugin for UniversalArgPlugin {
     }
 }
 
-impl ActsPlugin for UniversalArgPlugin {
+impl ActsPlugin for UniversalArgActs {
     fn take_acts(&mut self) -> Acts {
         self.acts.take()
     }
@@ -139,13 +139,13 @@ mod tests {
     use super::*;
     #[test]
     fn check_acts() {
-        let plugin = UniversalArgPlugin::default();
+        let plugin = UniversalArgActs::default();
         assert_eq!(plugin.acts.len(), 2);
     }
 
     #[test]
     fn check_drain_read() {
-        let mut plugin = UniversalArgPlugin::default();
+        let mut plugin = UniversalArgActs::default();
         let _ = plugin.acts.drain();
         assert_eq!(plugin.acts.len(), 0);
     }

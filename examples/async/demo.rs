@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_asky::prelude::*;
 use bevy_minibuffer::prelude::{Error, *};
 use std::time::Duration;
+
 #[path = "../common/lib.rs"]
 mod common;
 
@@ -50,9 +51,13 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let _ = minibuffer.delay_or_chord(beat).await;
     minibuffer.message("So...");
     let _ = minibuffer.delay_or_chord(beat).await;
-    let _signup = minibuffer
+    let signup = minibuffer
         .prompt::<Confirm>("Let's sign you up on our email list.")
         .await?;
+    if ! signup {
+        minibuffer.message("Come on. It'll be fun!");
+        let _ = minibuffer.delay_or_chord(beat).await;
+    }
     let email: Result<String, Error> = minibuffer.prompt::<TextField>("What's your email? ").await;
     if email.is_err() {
         minibuffer.message("canceled?");
@@ -61,13 +66,15 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
         let _ = minibuffer.delay_or_chord(beat).await;
     }
     if minibuffer
-        .prompt::<Password>("What's your password? ")
+        .prompt::<Password>("Tell me a secret: ")
         .await
         .is_ok()
     {
-        minibuffer.message("Heh heh. Just kidding.");
+        minibuffer.message("Omg.");
+        let _ = minibuffer.delay_or_chord(beat).await;
+        minibuffer.message("I'm taking that to my exit.");
     } else {
-        minibuffer.message("canceled? Well, had to try.");
+        minibuffer.message("Canceled? Well, you're no fun.");
     }
     let _ = minibuffer.delay_or_chord(beat).await;
     minibuffer.message("Bye.");
@@ -77,24 +84,23 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     Ok(())
 }
 
-fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+fn plugin(app: &mut App) {
+    app
+        .add_plugins(MinibufferPlugins)
+        .add_systems(PostStartup, demo.pipe(future_result_sink))
+        ;
 }
 
 fn main() {
-    let video_settings = common::VideoCaptureSettings {
-        title: "Bevy Minibuffer Demo Example".into(),
-    };
     App::new()
-        // .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_plugins((
-            DefaultPlugins.set(video_settings.window_plugin()),
-            MinibufferPlugins.set(video_settings.minibuffer_plugin()),
-        ))
-        // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
-        // .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
-        .add_systems(Startup, setup)
-        .add_systems(PostStartup, demo.pipe(future_result_sink))
+        // .add_plugins((DefaultPlugins, plugin))
+        .add_plugins((common::VideoCapturePlugin::new("demo")
+                      .resolution(Vec2::new(600.0, 200.0))
+                      .background(Srgba::hex("f94144").unwrap()),
+                      plugin))
+        .add_systems(Startup, |mut commands: Commands| {
+            commands.spawn(Camera2dBundle::default());
+        })
         .add_acts((
             // Add builtin commands.
             Builtin::default(),

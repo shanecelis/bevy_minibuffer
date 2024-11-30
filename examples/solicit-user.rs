@@ -2,6 +2,9 @@
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 
+#[path = "common/lib.rs"]
+mod common;
+
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer
         .prompt::<TextField>("What's your name? ")
@@ -16,12 +19,18 @@ fn hello_name(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_systems(PostStartup, hello_name);
+    app
+        .add_plugins(MinibufferPlugins)
+        // .add_acts(Builtin::default())
+        .add_systems(PostStartup, hello_name);
 }
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, MinibufferPlugins, plugin))
+        // .add_plugins((DefaultPlugins, plugin))
+        .add_plugins((common::VideoCapturePlugin::new("solicit-user")
+                      .background(Srgba::hex("8338ec").unwrap()),
+                      plugin))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

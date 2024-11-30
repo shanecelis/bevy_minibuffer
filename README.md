@@ -84,7 +84,7 @@ cargo run --example add-act
 
 ## Easily bind key chord sequences to acts 
 <img align="right" src="https://github.com/user-attachments/assets/336a79c1-f934-4d69-a3fe-6b55778663be"/>
-We can bind key chord `Ctrl-H` or even a key chord sequence `Ctrl-H W` to an act.
+We can bind key chord `Ctrl-W` or even a key chord sequence `Ctrl-W Alt-O Super-R Shift-L D` to an act.
 
 ```rust ignore
 fn hello_world(mut minibuffer: Minibuffer) {
@@ -93,7 +93,7 @@ fn hello_world(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_acts(Act::new(hello_world).bind(keyseq! { Ctrl-H }));
+    app.add_acts(Act::new(hello_world).bind(keyseq! { Ctrl-W }));
 }
 ```
 ``` sh
@@ -243,7 +243,7 @@ Listens for key chords and reveals what act they would run.
 Hides and shows the minibuffer.
 
 But one can trim it down further if one likes by calling `take_acts()`,
-manipulating them, and submitting that to `add_acts()`. For instance to only use exec_act, one would do the following:
+manipulating them, and submitting that to `add_acts()`. For instance to only use 'exec_act', one would do the following:
 
 ``` rust ignore
 fn plugin(app: &mut App) {
@@ -297,13 +297,13 @@ what they require. It is a "pull" model of interaction versus a "push" model.
 [^1:] Although one could implement keyboard macros. PRs are welcome.
 
 # TODO
-- [ ] Use a real cursor/selection highlight that doesn't [fail on wrap](https://discord.com/channels/691052431525675048/1305257817057398825/1305257817057398825).
+- [ ] Use a real cursor/selection highlight.
 - [x] Change the keyseq macros to capitalize modifiers like "Ctrl-C" instead of "ctrl-C".
 - [x] Copy-and-paste the color::View to create Minibuffer's own View.
+- [x] Re-write [asky](https://github.com/axelvc/asky) to be [bevy native](https://github.com/shanecelis/bevy_asky).
 - [ ] Get off of unreleased dependencies.
-- [x] Re-write asky to be bevy native.
 
-# Design Quetions
+# Design Questions
 ## Re: No windows antigoal
 The minibuffer can show more than one line of text, but what to do if its asked
 to show multiple pages of text?

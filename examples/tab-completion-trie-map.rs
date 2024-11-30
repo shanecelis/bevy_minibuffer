@@ -3,6 +3,9 @@ use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 use trie_rs::map::Trie;
 
+#[path = "common/lib.rs"]
+mod common;
+
 #[derive(Debug, Clone)]
 enum Popular {
     Common,
@@ -20,7 +23,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
         |mut trigger: Trigger<Mapped<Popular>>, mut minibuffer: Minibuffer| {
             let popular = trigger.event_mut().take_result();
             minibuffer.message(match popular {
-                Ok(popular) => format!("That's an {:?} name.", popular),
+                Ok(popular) => format!("That's a {:?} name.", popular),
                 _ => "I don't know what kind of name that is.".into(),
             });
         },
@@ -28,12 +31,18 @@ fn hello_name(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_systems(PostStartup, hello_name);
+    app
+        .add_plugins(MinibufferPlugins)
+        .add_acts(Act::new(hello_name).bind(keyseq! { Space }))
+        .add_systems(PostStartup, hello_name);
 }
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, MinibufferPlugins, plugin))
+        // .add_plugins((DefaultPlugins, plugin))
+        .add_plugins((common::VideoCapturePlugin::new("tab-completion")
+                      .background(Srgba::hex("00f0b5").unwrap()),
+                      plugin))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

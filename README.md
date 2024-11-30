@@ -273,6 +273,7 @@ fn plugin(app: &mut App) {
 ```
 
 ## `UniversalArgActs`
+<img align="right" src="https://github.com/user-attachments/assets/a227b529-ba66-403d-a984-5f4c7ac1d5b2"/>
 
 Provides a univeral argument that acts can use by accessing the
 `Res<UniveralArg>`. It simply holds an option of a signed number.

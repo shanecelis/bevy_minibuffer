@@ -137,6 +137,7 @@ cargo run --example demo-async --features=async
 Text centric user interfaces ought to support tab completion where possible. 
 
 ### Use a `Vec`
+<img align="right" src="https://github.com/user-attachments/assets/8b2b8a13-1ee3-4341-b523-c33fa80d4be2"/>
 
 One can provide a list of strings for simple completions. 
 

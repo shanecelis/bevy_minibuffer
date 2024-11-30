@@ -118,7 +118,6 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Las
 }
 
 /// List acts currently operant.
-// pub fn list_acts<'a>(acts: impl Iterator<Item=&'a Act>) -> String {
 pub fn list_acts(acts: Query<&Act>) -> String {
     let mut table = Table::new("{:<}\t {:<}");
     table.add_row(Row::new().with_cell("ACT ").with_cell("KEY BINDING"));

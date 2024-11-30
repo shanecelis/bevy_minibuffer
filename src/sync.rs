@@ -23,10 +23,17 @@ use bevy::{
 use bevy_asky::{prelude::*, sync::AskyCommands, Part};
 use std::fmt::Debug;
 
-// #[derive(Resource, Debug, Reflect, Deref)]
-// pub struct MinibufferDest(Entity);
-
 /// Minibuffer, a [SystemParam]
+///
+/// The "synchronized" version of Minibuffer. It uses Bevy's trigger mechanism
+/// to communicate outcomes. Like many `SystemParams` it cannot be passed into
+/// long-lived closures like async blocks or triggers.
+///
+/// For async blocks, [MinibufferAsync] is available with the "async" feature
+/// flag.
+///
+/// For trigger blocks, one cannot pass [Minibuffer] into the block, but one can
+/// declare a new [Minibuffer] system parameter.
 #[derive(SystemParam)]
 pub struct Minibuffer<'w, 's> {
     /// The query for where the Minibuffer contents go. Expected to be singular.
@@ -39,7 +46,7 @@ pub struct Minibuffer<'w, 's> {
     next_prompt_state: ResMut<'w, NextState<PromptState>>,
 }
 
-/// I don't know the entity without a query or something.
+/// An [EntityCommands] extension trait
 pub trait MinibufferCommands {
     /// Add a collection of children to self.
     fn prompt_children<T: Construct + Component + Part>(
@@ -170,11 +177,6 @@ impl<'w, 's> Minibuffer<'w, 's> {
             PromptState::Invisible
         });
     }
-
-    // Wait a certain duration.
-    // pub fn delay(&mut self, duration: Duration) -> impl Future<Output = ()> {
-    //     self.asky.delay(duration)
-    // }
 
     /// Get the next key chord.
     pub fn get_chord(&mut self) -> EntityCommands {

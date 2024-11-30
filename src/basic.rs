@@ -312,8 +312,8 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuff
     );
 }
 
-/// Builtin acts: exec_act, list_acts, list_key_bindings, describe_key, and
-/// toggle_visibility.
+/// Bare necessity of acts: exec_act, list_acts, list_key_bindings,
+/// describe_key, and toggle_visibility.
 ///
 /// Key bindings may be altered or removed prior to adding this as a
 /// plugin. Likewise acts may be altered or removed.
@@ -323,12 +323,12 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuff
 /// [Plugin::build] does not permit with its read-only `&self` access. Instead
 /// use [AddActs::add_acts].
 #[derive(Debug, Deref, DerefMut)]
-pub struct Builtin {
-    /// Set of builtin acts
+pub struct BasicActs {
+    /// Set of basic acts
     pub acts: Acts,
 }
 
-impl Default for Builtin {
+impl Default for BasicActs {
     fn default() -> Self {
         Self {
             acts: Acts::new([
@@ -371,28 +371,28 @@ impl Default for Builtin {
     }
 }
 
-impl Builtin {
+impl BasicActs {
     /// Make exec_act look like 'M-x ' at the prompt.
     pub fn emacs() -> Self {
-        let mut builtin = Self::default();
-        let exec_act = builtin.get_mut("exec_act").unwrap();
+        let mut basic = Self::default();
+        let exec_act = basic.get_mut("exec_act").unwrap();
         exec_act.hotkeys.clear();
         exec_act.bind_aliased(keyseq! { Alt-X }, "M-x ");
-        builtin
+        basic
     }
 }
 
-impl From<Builtin> for Acts {
-    fn from(builtin: Builtin) -> Acts {
-        builtin.acts
+impl From<BasicActs> for Acts {
+    fn from(basic: BasicActs) -> Acts {
+        basic.acts
     }
 }
 
-impl Plugin for Builtin {
+impl Plugin for BasicActs {
     fn build(&self, _app: &mut App) {}
 }
 
-impl ActsPlugin for Builtin {
+impl ActsPlugin for BasicActs {
     fn take_acts(&mut self) -> Acts {
         self.acts.take()
     }

@@ -11,7 +11,7 @@ fn hello_world(mut minibuffer: Minibuffer) {
 fn plugin(app: &mut App) {
     app
         .add_plugins(MinibufferPlugins)
-        .add_acts((Act::new(hello_world), Builtin::default()));
+        .add_acts((Act::new(hello_world), BasicActs::default()));
 }
 
 fn main() {

@@ -17,14 +17,14 @@ pub use plugin::Error;
 pub use plugin::Resolved;
 pub use plugin::MinibufferPlugin;
 pub use plugin::MinibufferPlugins;
-mod builtin;
+mod basic;
 #[cfg(feature = "async")]
 mod sink;
 #[cfg(feature = "async")]
 pub mod universal;
 pub mod view;
 pub use bevy_asky::Dest;
-pub use builtin::Builtin;
+pub use basic::BasicActs;
 pub use message::Message;
 #[cfg(feature = "async")]
 pub use sink::{future_result_sink, future_sink};
@@ -32,7 +32,6 @@ pub use sink::{future_result_sink, future_sink};
 #[cfg(feature = "async")]
 pub use future::MinibufferAsync;
 pub use sync::Minibuffer;
-// mod plugin_once;
 
 /// Input, mainly re-exports from [keyseq]
 pub mod input {
@@ -51,7 +50,7 @@ pub mod prelude {
     pub use super::sync::MinibufferCommands;
     #[cfg(feature = "async")]
     pub use super::universal::*;
-    pub use super::Builtin;
+    pub use super::BasicActs;
     pub use super::Config;
     pub use super::Dest;
     pub use super::Minibuffer;

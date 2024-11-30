@@ -29,7 +29,7 @@ fn main() {
         .add_systems(Update, rotate_cube)
         // Add commands.
         .add_acts((
-            Builtin::default(),
+            BasicActs::default(),
             Act::new(stop),
             Act::new(start),
             Act::new(speed).bind(keyseq! { S }),

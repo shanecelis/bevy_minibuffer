@@ -1,4 +1,4 @@
-//! Opt-in to builtin acts.
+//! Opt-in to basic acts.
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 
@@ -7,7 +7,7 @@ mod common;
 
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
-        .add_acts(Builtin::default());
+        .add_acts(BasicActs::default());
 }
 
 fn main() {

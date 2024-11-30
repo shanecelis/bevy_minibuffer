@@ -41,8 +41,8 @@ fn main() {
         // .insert_resource(WinitSettings::desktop_app()) // Lower CPU usage.
         .add_systems(Startup, setup)
         .add_acts((
-            // Add builtin commands.
-            Builtin::default(),
+            // Add basic commands.
+            BasicActs::default(),
             // Add universal argument commands.
             UniversalArgActs::default(),
             Act::new(ask_name.pipe(future_result_sink))

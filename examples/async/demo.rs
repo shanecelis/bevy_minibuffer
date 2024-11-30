@@ -102,8 +102,8 @@ fn main() {
             commands.spawn(Camera2dBundle::default());
         })
         .add_acts((
-            // Add builtin commands.
-            Builtin::default(),
+            // Add basic commands.
+            BasicActs::default(),
             UniversalArgActs::default(),
             Act::new(demo.pipe(future_result_sink)).bind(keyseq!(D)),
         ))

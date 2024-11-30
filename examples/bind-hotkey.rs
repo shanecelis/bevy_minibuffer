@@ -13,7 +13,7 @@ fn plugin(app: &mut App) {
     app
         .add_plugins(MinibufferPlugins)
         .add_acts((Act::new(hello_world).bind(keyseq! { Ctrl-W }),
-                  Builtin::default()));
+                  BasicActs::default()));
 }
 
 fn main() {

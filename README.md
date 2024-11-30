@@ -38,11 +38,9 @@ can resize to accommodate more than one-line of text.
 # Examples
 An example for every goal.
 
-## Easily opt-in to built-in functionality
+## Easily opt-in to basic functionality
 <img align="right" src="https://github.com/user-attachments/assets/0e5e77a2-7c91-4660-8962-bb356d91bf98"/>
-`MinibufferPlugins` does not include any builtin acts or key bindings.
-
-Adding the `Builtin` acts provides the following:
+`MinibufferPlugins` does not include any built-in acts or key bindings, but it's expected that many users will want some kind of basic functionality. `BasicActs` provides provides the following acts and key bindings:
 
 | ACT               | KEY BINDING |
 |-------------------|-------------|
@@ -55,7 +53,7 @@ Adding the `Builtin` acts provides the following:
 ``` rust ignore
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
-       .add_acts(Builtin::default());
+       .add_acts(BasicActs::default());
 }
 ```
 
@@ -66,7 +64,7 @@ cargo run --example opt-in
 <img align="right" src="https://github.com/user-attachments/assets/d7e1ec10-787b-4ce1-98c0-63960df4e435"/>
 Acts are systems. Any system will do.
 
-NOTE: We add `Builtin` acts here only because there would be no way to run an
+NOTE: We add `BasicActs` acts here only because there would be no way to run an
 act otherwise without a key binding.
 
 ```rust ignore 
@@ -75,7 +73,7 @@ fn hello_world(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_acts((Act::new(hello_world), Builtin::default()));
+    app.add_acts((Act::new(hello_world), BasicActs::default()));
 }
 ```
 
@@ -217,18 +215,18 @@ release build. But I'd like to affirm that in practice before considering this g
 #[cfg(feature = "minibuffer")]
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
-       .add_acts(Builtin::default());
+       .add_acts(BasicActs::default());
 }
  
 ```
 
 # Acts and Plugins
 
-An `ActsPlugin` is a `Plugin` that also contains `Act`s. The `Builtin` is an `ActsPlugin`.
+An `ActsPlugin` is a `Plugin` that also contains `Act`s. The `BasicActs` is an `ActsPlugin`.
 
-## Builtin
+## BasicActs
 
-The `Bulitin` plugin has the bare necessities of acts: 
+`BasicActs` has the bare necessities of acts: 
 - exec_act
 
 Asks for what act to run, provides tab completion.
@@ -251,7 +249,7 @@ manipulating them, and submitting that to `add_acts()`. For instance to only use
 ``` rust ignore
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
-       .add_acts(Builtin::default().take_acts().remove("exec_act").unwrap());
+       .add_acts(BasicActs::default().take_acts().remove("exec_act").unwrap());
 }
 ```
 

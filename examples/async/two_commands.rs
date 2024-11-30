@@ -32,8 +32,8 @@ fn main() {
             Act::new(ask_age.pipe(future_result_sink))
                 .named("ask_age")
                 .bind(keyseq!(Ctrl-A A)),
-            // Add a builtin act but just one of them.
-            Builtin::default().remove("exec_act").unwrap(),
+            // Add a basic act but just one of them.
+            BasicActs::default().remove("exec_act").unwrap(),
         ))
         .run();
 }

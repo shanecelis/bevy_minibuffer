@@ -40,7 +40,10 @@ An example for every goal.
 
 ## Easily opt-in to basic functionality
 <img align="right" src="https://github.com/user-attachments/assets/0e5e77a2-7c91-4660-8962-bb356d91bf98"/>
-`MinibufferPlugins` does not include any built-in acts or key bindings, but it's expected that many users will want some kind of basic functionality. `BasicActs` provides provides the following acts and key bindings:
+
+`MinibufferPlugins` does not include any built-in acts or key bindings, but it is
+expected that many users will want some kind of basic functionality. `BasicActs`
+provides the following acts and key bindings:
 
 | ACT               | KEY BINDING |
 |-------------------|-------------|
@@ -62,7 +65,7 @@ cargo run --example opt-in
 ```
 ## Easily add acts, i.e., commands
 <img align="right" src="https://github.com/user-attachments/assets/d7e1ec10-787b-4ce1-98c0-63960df4e435"/>
-Acts are systems. Any system will do.
+Acts are systems. Any system[^0] will do.
 
 NOTE: We add `BasicActs` acts here only because there would be no way to run an
 act otherwise without a key binding.
@@ -80,6 +83,8 @@ fn plugin(app: &mut App) {
 ``` sh
 cargo run --example add-act
 ```
+
+[^0]: Any system with no input or output. This does exclude pipelines however.
 
 ## Easily bind key chord sequences to acts 
 <img align="right" src="https://github.com/user-attachments/assets/336a79c1-f934-4d69-a3fe-6b55778663be"/>
@@ -295,7 +300,7 @@ better interactive experience. For instance instead of being required to know
 the arguments for any given command, Minibuffer commands will query the user for
 what they require. It is a "pull" model of interaction versus a "push" model.
 
-[^1:] Although one could implement keyboard macros. PRs are welcome.
+[^1]: Although one could implement keyboard macros. PRs are welcome.
 
 # TODO
 - [ ] Use a real cursor/selection highlight.

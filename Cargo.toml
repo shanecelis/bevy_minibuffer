@@ -2,6 +2,18 @@
 name = "bevy_minibuffer"
 version = "0.1.0-alpha.1"
 edition = "2021"
+authors = ["Shane Celis <shane.celis@gmail.com>"]
+keywords = [
+    "bevy",
+    "gamedev",
+    "console",
+]
+categories = [
+    "game-development"
+]
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/shanecelis/bevy_minibuffer"
 
 [dependencies]
 bevy = "0.14"

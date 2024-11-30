@@ -65,7 +65,7 @@ cargo run --example opt-in
 ```
 ## Easily add acts, i.e., commands
 <img align="right" src="https://github.com/user-attachments/assets/d7e1ec10-787b-4ce1-98c0-63960df4e435"/>
-Acts are systems. Any system[^0] will do.
+Acts are systems. Any system[^1] will do.
 
 NOTE: We add `BasicActs` acts here only because there would be no way to run an
 act otherwise without a key binding.
@@ -84,7 +84,7 @@ fn plugin(app: &mut App) {
 cargo run --example add-act
 ```
 
-[^0]: Any system with no input or output. This does exclude pipelines however.
+[^1]: Any system with no input or output. This does exclude pipelines however.
 
 ## Easily bind key chord sequences to acts 
 <img align="right" src="https://github.com/user-attachments/assets/336a79c1-f934-4d69-a3fe-6b55778663be"/>
@@ -295,12 +295,12 @@ because we can then script these interactions.
 
 In general the Unix shell trades interactive convenience for non-interactive
 scriptability, and it is a good trade because of its scriptability. Minibuffer
-does not provide interactive scriptability[^1] but that means we can make it a
+does not provide interactive scriptability[^2] but that means we can make it a
 better interactive experience. For instance instead of being required to know
 the arguments for any given command, Minibuffer commands will query the user for
 what they require. It is a "pull" model of interaction versus a "push" model.
 
-[^1]: Although one could implement keyboard macros. PRs are welcome.
+[^2]: Although one could implement keyboard macros. PRs are welcome.
 
 # TODO
 - [ ] Use a real cursor/selection highlight.

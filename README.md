@@ -84,7 +84,8 @@ fn plugin(app: &mut App) {
 cargo run --example add-act
 ```
 
-[^1]: Any system with no input or output. This does exclude pipelines however.
+[^1]: Any system with no input or output. This does exclude pipelines, however,
+  which are used extensively with asynchronous systems.
 
 ## Easily bind key chord sequences to acts 
 <img align="right" src="https://github.com/user-attachments/assets/336a79c1-f934-4d69-a3fe-6b55778663be"/>
@@ -300,7 +301,7 @@ better interactive experience. For instance instead of being required to know
 the arguments for any given command, Minibuffer commands will query the user for
 what they require. It is a "pull" model of interaction versus a "push" model.
 
-[^2]: Although one could implement keyboard macros. PRs are welcome.
+[^2]: Although one could implement keyboard macros, which are a form of interactive scripting. PRs are welcome.
 
 # TODO
 - [ ] Use a real cursor/selection highlight.

@@ -79,7 +79,8 @@ fn hello_world(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_acts((Act::new(hello_world), BasicActs::default()));
+    app.add_acts((Act::new(hello_world), 
+                  BasicActs::default()));
 }
 ```
 
@@ -101,7 +102,8 @@ fn hello_world(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_acts(Act::new(hello_world).bind(keyseq! { Ctrl-W }));
+    app.add_acts(Act::new(hello_world)
+                 .bind(keyseq! { Ctrl-W }));
 }
 ```
 ``` sh
@@ -113,14 +115,17 @@ Ask the user for information.
 
 ```rust ignore 
 fn hello_name(mut minibuffer: Minibuffer) {
-    minibuffer.prompt::<TextField>("What's your name? ")
-        .observe(|mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
-            minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
-        });
+  minibuffer
+    .prompt::<TextField>("What's your name? ")
+    .observe(|mut trigger: Trigger<Submit<String>>, 
+              mut minibuffer: Minibuffer| {
+        minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
+    });
 }
 
 fn plugin(app: &mut App) {
-    app.add_systems(PostStartup, hello_name);
+    app.add_systems(PostStartup, 
+                    hello_name);
 }
 ```
 ``` sh
@@ -198,17 +203,21 @@ enum Popular {
 }
 
 fn hello_name(mut minibuffer: Minibuffer) {
-    let trie = Trie::from_iter([("John", Popular::Common),
-                                ("Sean", Popular::Uncommon),
-                                ("Shane", Popular::Rare)]);
-    minibuffer.resolve("What's your name? ", trie)
-        .observe(|mut trigger: Trigger<Resolved<Popular>>, mut minibuffer: Minibuffer| {
+    let trie = Trie::from_iter([
+        ("John", Popular::Common),
+        ("Sean", Popular::Uncommon),
+        ("Shane", Popular::Rare),
+    ]);
+    minibuffer.resolve("What's your name? ", trie).observe(
+        |mut trigger: Trigger<Resolved<Popular>>, 
+         mut minibuffer: Minibuffer| {
             let popular = trigger.event_mut().take_result();
             minibuffer.message(match popular {
-                Ok(popular) => format!("That's an {:?} name.", popular),
+                Ok(popular) => format!("That's a {:?} name.", popular),
                 _ => "I don't know what kind of name that is.".into(),
             });
-        });
+        },
+    );
 }
 ```
 ``` sh

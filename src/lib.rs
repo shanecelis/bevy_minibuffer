@@ -14,7 +14,7 @@ mod sync;
 pub mod ui;
 pub use plugin::Config;
 pub use plugin::Error;
-pub use plugin::Mapped;
+pub use plugin::Resolved;
 pub use plugin::MinibufferPlugin;
 pub use plugin::MinibufferPlugins;
 mod builtin;
@@ -59,7 +59,7 @@ pub mod prelude {
     pub use super::MinibufferAsync;
     #[cfg(feature = "async")]
     pub use super::{future_result_sink, future_sink};
-    pub use super::{Error, Mapped, MinibufferPlugin, MinibufferPlugins};
+    pub use super::{Error, Resolved, MinibufferPlugin, MinibufferPlugins};
     pub use asky::{prompt::*, Submit};
     pub use bevy_asky as asky;
     pub use std::time::Duration;

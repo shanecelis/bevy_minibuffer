@@ -194,7 +194,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
                                 ("Sean", Popular::Uncommon),
                                 ("Shane", Popular::Rare)]);
     minibuffer.resolve("What's your name? ", trie)
-        .observe(|mut trigger: Trigger<Mapped<Popular>>, mut minibuffer: Minibuffer| {
+        .observe(|mut trigger: Trigger<Resolved<Popular>>, mut minibuffer: Minibuffer| {
             let popular = trigger.event_mut().take_result();
             minibuffer.message(match popular {
                 Ok(popular) => format!("That's an {:?} name.", popular),
@@ -210,7 +210,7 @@ cargo run --example tab-completion-trie-map
 
 I _believe_ a project with a "minibuffer" feature flag and rust conditional
 compilation facilities ought to make it easy and practical to exclude it from a
-release build. But I'd like to affirm that in practice before checking that box.
+release build. But I'd like to affirm that in practice before considering this goal achieved.
 
 ``` rust ignore
 #[cfg(feature = "minibuffer")]
@@ -221,7 +221,9 @@ fn plugin(app: &mut App) {
  
 ```
 
-# Plugins
+# ActsPlugin
+
+An `ActsPlugin` is a `Plugin` that also contains `Act`s. The `Builtin` is an `ActsPlugin`.
 
 ## Builtin
 

@@ -66,7 +66,7 @@ pub struct Config {
 
 /// When we resolve a string, it can be mapped to another value T.
 #[derive(Event, Deref, DerefMut, Debug)]
-pub struct Mapped<T> {
+pub struct Resolved<T> {
     /// The result if not taken yet.
     #[deref]
     pub result: Option<Result<T, Error>>,
@@ -74,7 +74,7 @@ pub struct Mapped<T> {
     pub input: Option<String>,
 }
 
-impl<T> Mapped<T> {
+impl<T> Resolved<T> {
     /// Create a new mapped event.
     pub fn new(result: Result<T, Error>) -> Self {
         Self {

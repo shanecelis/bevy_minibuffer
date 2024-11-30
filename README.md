@@ -61,7 +61,7 @@ fn plugin(app: &mut App) {
 cargo run --example opt-in
 ```
 ## Easily add acts, i.e., commands
-
+<img align="right" src="https://github.com/user-attachments/assets/d7e1ec10-787b-4ce1-98c0-63960df4e435"/>
 Acts are systems. Any system will do.
 
 NOTE: We add `Builtin` acts here only because there would be no way to run an

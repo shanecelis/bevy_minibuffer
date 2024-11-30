@@ -99,6 +99,7 @@ fn plugin(app: &mut App) {
 cargo run --example bind-hotkey
 ```
 ## Easily solicit user for input 
+<img align="right" src="https://github.com/user-attachments/assets/03cbb697-8263-41cb-b40f-583d1a25d429"/>
 Ask the user for information. 
 
 ```rust ignore 

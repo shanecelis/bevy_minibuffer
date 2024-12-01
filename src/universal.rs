@@ -3,13 +3,13 @@
 //! Can be queried by other commands using the [UniversalArg] resource.
 use crate::{
     act::{Act, ActFlags, Acts, ActsPlugin},
-    event::{LastRunAct, RunActEvent, RunInputSequenceEvent},
+    event::{LastRunAct, RunActEvent},
     prelude::{future_sink, keyseq},
     MinibufferAsync,
 };
 use bevy::prelude::*;
 use bevy_defer::{AsyncAccess, AsyncWorld};
-use bevy_input_sequence::KeyChord;
+use bevy_input_sequence::{KeyChord, KeyChordQueue};
 use std::{borrow::Cow, fmt::Debug, future::Future};
 
 /// Universal argument plugin
@@ -18,6 +18,21 @@ use std::{borrow::Cow, fmt::Debug, future::Future};
 pub struct UniversalArgActs {
     /// Acts
     pub acts: Acts,
+}
+
+
+/// Universal multiplier
+///
+/// When universal argument's key binding is invoked multiple times, its
+/// multiplied by the number stored in this resource. By default that number is
+/// four initially.
+#[derive(Resource)]
+pub struct UniversalMultiplier(i32);
+
+impl Default for UniversalMultiplier {
+    fn default() -> Self {
+        Self(4)
+    }
 }
 
 impl Default for UniversalArgActs {
@@ -75,16 +90,25 @@ pub struct UniversalArg(pub Option<i32>);
 
 fn universal_argument(
     mut minibuffer: MinibufferAsync,
+    multiplier: Res<UniversalMultiplier>,
     last_act: Res<LastRunAct>,
 ) -> impl Future<Output = ()> {
     use bevy::prelude::KeyCode::*;
 
+    let mut bindkey: Option<KeyChord> = None;
+    let multiplier: i32 = multiplier.0;
     let prompt: Cow<'static, str> = (*last_act)
         .as_ref()
         .and_then(|run_act| {
             run_act
                 .hotkey
-                .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
+                .map(|index| {
+                    let keyseq = &run_act.act.hotkeys[index];
+                    if keyseq.chords.len() == 1 {
+                        bindkey = Some(keyseq.chords[0].clone());
+                    }
+                    format!("{}", keyseq).into()
+                })
         })
         .unwrap_or("universal_argument ".into());
 
@@ -92,9 +116,20 @@ fn universal_argument(
     async move {
         let mut accum = 0;
         loop {
-            let Ok(KeyChord(_mods, key)) = minibuffer.get_chord().await else {
+            let Ok(chord @ KeyChord(_mods, key)) = minibuffer.get_chord().await else {
                 break;
             };
+            if let Some(ref bindkey) = bindkey {
+                if chord == *bindkey {
+                    if accum == 0 {
+                        accum = multiplier;
+                    } else {
+                        accum *= multiplier;
+                    }
+                    minibuffer.message(format!("{prompt}{accum}"));
+                    continue;
+                }
+            }
             let digit = match key {
                 Digit0 => 0,
                 Digit1 => 1,
@@ -114,11 +149,14 @@ fn universal_argument(
                 // }
                 _ => {
                     let world = AsyncWorld::new();
-                    // info!("set universal arg to {accum}");
                     let _ = world
                         .resource::<UniversalArg>()
                         .set(move |r| r.0 = Some(accum));
-                    let _ = world.send_event(RunInputSequenceEvent);
+                    // This last chord isn't what we expected. Send it back for
+                    // processing.
+                    let _ = world
+                        .resource::<KeyChordQueue>()
+                        .set(move |r| r.push_back(chord));
                     return;
                 }
             };
@@ -131,7 +169,6 @@ fn universal_argument(
             } else {
                 accum *= digit;
             }
-
             minibuffer.message(format!("{prompt}{accum}"));
         }
     }

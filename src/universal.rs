@@ -23,30 +23,32 @@ pub struct UniversalArgActs {
 impl Default for UniversalArgActs {
     fn default() -> Self {
         Self {
-            acts: Acts::new(vec![Act::new(universal_argument.pipe(future_sink))
-                .named("universal_argument")
-                .bind(keyseq! { Ctrl-U })
-                .sub_flags(ActFlags::ExecAct)]),
+            acts: Acts::new(vec![
+                Act::new(universal_argument.pipe(future_sink))
+                    .named("universal_argument")
+                    .bind(keyseq! { Ctrl-U })
+                    .sub_flags(ActFlags::ExecAct),
+            ]),
         }
     }
 }
 
 impl Plugin for UniversalArgActs {
     fn build(&self, app: &mut bevy::app::App) {
-        app.init_resource::<UniversalArg>()
+        app
+            .init_resource::<UniversalMultiplier>()
+            .init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
-        if !self.acts.is_empty() {
-            warn!(
-                "universal plugin has {} that acts were not added; consider using add_acts() on the plugin.",
-                self.acts.len()
-            );
-        }
+        self.warn_on_unused_acts();
     }
 }
 
 impl ActsPlugin for UniversalArgActs {
-    fn take_acts(&mut self) -> Acts {
-        self.acts.take()
+    fn acts(&self) -> &Acts {
+        &self.acts
+    }
+    fn acts_mut(&mut self) -> &mut Acts {
+        &mut self.acts
     }
 }
 
@@ -57,7 +59,6 @@ fn clear_arg(
 ) {
     // Wait a frame to clear it.
     if let Some(_act) = clear.take() {
-        // info!("clear arg for {act}");
         arg.0 = None;
     }
     if let Some(act) = event.read().next() {

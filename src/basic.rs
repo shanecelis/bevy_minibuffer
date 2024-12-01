@@ -389,11 +389,16 @@ impl From<BasicActs> for Acts {
 }
 
 impl Plugin for BasicActs {
-    fn build(&self, _app: &mut App) {}
+    fn build(&self, _app: &mut App) {
+        self.warn_on_unused_acts();
+    }
 }
 
 impl ActsPlugin for BasicActs {
-    fn take_acts(&mut self) -> Acts {
-        self.acts.take()
+    fn acts(&self) -> &Acts {
+        &self.acts
+    }
+    fn acts_mut(&mut self) -> &mut Acts {
+        &mut self.acts
     }
 }

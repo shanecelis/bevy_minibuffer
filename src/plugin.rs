@@ -1,6 +1,6 @@
 use crate::{
     act,
-    event::{dispatch_events, run_acts, LookupEvent, RunActEvent, RunInputSequenceEvent},
+    event::{dispatch_events, run_acts, LookupEvent, RunActEvent},
     lookup::LookupError,
     prompt::{
         self, get_key_chords, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
@@ -12,14 +12,13 @@ use bevy::{
     app::{PluginGroupBuilder, Update},
     ecs::{
         schedule::{
-            Condition,
             IntoSystemSetConfigs,
             SystemSet,
             // on_event,
         },
         system::Resource,
     },
-    prelude::{on_event, Deref, DerefMut, Event, IntoSystemConfigs, OnEnter, OnExit, PluginGroup},
+    prelude::{Deref, DerefMut, Event, IntoSystemConfigs, OnEnter, OnExit, PluginGroup},
     reflect::Reflect,
     state::{
         app::AppExtStates,
@@ -138,7 +137,7 @@ pub enum MinibufferSet {
 /// This is a separate system set because it is toggled on and off depending on
 /// wheter we want key sequences to be detected or not.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
-struct InputSet;
+struct InputSequenceSet;
 
 #[rustfmt::skip]
 impl bevy::app::Plugin for MinibufferPlugin {
@@ -154,13 +153,12 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_plugins(crate::autocomplete::plugin)
             .add_plugins(crate::view::plugin)
             .add_plugins(AskyPlugin)
-            .add_plugins(InputSequencePlugin::empty().run_in_set(Update, InputSet))
+            .add_plugins(InputSequencePlugin::empty().run_in_set(Update, InputSequenceSet))
             .init_state::<MinibufferState>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .init_resource::<act::ActCache>()
             .insert_resource(self.config.clone())
-            .add_event::<RunInputSequenceEvent>()
             .add_event::<LookupEvent>()
             .add_event::<RunActEvent>()
             .add_event::<KeyChordEvent>()
@@ -173,8 +171,8 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_systems(Update, get_key_chords.in_set(MinibufferSet::Input))
             .configure_sets(Update, (
                 (MinibufferSet::Input, MinibufferSet::Process, MinibufferSet::Output).chain(),
-                InputSet.after(MinibufferSet::Input),
-                InputSet.run_if(in_state(MinibufferState::Inactive).or_else(on_event::<RunInputSequenceEvent>())),
+                InputSequenceSet.after(MinibufferSet::Input),
+                InputSequenceSet.run_if(in_state(MinibufferState::Inactive)),
             ))
             .observe(crate::event::dispatch_trigger)
             .add_systems(Update,

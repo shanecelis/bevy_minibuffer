@@ -1,7 +1,8 @@
+//! Basic acts
 use crate::{
     act::{ActCache, ActFlags, ActsPlugin},
     event::LastRunAct,
-    lookup::Resolve,
+    autocomplete::Resolve,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
     prompt::{CompletionState, PromptState},
@@ -14,7 +15,7 @@ use std::{
 };
 
 #[cfg(feature = "async")]
-use crate::future_result_sink;
+use crate::sink::future_result_sink;
 #[cfg(not(feature = "async"))]
 use crate::{autocomplete::RequireMatch, prompt::KeyChordEvent};
 use bevy::{prelude::*, window::RequestRedraw};

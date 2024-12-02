@@ -1,3 +1,4 @@
+//! Pipe systems with futures into a sink.
 use crate::MinibufferAsync as Minibuffer;
 #[allow(unused_imports)]
 use bevy::{ecs::system::In, prelude::warn};

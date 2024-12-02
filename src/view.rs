@@ -1,4 +1,4 @@
-//! Implements Asky's views for Minibuffer
+//! Implements Asky's views for Minibuffer prompts
 #![allow(clippy::type_complexity)]
 use bevy::{
     ecs::{query::QueryEntityError, system::SystemParam},

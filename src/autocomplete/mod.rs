@@ -1,7 +1,6 @@
 //! Provides autocomplete
 use crate::{
     event::LookupEvent,
-    lookup::{Lookup, LookupError},
     prelude::*,
 };
 use bevy::{
@@ -18,7 +17,8 @@ use bevy_asky::{
     Submitter,
 };
 use std::borrow::Cow;
-pub use super::lookup::*;
+mod lookup;
+pub use lookup::*;
 
 /// Prompt to get one-line user input.
 ///
@@ -33,7 +33,7 @@ pub use super::lookup::*;
 /// | `Right`     | Move cursor right            |
 ///
 #[derive(Component, Deref)]
-pub struct AutoComplete(Box<dyn Lookup + Send + Sync>);
+pub(crate) struct AutoComplete(Box<dyn Lookup + Send + Sync>);
 
 /// Means that an auto completing read must match one of its lookups.
 #[derive(Component, Debug)]

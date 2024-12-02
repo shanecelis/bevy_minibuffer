@@ -2,8 +2,7 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
-    autocomplete::{AutoComplete, Resolved},
-    lookup::{Lookup, Resolve},
+    autocomplete::{AutoComplete, Resolved, Lookup, Resolve},
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
@@ -22,7 +21,7 @@ use bevy::{
 use bevy_asky::{prelude::*, sync::AskyCommands, Part, Dest};
 use std::fmt::Debug;
 
-/// Minibuffer, a [SystemParam]
+/// Manipulate minibuffer synchronously with this [SystemParam].
 ///
 /// The "synchronized" version of Minibuffer. It uses Bevy's trigger mechanism
 /// to communicate outcomes. Like many `SystemParams` it cannot be passed into

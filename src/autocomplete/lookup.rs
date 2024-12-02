@@ -39,7 +39,7 @@ pub trait Resolve {
     fn resolve(&self, input: &str) -> Result<Self::Item, LookupError>;
 }
 
-/// Triggered from `.resolve()` with value `T` and input string
+/// When we resolve a string, it can be mapped to another value T.
 #[derive(Event, Deref, DerefMut, Debug)]
 pub struct Resolved<T> {
     /// The result if not taken yet.

@@ -2,13 +2,12 @@
 //!
 //! It uses promises rather than triggers.
 use crate::{
-    autocomplete::AutoComplete,
+    autocomplete::{AutoComplete, Lookup},
     event::DispatchEvent,
-    lookup::Lookup,
     prompt::{GetKeyChord, KeyChordEvent, PromptState},
     ui::PromptContainer,
     view::View,
-    Dest, Error,
+    Error,
 };
 use bevy::{
     ecs::{
@@ -23,7 +22,7 @@ use bevy::{
 };
 use bevy_asky::{
     construct::{Add, Construct},
-    AskyAsync, Submit, Submitter,
+    AskyAsync, Submit, Submitter, Dest,
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
 use bevy_channel_trigger::ChannelSender;

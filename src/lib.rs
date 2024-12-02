@@ -6,17 +6,16 @@ pub mod autocomplete;
 pub mod event;
 #[cfg(feature = "async")]
 mod future;
-pub mod lookup;
-mod message;
+mod lookup;
 mod plugin;
 pub mod prompt;
 mod sync;
-pub mod ui;
+mod ui;
 pub use plugin::Config;
 pub use plugin::Error;
 pub use plugin::MinibufferPlugin;
 pub use plugin::MinibufferPlugins;
-pub use plugin::Resolved;
+pub use autocomplete::Resolved;
 mod basic;
 #[cfg(feature = "async")]
 mod sink;
@@ -24,17 +23,18 @@ mod sink;
 pub mod universal;
 pub mod view;
 pub use basic::BasicActs;
-pub use bevy_asky::Dest;
-pub use message::Message;
 #[cfg(feature = "async")]
 pub use sink::{future_result_sink, future_sink};
 
 #[cfg(feature = "async")]
 pub use future::MinibufferAsync;
 pub use sync::Minibuffer;
+mod hotkey;
 
 /// Input, mainly re-exports from [keyseq]
 pub mod input {
+    pub use bevy_input_sequence::KeyChord;
+    pub use super::hotkey::*;
     pub use keyseq::{
         bevy::{pkey as key, pkeyseq as keyseq},
         Modifiers,
@@ -52,14 +52,12 @@ pub mod prelude {
     pub use super::universal::*;
     pub use super::BasicActs;
     pub use super::Config;
-    pub use super::Dest;
     pub use super::Minibuffer;
     #[cfg(feature = "async")]
     pub use super::MinibufferAsync;
     #[cfg(feature = "async")]
     pub use super::{future_result_sink, future_sink};
     pub use super::{Error, MinibufferPlugin, MinibufferPlugins, Resolved};
-    pub use asky::{prompt::*, Submit};
-    pub use bevy_asky as asky;
+    pub use super::prompt::*;
     pub use std::time::Duration;
 }

@@ -1,5 +1,8 @@
 //! acts, or commands
-use crate::event::RunActEvent;
+use crate::{
+    event::RunActEvent,
+    input::Hotkey,
+};
 use bevy::{
     ecs::system::{BoxedSystem, SystemId},
     prelude::*,
@@ -45,47 +48,6 @@ bitflags! {
     }
 }
 
-/// A key sequence and an optional alias
-#[derive(Debug, Clone, Reflect)]
-pub struct Hotkey {
-    /// Key chord sequence
-    pub chords: Vec<KeyChord>,
-    /// Alias
-    pub alias: Option<Cow<'static, str>>,
-}
-
-impl Hotkey {
-    /// New hotkey from any [KeyChord]-able sequence.
-    pub fn new<T>(chords: impl IntoIterator<Item = T>) -> Self
-    where
-        KeyChord: From<T>,
-    {
-        Self {
-            chords: chords.into_iter().map(|v| v.into()).collect(),
-            alias: None,
-        }
-    }
-
-    /// Define an alias.
-    pub fn alias(mut self, name: impl Into<Cow<'static, str>>) -> Self {
-        self.alias = Some(name.into());
-        self
-    }
-}
-
-impl fmt::Display for Hotkey {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(alias) = &self.alias {
-            write!(f, "{}", alias)
-        } else {
-            for key_chord in &self.chords {
-                write!(f, "{} ", key_chord)?;
-            }
-            Ok(())
-        }
-    }
-}
-
 impl Default for ActFlags {
     fn default() -> Self {
         ActFlags::Active | ActFlags::ExecAct
@@ -110,7 +72,7 @@ pub struct Act {
 
 /// Maps hotkeys to [Act]s
 #[derive(Resource, Default)]
-pub struct ActCache {
+pub(crate) struct ActCache {
     trie: Option<Trie<KeyChord, Act>>,
 }
 
@@ -136,7 +98,7 @@ impl ActCache {
     }
 }
 
-/// Builds [Act]s
+/// Builds an [Act]
 #[derive(Debug)]
 pub struct ActBuilder {
     pub(crate) name: Option<Cow<'static, str>>,

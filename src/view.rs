@@ -6,7 +6,7 @@ use bevy::{
 };
 use bevy_asky::{construct::*, prelude::*, string_cursor::*};
 
-/// Marks a component as having its View handling by this module.
+/// Marks an Asky entity as having its view handling by this module.
 #[derive(Component, Reflect, Default)]
 pub struct View;
 
@@ -23,7 +23,7 @@ enum ViewPart {
 
 /// This node is a cursor.
 #[derive(Debug, Component, Reflect)]
-pub struct Cursor;
+pub(crate) struct Cursor;
 
 /// Keeps time of cursor blink.
 #[derive(Resource, Deref, DerefMut, Reflect)]
@@ -144,7 +144,9 @@ impl<'w, 's, C: Component> Inserter<'w, 's, C> {
     }
 }
 
-/// The color palette for Minibuffer UI
+/// The color palette for Minibuffer UI resource
+///
+/// TODO: Make sure we have all the colors defined here.
 #[derive(Debug, Resource, Component, Reflect)]
 pub struct Palette {
     /// Text color

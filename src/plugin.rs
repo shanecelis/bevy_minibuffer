@@ -63,45 +63,6 @@ pub struct Config {
     pub text_style: TextStyle,
 }
 
-/// When we resolve a string, it can be mapped to another value T.
-#[derive(Event, Deref, DerefMut, Debug)]
-pub struct Resolved<T> {
-    /// The result if not taken yet.
-    #[deref]
-    pub result: Option<Result<T, Error>>,
-    /// Input string mapped from if available.
-    pub input: Option<String>,
-}
-
-impl<T> Resolved<T> {
-    /// Create a new mapped event.
-    pub fn new(result: Result<T, Error>) -> Self {
-        Self {
-            result: Some(result),
-            input: None,
-        }
-    }
-
-    /// Create an empty mapped event.
-    pub fn empty() -> Self {
-        Self {
-            result: None,
-            input: None,
-        }
-    }
-
-    /// Provide input string if available.
-    pub fn with_input(mut self, input: String) -> Self {
-        self.input = Some(input);
-        self
-    }
-
-    /// Unwrap the result assuming it hasn't been taken already.
-    pub fn take_result(&mut self) -> Result<T, Error> {
-        self.result.take().expect("mapped has been taken already")
-    }
-}
-
 /// Minibuffer error
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

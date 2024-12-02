@@ -11,6 +11,8 @@ use bevy_input_sequence::{KeyChord, Modifiers};
 use std::collections::VecDeque;
 use std::fmt::Debug;
 
+pub use bevy_asky::{prompt::*, Submit};
+
 pub(crate) fn plugin(app: &mut App) {
     app.register_type::<MinibufferState>()
         .register_type::<PromptState>()
@@ -31,7 +33,7 @@ pub enum MinibufferState {
 
 /// Is the prompt active?
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
-pub enum PromptState {
+pub(crate) enum PromptState {
     // Uninit,
     /// Invisible
     #[default]
@@ -42,7 +44,7 @@ pub enum PromptState {
 
 /// Is the autocomplete panel visible?
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
-pub enum CompletionState {
+pub(crate) enum CompletionState {
     // Uninit,
     /// Invisible
     #[default]
@@ -52,8 +54,8 @@ pub enum CompletionState {
 }
 
 /// Hides an entity after the timer finishes.
-#[derive(Component, Reflect)]
-pub struct HideTime {
+#[derive(Debug, Component, Reflect)]
+pub(crate) struct HideTime {
     /// Timer
     pub timer: Timer,
 }
@@ -72,7 +74,7 @@ pub(crate) struct KeyChordEvent(pub(crate) KeyChord);
 // }
 
 /// Make component visible.
-pub fn show<T: Component>(
+pub(crate) fn show<T: Component>(
     mut redraw: EventWriter<RequestRedraw>,
     mut query: Query<&mut Visibility, With<T>>,
 ) {
@@ -99,7 +101,7 @@ pub(crate) fn set_minibuffer_state(
 }
 
 /// Returns true if [KeyCode] is a modifier key.
-pub fn is_modifier(key: KeyCode) -> bool {
+pub(crate) fn is_modifier(key: KeyCode) -> bool {
     let mods = Modifiers::from(key);
     !mods.is_empty()
 }
@@ -130,7 +132,7 @@ pub(crate) fn get_key_chords(
 }
 
 /// Hide entities with component [HideTime].
-pub fn hide_delayed<T: Component>(
+pub(crate) fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<Config>,
     // redraw: EventWriter<RequestRedraw>,
@@ -147,7 +149,7 @@ pub fn hide_delayed<T: Component>(
 }
 
 /// Hide the prompt if the timer is finished.
-pub fn hide_prompt_maybe(
+pub(crate) fn hide_prompt_maybe(
     mut commands: Commands,
     time: Res<Time>,
     state: Res<State<MinibufferState>>,
@@ -174,7 +176,7 @@ pub fn hide_prompt_maybe(
 
 /// Hide the entity whose component matches.
 #[allow(dead_code)]
-pub fn hide<T: Component>(
+pub(crate) fn hide<T: Component>(
     mut query: Query<&mut Visibility, With<T>>,
     mut redraw: EventWriter<RequestRedraw>,
 ) {

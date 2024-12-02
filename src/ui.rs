@@ -11,10 +11,10 @@ use std::borrow::Cow;
 const PADDING: Val = Val::Px(3.);
 const LEFT_PADDING: Val = Val::Px(6.);
 
-/// The minibuffer root entity reference.
+/// The Minibuffer root entity resource.
 #[derive(Debug, Resource, Reflect)]
 #[reflect(Resource)]
-pub struct MinibufferRoot(pub Entity);
+pub(crate) struct MinibufferRoot(pub Entity);
 
 /// Root minibuffer node
 #[derive(Component)]
@@ -22,26 +22,26 @@ struct MinibufferNode;
 
 /// Minibuffer prompt parent
 #[derive(Component)]
-pub struct PromptContainer;
+pub(crate) struct PromptContainer;
 
-/// Mode line
-#[derive(Component)]
-pub struct StatusNode;
+// /// Mode line
+// #[derive(Component)]
+// pub struct StatusNode;
 
 /// Autocomplete panel parent
 #[derive(Component)]
-pub struct CompletionContainer;
+pub(crate) struct CompletionContainer;
 
 /// Autocomplete scrolling state
 #[derive(Component, Default)]
-pub struct ScrollingList {
+pub(crate) struct ScrollingList {
     // position: f32,
     // selection: Option<usize>,
     // last_selection: Option<usize>,
 }
 
 /// Autocomplete list
-pub struct CompletionList(pub Vec<Cow<'static, str>>);
+pub(crate) struct CompletionList(pub Vec<Cow<'static, str>>);
 
 /// Autocomplete item
 pub(crate) fn completion_item(

@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 use std::borrow::Cow;
 use trie_rs::{iter::KeysExt, map};
+use crate::Error;
 
 /// Look up error
 ///
@@ -28,7 +29,7 @@ pub trait Lookup {
     fn longest_prefix(&self, input: &str) -> Option<String>;
 }
 
-/// Resolve the input to a particular kind of item.
+/// Resolve the input to a value of type `Item`.
 ///
 /// This trait is not object-safe.
 pub trait Resolve {
@@ -37,6 +38,46 @@ pub trait Resolve {
     /// Resolve the `input` or provide an error.
     fn resolve(&self, input: &str) -> Result<Self::Item, LookupError>;
 }
+
+/// When we resolve a string, it can be mapped to another value T.
+#[derive(Event, Deref, DerefMut, Debug)]
+pub struct Resolved<T> {
+    /// The result if not taken yet.
+    #[deref]
+    pub result: Option<Result<T, Error>>,
+    /// Input string mapped from if available.
+    pub input: Option<String>,
+}
+
+impl<T> Resolved<T> {
+    /// Create a new mapped event.
+    pub fn new(result: Result<T, Error>) -> Self {
+        Self {
+            result: Some(result),
+            input: None,
+        }
+    }
+
+    /// Create an empty mapped event.
+    pub fn empty() -> Self {
+        Self {
+            result: None,
+            input: None,
+        }
+    }
+
+    /// Provide input string if available.
+    pub fn with_input(mut self, input: String) -> Self {
+        self.input = Some(input);
+        self
+    }
+
+    /// Unwrap the result assuming it hasn't been taken already.
+    pub fn take_result(&mut self) -> Result<T, Error> {
+        self.result.take().expect("mapped has been taken already")
+    }
+}
+
 
 impl<V: Send + Sync + Clone> Resolve for map::Trie<u8, V> {
     type Item = V;

@@ -7,7 +7,7 @@ use std::{borrow::Cow, fmt::Debug};
 
 /// A message marker to put a text message in the minibuffer.
 #[derive(Component, Debug, Reflect)]
-pub struct Message;
+pub(crate) struct Message;
 
 impl Construct for Message {
     type Props = Cow<'static, str>;

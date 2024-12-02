@@ -1,5 +1,6 @@
 #+title: Todo
 * TODO
+- [ ] Remove "hotkey" terminology and variable names
 - [ ] Make keys configurable.
 - [ ] Make tab complete scrollable
 - [/] Modeline?

@@ -26,7 +26,7 @@ pub(crate) fn plugin(app: &mut App) {
     app.init_resource::<LastRunAct>();
 }
 
-/// Request a one-shot system be run.
+/// Request an act be run.
 #[derive(Clone, Event, Debug, Deref)]
 // pub struct RunActEvent(pub SystemId);
 pub struct RunActEvent {
@@ -37,8 +37,10 @@ pub struct RunActEvent {
     pub hotkey: Option<usize>,
 }
 
-/// This holds the last run command. It is set prior to the command being run,
-/// so a command can look up its own run event using this.
+/// This holds the last run command.
+///
+/// It is set prior to the command being run, so a command can look up its own
+/// run event using this.
 #[derive(Resource, Debug, Default, Deref, DerefMut)]
 pub struct LastRunAct(Option<RunActEvent>);
 
@@ -71,7 +73,7 @@ impl fmt::Display for RunActEvent {
 
 /// Look up event fires when autocomplete panel is shown or hidden.
 #[derive(Debug, Clone, Event)]
-pub enum LookupEvent {
+pub(crate) enum LookupEvent {
     /// Hide the autocomplete panel
     Hide,
     /// Show completions
@@ -119,7 +121,7 @@ pub enum LookupEvent {
 ///
 /// Allows minibuffer to use one channel to dispatch multiple kinds of events.
 #[derive(Debug, Clone, Event)]
-pub enum DispatchEvent {
+pub(crate) enum DispatchEvent {
     /// Send a look up event.
     LookupEvent(LookupEvent),
     /// Send a start act event.
@@ -198,7 +200,7 @@ pub(crate) fn dispatch_trigger(
 }
 
 /// Run act for any [RunActEvent].
-pub fn run_acts(
+pub(crate) fn run_acts(
     mut events: EventReader<RunActEvent>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,

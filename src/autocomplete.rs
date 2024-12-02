@@ -18,6 +18,7 @@ use bevy_asky::{
     Submitter,
 };
 use std::borrow::Cow;
+pub use super::lookup::*;
 
 /// Prompt to get one-line user input.
 ///
@@ -211,7 +212,7 @@ fn autocomplete_controller(
                     focus.block_and_move(id);
                 }
                 Key::Escape => {
-                    commands.trigger_targets(Submit::<String>::new(Err(asky::Error::Cancel)), id);
+                    commands.trigger_targets(Submit::<String>::new(Err(bevy_asky::Error::Cancel)), id);
                     if let Some(mut ecommands) = commands.get_entity(id) {
                         ecommands.try_insert(Feedback::error("canceled"));
                     }

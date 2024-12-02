@@ -2,13 +2,12 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
-    autocomplete::AutoComplete,
+    autocomplete::{AutoComplete, Resolved},
     lookup::{Lookup, Resolve},
-    plugin::Resolved,
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
-    Dest, Error, Message,
+    Error,
 };
 use bevy::{
     ecs::{
@@ -20,7 +19,7 @@ use bevy::{
     },
     prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Trigger},
 };
-use bevy_asky::{prelude::*, sync::AskyCommands, Part};
+use bevy_asky::{prelude::*, sync::AskyCommands, Part, Dest};
 use std::fmt::Debug;
 
 /// Minibuffer, a [SystemParam]
@@ -101,7 +100,8 @@ impl<'w, 's> Minibuffer<'w, 's> {
         let msg = msg.into();
         let dest = self.dest.single();
         if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut self.commands) {
-            commands.construct::<Message>(msg);
+            commands.spawn(TextBundle::from_section(props, TextStyle::default()));
+            // commands.construct::<Message>(msg);
         }
     }
 

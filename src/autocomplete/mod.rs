@@ -1,8 +1,5 @@
 //! Tab completion functionality
-use crate::{
-    event::LookupEvent,
-    prelude::*,
-};
+use crate::{event::LookupEvent, prelude::*};
 use bevy::{
     ecs::system::EntityCommands,
     input::{
@@ -212,7 +209,8 @@ fn autocomplete_controller(
                     focus.block_and_move(id);
                 }
                 Key::Escape => {
-                    commands.trigger_targets(Submit::<String>::new(Err(bevy_asky::Error::Cancel)), id);
+                    commands
+                        .trigger_targets(Submit::<String>::new(Err(bevy_asky::Error::Cancel)), id);
                     if let Some(mut ecommands) = commands.get_entity(id) {
                         ecommands.try_insert(Feedback::error("canceled"));
                     }

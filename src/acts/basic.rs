@@ -1,8 +1,8 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
     acts::{ActCache, ActFlags, ActsPlugin},
-    event::LastRunAct,
     autocomplete::Resolve,
+    event::LastRunAct,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
     prompt::{CompletionState, PromptState},

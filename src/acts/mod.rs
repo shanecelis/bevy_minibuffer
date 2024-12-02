@@ -1,8 +1,5 @@
 //! Acts and their flags, builders, and collections
-use crate::{
-    event::RunActEvent,
-    input::Hotkey,
-};
+use crate::{event::RunActEvent, input::Hotkey};
 use bevy::{
     ecs::system::{BoxedSystem, SystemId},
     prelude::*,

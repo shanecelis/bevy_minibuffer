@@ -54,8 +54,7 @@ fn make_cube(
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins).add_acts((
         BasicActs::default(),
-        UniversalArgActs::default()
-            .include_display_act(),
+        UniversalArgActs::default().include_display_act(),
         Act::new(make_cube).bind(keyseq! { Space }),
     ));
 }

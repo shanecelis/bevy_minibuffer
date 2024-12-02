@@ -22,7 +22,7 @@ use bevy::{
 };
 use bevy_asky::{
     construct::{Add, Construct},
-    AskyAsync, Submit, Submitter, Dest,
+    AskyAsync, Dest, Submit, Submitter,
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
 use bevy_channel_trigger::ChannelSender;

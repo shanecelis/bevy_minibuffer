@@ -5,8 +5,7 @@ use crate::{
     acts::{Act, ActFlags, Acts, ActsPlugin},
     event::{LastRunAct, RunActEvent},
     prelude::{future_sink, keyseq},
-    MinibufferAsync,
-    Minibuffer,
+    Minibuffer, MinibufferAsync,
 };
 use bevy::prelude::*;
 use bevy_defer::{AsyncAccess, AsyncWorld};
@@ -38,12 +37,10 @@ impl Default for UniversalMultiplier {
 impl Default for UniversalArgActs {
     fn default() -> Self {
         Self {
-            acts: Acts::new(vec![
-                Act::new(universal_argument.pipe(future_sink))
-                    .named("universal_argument")
-                    .bind(keyseq! { Ctrl-U })
-                    .sub_flags(ActFlags::ExecAct),
-            ]),
+            acts: Acts::new(vec![Act::new(universal_argument.pipe(future_sink))
+                .named("universal_argument")
+                .bind(keyseq! { Ctrl-U })
+                .sub_flags(ActFlags::ExecAct)]),
         }
     }
 }
@@ -51,17 +48,18 @@ impl Default for UniversalArgActs {
 impl UniversalArgActs {
     /// Include an act that prints the universal arg resource.
     pub fn include_display_act(mut self) -> Self {
-        self.acts.push(Act::new(display_universal_arg)
-                       .named("display_universal_arg")
-                       .add_flags(ActFlags::ShowMinibuffer));
+        self.acts.push(
+            Act::new(display_universal_arg)
+                .named("display_universal_arg")
+                .add_flags(ActFlags::ShowMinibuffer),
+        );
         self
     }
 }
 
 impl Plugin for UniversalArgActs {
     fn build(&self, app: &mut bevy::app::App) {
-        app
-            .init_resource::<UniversalMultiplier>()
+        app.init_resource::<UniversalMultiplier>()
             .init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
         self.warn_on_unused_acts();
@@ -119,15 +117,13 @@ fn universal_argument(
     let prompt: Cow<'static, str> = (*last_act)
         .as_ref()
         .and_then(|run_act| {
-            run_act
-                .hotkey
-                .map(|index| {
-                    let keyseq = &run_act.act.hotkeys[index];
-                    if keyseq.chords.len() == 1 {
-                        bindkey = Some(keyseq.chords[0].clone());
-                    }
-                    format!("{}", keyseq).into()
-                })
+            run_act.hotkey.map(|index| {
+                let keyseq = &run_act.act.hotkeys[index];
+                if keyseq.chords.len() == 1 {
+                    bindkey = Some(keyseq.chords[0].clone());
+                }
+                format!("{}", keyseq).into()
+            })
         })
         .unwrap_or("universal_argument ".into());
 

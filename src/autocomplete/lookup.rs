@@ -1,8 +1,8 @@
 //! Lookup and autocompletion
+use crate::Error;
 use bevy::prelude::*;
 use std::borrow::Cow;
 use trie_rs::{iter::KeysExt, map};
-use crate::Error;
 
 /// Look up error
 ///
@@ -77,7 +77,6 @@ impl<T> Resolved<T> {
         self.result.take().expect("mapped has been taken already")
     }
 }
-
 
 impl<V: Send + Sync + Clone> Resolve for map::Trie<u8, V> {
     type Item = V;

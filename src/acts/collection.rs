@@ -41,7 +41,6 @@ impl From<ActBuilder> for Acts {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

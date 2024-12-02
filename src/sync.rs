@@ -2,7 +2,7 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
-    autocomplete::{AutoComplete, Resolved, Lookup, Resolve},
+    autocomplete::{AutoComplete, Lookup, Resolve, Resolved},
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
@@ -16,9 +16,9 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Trigger, TextBundle, TextStyle},
+    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, TextBundle, TextStyle, Trigger},
 };
-use bevy_asky::{prelude::*, sync::AskyCommands, Part, Dest};
+use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
 use std::fmt::Debug;
 
 /// Manipulate minibuffer synchronously with this [SystemParam].

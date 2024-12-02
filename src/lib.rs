@@ -14,7 +14,6 @@ pub use plugin::Config;
 pub use plugin::Error;
 pub use plugin::MinibufferPlugin;
 pub use plugin::MinibufferPlugins;
-pub use autocomplete::Resolved;
 pub mod view;
 #[cfg(feature = "async")]
 pub mod sink;
@@ -49,7 +48,7 @@ pub mod prelude {
     pub use super::MinibufferAsync;
     #[cfg(feature = "async")]
     pub use super::sink::{future_result_sink, future_sink};
-    pub use super::{Error, MinibufferPlugin, MinibufferPlugins, Resolved};
+    pub use super::{Error, MinibufferPlugin, MinibufferPlugins};
     pub use super::prompt::*;
     pub use std::time::Duration;
 }

@@ -1,4 +1,4 @@
-//! Provides autocomplete
+//! Tab completion functionality
 use crate::{
     event::LookupEvent,
     prelude::*,

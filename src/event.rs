@@ -26,7 +26,7 @@ pub(crate) fn plugin(app: &mut App) {
     app.init_resource::<LastRunAct>();
 }
 
-/// Request an act be run.
+/// Requests an act to be run
 #[derive(Clone, Event, Debug, Deref)]
 // pub struct RunActEvent(pub SystemId);
 pub struct RunActEvent {
@@ -37,10 +37,10 @@ pub struct RunActEvent {
     pub hotkey: Option<usize>,
 }
 
-/// This holds the last run command.
+/// This holds the last act run.
 ///
 /// It is set prior to the command being run, so a command can look up its own
-/// run event using this.
+/// run event and act using this resource.
 #[derive(Resource, Debug, Default, Deref, DerefMut)]
 pub struct LastRunAct(Option<RunActEvent>);
 

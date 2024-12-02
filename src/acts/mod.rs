@@ -1,4 +1,4 @@
-//! acts, or commands
+//! Acts and their flags, builders, and collections
 use crate::{
     event::RunActEvent,
     input::Hotkey,

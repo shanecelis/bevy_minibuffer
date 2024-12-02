@@ -1,4 +1,4 @@
-//! Prompt
+//! Kinds of queries for user: Toggle, TextField, etc.
 
 use crate::{
     event::LookupEvent,

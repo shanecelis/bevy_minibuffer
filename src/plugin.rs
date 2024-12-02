@@ -18,7 +18,7 @@ use bevy::{
         },
         system::Resource,
     },
-    prelude::{Deref, DerefMut, Event, IntoSystemConfigs, OnEnter, OnExit, PluginGroup},
+    prelude::{IntoSystemConfigs, OnEnter, OnExit, PluginGroup},
     reflect::Reflect,
     state::{
         app::AppExtStates,

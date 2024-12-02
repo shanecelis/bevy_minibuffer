@@ -262,7 +262,7 @@ pub(crate) fn listen_prompt_active(
 
 #[cfg(test)]
 mod tests {
-    use crate::lookup::Lookup;
+    use crate::autocomplete::Lookup;
     // use super::Parse;
 
     // #[derive(Debug)]

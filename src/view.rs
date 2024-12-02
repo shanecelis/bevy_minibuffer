@@ -58,7 +58,7 @@ pub(crate) struct Inserter<'w, 's, C: Component> {
     commands: Commands<'w, 's>,
 }
 
-impl<'w, 's, C: Component> Inserter<'w, 's, C> {
+impl<C: Component> Inserter<'_, '_, C> {
     fn insert_or_get_child(
         &mut self,
         root: Entity,

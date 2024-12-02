@@ -1,6 +1,5 @@
 use super::Acts;
 use bevy::prelude::*;
-use std::{borrow::Cow, collections::HashMap};
 
 /// A [Plugin] with a collection of [Acts]
 ///

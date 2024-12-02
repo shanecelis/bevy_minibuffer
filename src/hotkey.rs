@@ -1,21 +1,14 @@
 //! Hotkey
-use crate::event::RunActEvent;
-use bevy::{
-    ecs::system::{BoxedSystem, SystemId},
-    prelude::*,
-};
-use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
-use bitflags::bitflags;
+use bevy::prelude::*;
+use bevy_input_sequence::KeyChord;
 use std::{
     borrow::Cow,
     fmt::{
         self,
         Debug,
-        Display,
         // Write
     },
 };
-use trie_rs::map::{Trie, TrieBuilder};
 
 /// A key sequence and an optional alias
 #[derive(Debug, Clone, Reflect)]

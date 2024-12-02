@@ -55,7 +55,7 @@ pub trait MinibufferCommands {
         <T as Construct>::Props: Send;
 }
 
-impl<'w> MinibufferCommands for EntityCommands<'w> {
+impl MinibufferCommands for EntityCommands<'_> {
     fn prompt_children<T: Construct + Component + Part>(
         &mut self,
         props: impl IntoIterator<Item = impl Into<T::Props>>,
@@ -68,7 +68,7 @@ impl<'w> MinibufferCommands for EntityCommands<'w> {
     }
 }
 
-impl<'w, 's> Minibuffer<'w, 's> {
+impl Minibuffer<'_, '_> {
     /// Prompt the user for input.
     pub fn prompt<T: Construct + Component + Submitter>(
         &mut self,

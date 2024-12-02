@@ -1,5 +1,5 @@
 use crate::{
-    act,
+    acts,
     event::{dispatch_events, run_acts, LookupEvent, RunActEvent},
     autocomplete::LookupError,
     prompt::{
@@ -107,7 +107,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .register_type::<PromptState>()
             .register_type::<CompletionState>()
             .register_type::<Config>()
-            .register_type::<act::Act>()
+            .register_type::<acts::Act>()
             .add_plugins(crate::ui::plugin)
             .add_plugins(crate::event::plugin)
             .add_plugins(crate::prompt::plugin)
@@ -118,14 +118,14 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .init_state::<MinibufferState>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
-            .init_resource::<act::ActCache>()
+            .init_resource::<acts::ActCache>()
             .insert_resource(self.config.clone())
             .add_event::<LookupEvent>()
             .add_event::<RunActEvent>()
             .add_event::<KeyChordEvent>()
             .add_systems(Update,
                          (hide_prompt_maybe,
-                          // act::detect_additions,
+                          // acts::detect_additions,
                           //asky::bevy::asky_system::<AutoComplete<asky::Text>>,
                           listen_prompt_active)
                          .in_set(MinibufferSet::Process))

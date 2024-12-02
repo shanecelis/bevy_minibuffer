@@ -16,7 +16,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Trigger},
+    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Trigger, TextBundle, TextStyle},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Part, Dest};
 use std::fmt::Debug;
@@ -35,7 +35,7 @@ use std::fmt::Debug;
 #[derive(SystemParam)]
 pub struct Minibuffer<'w, 's> {
     /// The query for where the Minibuffer contents go. Expected to be singular.
-    pub dest: Query<'w, 's, Entity, With<PromptContainer>>,
+    dest: Query<'w, 's, Entity, With<PromptContainer>>,
     /// Commands
     pub commands: Commands<'w, 's>,
     /// prompt_state
@@ -99,7 +99,7 @@ impl<'w, 's> Minibuffer<'w, 's> {
         let msg = msg.into();
         let dest = self.dest.single();
         if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut self.commands) {
-            commands.spawn(TextBundle::from_section(props, TextStyle::default()));
+            commands.insert(TextBundle::from_section(msg, TextStyle::default()));
             // commands.construct::<Message>(msg);
         }
     }

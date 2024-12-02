@@ -19,9 +19,17 @@ use std::{
     },
 };
 use trie_rs::map::{Trie, TrieBuilder};
-mod acts;
-pub use acts::{Acts, ActsPlugin, AddActs};
 
+mod collection;
+pub use collection::*;
+mod add_acts;
+pub use add_acts::AddActs;
+mod plugin;
+pub use plugin::*;
+
+pub mod basic;
+#[cfg(feature = "async")]
+pub mod universal;
 // impl<'w, 's> AddActs for Commands<'w, 's> {
 //     fn add_acts(&mut self, acts: impl Into<Acts>) -> &mut Self {
 //         let builders = acts.into();
@@ -34,17 +42,17 @@ pub use acts::{Acts, ActsPlugin, AddActs};
 // }
 
 bitflags! {
-    /// Act flags
+    /// `Active | Adverb | ExecAct | ShowMinibuffer`
     #[derive(Clone, Copy, Debug, PartialOrd, PartialEq, Eq, Hash, Ord)]
     pub struct ActFlags: u8 {
         /// Act is active.
-        const Active       = 0b00000001;
+        const Active         = 0b00000001;
         /// Act is shown in [crate::act::exec_act].
-        const ExecAct      = 0b00000010;
+        const ExecAct        = 0b00000010;
         /// Act usually runs another act like exec_act.
-        const Adverb       = 0b00000100;
-        /// Act shows the minibuffer.
-        const Show         = 0b00001000;
+        const Adverb         = 0b00000100;
+        /// Act shows the minibuffer when run.
+        const ShowMinibuffer = 0b00001000;
     }
 }
 
@@ -54,7 +62,7 @@ impl Default for ActFlags {
     }
 }
 
-/// Act, a command in `bevy_minibuffer`
+/// A Minibuffer command
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(from_reflect = false)]
 pub struct Act {

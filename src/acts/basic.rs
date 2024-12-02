@@ -1,6 +1,6 @@
-//! Basic acts
+//! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    act::{ActCache, ActFlags, ActsPlugin},
+    acts::{ActCache, ActFlags, ActsPlugin},
     event::LastRunAct,
     autocomplete::Resolve,
     prelude::*,
@@ -150,14 +150,14 @@ pub fn list_acts(acts: Query<&Act>) -> String {
 /// Can pipe any string to the message buffer.
 ///
 /// The minibuffer might not be visible when this is called. Consider adding
-/// [ActFlags::Show] to the act's flags to ensure it will be shown.
+/// [ActFlags::ShowMinibuffer] to the act's flags to ensure it will be shown.
 ///
 /// Used internally by `list_acts` for instance
 ///
 /// ```ignore
 /// ActBuilder::new(list_acts.pipe(to_message))
 ///     .named("list_acts")
-///     .add_flags(ActFlags::Show)
+///     .add_flags(ActFlags::ShowMinibuffer)
 ///     .hotkey(keyseq! { Ctrl-H A }),
 /// ```
 pub fn to_message(In(msg): In<String>, mut minibuffer: Minibuffer) {
@@ -268,6 +268,9 @@ pub fn describe_key(
     }
 }
 
+/// Reveal act for inputted key chord sequence.
+///
+/// Allow the user to input a key chord sequence. Reveal the bindings it has.
 #[cfg(not(feature = "async"))]
 pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuffer: Minibuffer) {
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
@@ -313,8 +316,7 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuff
     );
 }
 
-/// Bare necessity of acts: exec_act, list_acts, list_key_bindings,
-/// describe_key, and toggle_visibility.
+/// Bare minimum of acts for a useable and discoverable console
 ///
 /// Key bindings may be altered or removed prior to adding this as a
 /// plugin. Likewise acts may be altered or removed.
@@ -335,11 +337,11 @@ impl Default for BasicActs {
             acts: Acts::new([
                 ActBuilder::new(list_acts.pipe(to_message))
                     .named("list_acts")
-                    .add_flags(ActFlags::Show)
+                    .add_flags(ActFlags::ShowMinibuffer)
                     .bind(keyseq! { Ctrl-H A }),
                 ActBuilder::new(list_key_bindings.pipe(to_message))
                     .named("list_key_bindings")
-                    .add_flags(ActFlags::Show)
+                    .add_flags(ActFlags::ShowMinibuffer)
                     .bind(keyseq! { Ctrl-H B }),
                 ActBuilder::new(toggle_visibility)
                     .named("toggle_visibility")

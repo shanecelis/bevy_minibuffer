@@ -1,5 +1,5 @@
 //! Events
-use crate::{act::Act, act::ActFlags, prompt::PromptState, Minibuffer};
+use crate::{acts::Act, acts::ActFlags, prompt::PromptState, Minibuffer};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -120,8 +120,9 @@ pub(crate) enum LookupEvent {
 /// This event relays another event to fire.
 ///
 /// Allows minibuffer to use one channel to dispatch multiple kinds of events.
+#[doc(hidden)]
 #[derive(Debug, Clone, Event)]
-pub(crate) enum DispatchEvent {
+pub enum DispatchEvent {
     /// Send a look up event.
     LookupEvent(LookupEvent),
     /// Send a start act event.
@@ -207,7 +208,7 @@ pub(crate) fn run_acts(
     mut last_act: ResMut<LastRunAct>,
 ) {
     for e in events.read() {
-        if e.act.flags.contains(ActFlags::Show) {
+        if e.act.flags.contains(ActFlags::ShowMinibuffer) {
             next_prompt_state.set(PromptState::Visible);
         }
         last_act.0 = Some(e.clone());

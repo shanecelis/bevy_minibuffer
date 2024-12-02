@@ -1,11 +1,12 @@
-//! A universal argument, accepts a numerical prefix.
+//! An act adverb that accepts a numerical prefix
 //!
 //! Can be queried by other commands using the [UniversalArg] resource.
 use crate::{
-    act::{Act, ActFlags, Acts, ActsPlugin},
+    acts::{Act, ActFlags, Acts, ActsPlugin},
     event::{LastRunAct, RunActEvent},
     prelude::{future_sink, keyseq},
     MinibufferAsync,
+    Minibuffer,
 };
 use bevy::prelude::*;
 use bevy_defer::{AsyncAccess, AsyncWorld};
@@ -19,7 +20,6 @@ pub struct UniversalArgActs {
     /// Acts
     pub acts: Acts,
 }
-
 
 /// Universal multiplier
 ///
@@ -45,6 +45,16 @@ impl Default for UniversalArgActs {
                     .sub_flags(ActFlags::ExecAct),
             ]),
         }
+    }
+}
+
+impl UniversalArgActs {
+    /// Include an act that prints the universal arg resource.
+    pub fn include_display_act(mut self) -> Self {
+        self.acts.push(Act::new(display_universal_arg)
+                       .named("display_universal_arg")
+                       .add_flags(ActFlags::ShowMinibuffer));
+        self
     }
 }
 
@@ -83,6 +93,15 @@ fn clear_arg(
     }
 }
 
+/// Display the contents of the universal argument resource.
+pub fn display_universal_arg(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
+    minibuffer.message(format!("{:?} {}", arg.0, arg.0.is_some()));
+    // match arg.0 {
+    //     Some(x) => minibuffer.message(format!("Univeral argument {x}")),
+    //     None => minibuffer.message("No universal argument set"),
+    // }
+}
+
 /// This resources stores the last given universal argument. It is cleared after
 /// any act---that is not specifically marked [ActFlags::Adverb]---runs.
 #[derive(Debug, Clone, Resource, Default, Reflect)]
@@ -115,6 +134,7 @@ fn universal_argument(
     minibuffer.message(format!("{prompt}"));
     async move {
         let mut accum = 0;
+        let mut accumulated = false;
         loop {
             let Ok(chord @ KeyChord(_mods, key)) = minibuffer.get_chord().await else {
                 break;
@@ -122,10 +142,11 @@ fn universal_argument(
             if let Some(ref bindkey) = bindkey {
                 if chord == *bindkey {
                     if accum == 0 {
-                        accum = multiplier;
+                        accum = multiplier * multiplier;
                     } else {
                         accum *= multiplier;
                     }
+                    accumulated = true;
                     minibuffer.message(format!("{prompt}{accum}"));
                     continue;
                 }
@@ -151,7 +172,7 @@ fn universal_argument(
                     let world = AsyncWorld::new();
                     let _ = world
                         .resource::<UniversalArg>()
-                        .set(move |r| r.0 = Some(accum));
+                        .set(move |r| r.0 = (!accumulated).then_some(multiplier).or(Some(accum)));
                     // This last chord isn't what we expected. Send it back for
                     // processing.
                     let _ = world
@@ -169,6 +190,7 @@ fn universal_argument(
             } else {
                 accum *= digit;
             }
+            accumulated = true;
             minibuffer.message(format!("{prompt}{accum}"));
         }
     }

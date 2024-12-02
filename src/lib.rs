@@ -1,7 +1,7 @@
 #![doc(html_root_url = "https://docs.rs/bevy_minibuffer/0.1.0")]
 #![doc = include_str!("../README.md")]
 #![forbid(missing_docs)]
-pub mod act;
+pub mod acts;
 pub mod autocomplete;
 pub mod event;
 #[cfg(feature = "async")]
@@ -15,11 +15,7 @@ pub use plugin::Error;
 pub use plugin::MinibufferPlugin;
 pub use plugin::MinibufferPlugins;
 pub use autocomplete::Resolved;
-mod basic;
-#[cfg(feature = "async")]
-pub mod universal;
 pub mod view;
-pub use basic::BasicActs;
 #[cfg(feature = "async")]
 pub mod sink;
 #[cfg(feature = "async")]
@@ -39,14 +35,14 @@ pub mod input {
 
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
-    pub use super::act::{self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, AddActs};
+    pub use super::acts::{self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, AddActs};
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, Modifiers};
     pub use super::autocomplete::*;
     pub use super::sync::MinibufferCommands;
     #[cfg(feature = "async")]
-    pub use super::universal::*;
-    pub use super::BasicActs;
+    pub use super::acts::universal::*;
+    pub use super::acts::basic::BasicActs;
     pub use super::Config;
     pub use super::Minibuffer;
     #[cfg(feature = "async")]

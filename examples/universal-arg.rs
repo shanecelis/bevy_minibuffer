@@ -50,21 +50,13 @@ fn make_cube(
         minibuffer.message(format!("Made {} cubes.", count));
     }
 }
-pub fn check_arg(arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
-    match arg.0 {
-        Some(x) => minibuffer.message(format!("Univeral argument {x}")),
-        None => minibuffer.message("No universal argument set"),
-    }
-}
 
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins).add_acts((
         BasicActs::default(),
-        UniversalArgActs::default(),
+        UniversalArgActs::default()
+            .include_display_act(),
         Act::new(make_cube).bind(keyseq! { Space }),
-        Act::new(check_arg)
-            .bind(keyseq! { C })
-            .add_flags(ActFlags::Show),
     ));
 }
 

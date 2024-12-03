@@ -17,8 +17,10 @@ fn main() {
             common::VideoCapturePlugin::new("opt-in").background(Srgba::hex("ffbe0b").unwrap()),
             plugin,
         ))
-        .add_systems(Startup, |mut commands: Commands| {
+        .add_systems(Startup, |mut commands: Commands, mut minibuffer: Minibuffer| {
             commands.spawn(Camera2dBundle::default());
+            minibuffer.message("Type 'Ctrl-H A' to see basic commands.");
+            minibuffer.set_visible(true);
         })
         .run();
 }

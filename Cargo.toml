@@ -55,9 +55,10 @@ required-features = [ "async" ]
 
 [[example]]
 name = "two-commands-async"
-path = "examples/async/two_commands.rs"
+path = "examples/async/two-commands.rs"
 required-features = [ "async" ]
 
 [[example]]
-name = "universal-arg"
+name = "universal-arg-async"
+path = "examples/async/universal-arg.rs"
 required-features = [ "async" ]

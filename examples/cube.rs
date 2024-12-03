@@ -1,8 +1,8 @@
-//! Illustrates how to interact with an object with minibuffer.
-
+//! Illustrates how to interact with an entity with [Minibuffer].
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 use std::f32::consts::TAU;
+
 #[path = "common/lib.rs"]
 mod common;
 
@@ -12,28 +12,30 @@ struct Rotatable {
     speed: f32,
 }
 
-fn main() {
-    let video_settings = common::VideoCaptureSettings {
-        title: "Bevy Minibuffer Cube Async Example".into(),
-    };
-    App::new()
-        // Normally, you'd do this:
-        // .add_plugins((DefaultPlugins, MinibufferPlugins))
-        // For the demo, we do it slightly differently like this:
-        .add_plugins((
-            DefaultPlugins.set(video_settings.window_plugin()),
-            MinibufferPlugins.set(video_settings.minibuffer_plugin()),
-        ))
-        // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
-        .add_systems(Startup, setup)
-        .add_systems(Update, rotate_cube)
-        // Add commands.
+fn plugin(app: &mut App) {
+    app
+        .add_plugins(MinibufferPlugins)
         .add_acts((
             BasicActs::default(),
-            Act::new(stop),
-            Act::new(start),
+            // Add commands.
+            Act::new(stop).bind(keyseq! { D }),
+            Act::new(start).bind(keyseq! { A }),
             Act::new(speed).bind(keyseq! { S }),
         ))
+        .add_systems(Startup, |mut minibuffer: Minibuffer| {
+            minibuffer.message("Hit 'S' to change cube speed. Hit 'Ctrl-H B' for keys.");
+            minibuffer.set_visible(true);
+        });
+}
+
+fn main() {
+    App::new()
+        .add_plugins((
+            common::VideoCapturePlugin::new("basic").background(Srgba::hex("390099").unwrap()),
+            plugin,
+        ))
+        .add_systems(Startup, setup)
+        .add_systems(Update, rotate_cube)
         .run();
 }
 
@@ -44,7 +46,8 @@ fn start(mut query: Query<&mut Rotatable>) {
 }
 
 /// Stop the cube spinning. No input.
-fn stop(mut query: Query<&mut Rotatable>) {
+fn stop(mut query: Query<&mut Rotatable>, mut minibuffer: Minibuffer) {
+    minibuffer.clear();
     let mut r = query.single_mut();
     r.speed = 0.0;
 }
@@ -92,6 +95,9 @@ fn setup(
 // This system will rotate any entity in the scene with a Rotatable component around its y-axis.
 fn rotate_cube(mut cubes: Query<(&mut Transform, &Rotatable)>, timer: Res<Time>) {
     for (mut transform, cube) in &mut cubes {
+        // The speed is first multiplied by TAU which is a full rotation (360deg) in radians,
+        // and then multiplied by delta_seconds which is the time that passed last frame.
+        // In other words. Speed is equal to the amount of rotations per second.
         transform.rotate_y(cube.speed * TAU * timer.delta_seconds());
     }
 }

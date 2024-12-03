@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 use rand::prelude::*;
 
-#[path = "common/lib.rs"]
+#[path = "../common/lib.rs"]
 mod common;
 
 fn rnd_vec<R: Rng>(rng: &mut R) -> Vec3 {
@@ -81,5 +81,9 @@ fn main() {
             plugin,
         ))
         .add_systems(Startup, setup)
+        .add_systems(Startup, |mut minibuffer: Minibuffer| {
+            minibuffer.message("Type 'Ctrl-U 1 0 Space' to make 10 cubes.");
+            minibuffer.set_visible(true);
+        })
         .run();
 }

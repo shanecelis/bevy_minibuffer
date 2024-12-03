@@ -24,8 +24,10 @@ fn main() {
                 .background(Srgba::hex("ff006e").unwrap()),
             plugin,
         ))
-        .add_systems(Startup, |mut commands: Commands| {
+        .add_systems(Startup, |mut commands: Commands, mut minibuffer: Minibuffer| {
             commands.spawn(Camera2dBundle::default());
+            minibuffer.message("Type 'Ctrl-W' to run hello_world.");
+            minibuffer.set_visible(true);
         })
         .run();
 }

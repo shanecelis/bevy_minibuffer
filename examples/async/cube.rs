@@ -33,7 +33,7 @@ fn plugin(app: &mut App) {
 fn main() {
     App::new()
         .add_plugins((
-            common::VideoCapturePlugin::new("basic").background(Srgba::hex("390099").unwrap()),
+            common::VideoCapturePlugin::new("cube-async").background(Srgba::hex("7e33ff").unwrap()),
             plugin,
         ))
         .add_systems(Startup, setup)

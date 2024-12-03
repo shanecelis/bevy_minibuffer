@@ -1,10 +1,10 @@
-//! Illustrates how to interact with an object with minibuffer.
-
+//! Illustrates how to interact with an entity with [MinibufferAsync].
 use bevy::prelude::*;
 use bevy_defer::{AsyncAccess, AsyncWorld};
 use bevy_minibuffer::prelude::*;
 use std::f32::consts::TAU;
 use std::future::Future;
+
 #[path = "../common/lib.rs"]
 mod common;
 
@@ -14,26 +14,30 @@ struct Rotatable {
     speed: f32,
 }
 
-fn main() {
-    let video_settings = common::VideoCaptureSettings {
-        title: "Bevy Minibuffer Cube Async Example".into(),
-    };
-    App::new()
-        // .add_plugins((DefaultPlugins, MinibufferPlugins))
-        .add_plugins((
-            DefaultPlugins.set(video_settings.window_plugin()),
-            MinibufferPlugins.set(video_settings.minibuffer_plugin()),
-        ))
-        // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
-        .add_systems(Startup, setup)
-        .add_systems(Update, rotate_cube)
-        // Add commands.
+fn plugin(app: &mut App) {
+    app
+        .add_plugins(MinibufferPlugins)
         .add_acts((
             BasicActs::default(),
-            Act::new(stop),
-            Act::new(start),
+            // Add commands.
+            Act::new(stop).bind(keyseq! { D }),
+            Act::new(start).bind(keyseq! { A }),
             Act::new(speed.pipe(future_result_sink)).bind(keyseq! { S }),
         ))
+        .add_systems(Startup, |mut minibuffer: Minibuffer| {
+            minibuffer.message("Hit 'S' to change cube speed. Hit 'Ctrl-H B' for keys.");
+            minibuffer.set_visible(true);
+        });
+}
+
+fn main() {
+    App::new()
+        .add_plugins((
+            common::VideoCapturePlugin::new("basic").background(Srgba::hex("390099").unwrap()),
+            plugin,
+        ))
+        .add_systems(Startup, setup)
+        .add_systems(Update, rotate_cube)
         .run();
 }
 
@@ -57,7 +61,7 @@ fn speed(
 ) -> impl Future<Output = Result<(), Error>> {
     let id = query.single();
     async move {
-        let speed = minibuffer.prompt::<Number<f32>>("speed:").await?;
+        let speed = minibuffer.prompt::<Number<f32>>("speed: ").await?;
         let world = AsyncWorld::new();
         world
             .entity(id)

@@ -33,14 +33,14 @@ fn hello_name(mut minibuffer: Minibuffer) {
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
         .add_acts(Act::new(hello_name).bind(keyseq! { Space }))
-        .add_systems(PostStartup, hello_name);
+        .add_systems(Startup, hello_name);
 }
 
 fn main() {
     App::new()
         // .add_plugins((DefaultPlugins, plugin))
         .add_plugins((
-            common::VideoCapturePlugin::new("tab-completion")
+            common::VideoCapturePlugin::new("tab-completion-trie-map")
                 .background(Srgba::hex("00f0b5").unwrap()),
             plugin,
         ))

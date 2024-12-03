@@ -12,23 +12,24 @@ use bevy_defer::{AsyncAccess, AsyncWorld};
 use bevy_input_sequence::{KeyChord, KeyChordQueue};
 use std::{borrow::Cow, fmt::Debug, future::Future};
 
-/// Universal argument plugin
+/// Universal argument plugin and acts
 ///
-/// Adds act "universal_argument" and resource [UniversalArg].
+/// Adds "universal_arg" act and resources: [UniversalArg] and [UniversalArgMultiplier].
 pub struct UniversalArgActs {
     /// Acts
     pub acts: Acts,
 }
 
-/// Universal multiplier
+/// Universal argument multiplier
 ///
 /// When universal argument's key binding is invoked multiple times, its
 /// multiplied by the number stored in this resource. By default that number is
 /// four initially.
-#[derive(Resource)]
-pub struct UniversalMultiplier(i32);
+#[derive(Debug, Resource, Reflect)]
+#[reflect(Resource)]
+pub struct Multiplier(i32);
 
-impl Default for UniversalMultiplier {
+impl Default for Multiplier {
     fn default() -> Self {
         Self(4)
     }
@@ -37,8 +38,8 @@ impl Default for UniversalMultiplier {
 impl Default for UniversalArgActs {
     fn default() -> Self {
         Self {
-            acts: Acts::new(vec![Act::new(universal_argument.pipe(future_sink))
-                .named("universal_argument")
+            acts: Acts::new(vec![Act::new(universal_arg.pipe(future_sink))
+                .named("universal_arg")
                 .bind(keyseq! { Ctrl-U })
                 .sub_flags(ActFlags::ExecAct)]),
         }
@@ -59,7 +60,10 @@ impl UniversalArgActs {
 
 impl Plugin for UniversalArgActs {
     fn build(&self, app: &mut bevy::app::App) {
-        app.init_resource::<UniversalMultiplier>()
+        app
+            .register_type::<Multiplier>()
+            .register_type::<UniversalArg>()
+            .init_resource::<Multiplier>()
             .init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
         self.warn_on_unused_acts();
@@ -105,9 +109,9 @@ pub fn display_universal_arg(arg: Res<UniversalArg>, mut minibuffer: Minibuffer)
 #[derive(Debug, Clone, Resource, Default, Reflect)]
 pub struct UniversalArg(pub Option<i32>);
 
-fn universal_argument(
+fn universal_arg(
     mut minibuffer: MinibufferAsync,
-    multiplier: Res<UniversalMultiplier>,
+    multiplier: Res<Multiplier>,
     last_act: Res<LastRunAct>,
 ) -> impl Future<Output = ()> {
     use bevy::prelude::KeyCode::*;
@@ -125,7 +129,7 @@ fn universal_argument(
                 format!("{}", keyseq).into()
             })
         })
-        .unwrap_or("universal_argument ".into());
+        .unwrap_or("universal_arg ".into());
 
     minibuffer.message(format!("{prompt}"));
     async move {

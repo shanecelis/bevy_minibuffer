@@ -21,7 +21,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
         // .add_acts(BasicActs::default())
-        .add_systems(PostStartup, hello_name);
+        .add_systems(Startup, hello_name);
 }
 
 fn main() {

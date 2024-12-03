@@ -7,7 +7,7 @@ use bevy::{
     // input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
-use std::borrow::Cow;
+
 const PADDING: Val = Val::Px(3.);
 const LEFT_PADDING: Val = Val::Px(6.);
 
@@ -40,9 +40,6 @@ pub(crate) struct ScrollingList {
     // last_selection: Option<usize>,
 }
 
-/// Autocomplete list
-pub(crate) struct CompletionList(pub Vec<Cow<'static, str>>);
-
 /// Autocomplete item
 pub(crate) fn completion_item(
     label: String,
@@ -57,7 +54,7 @@ pub(crate) fn completion_item(
 
 pub(crate) fn plugin(app: &mut App) {
     app.register_type::<MinibufferRoot>()
-        .add_systems(Startup, spawn_layout);
+        .add_systems(PreStartup, spawn_layout);
 }
 
 /// Create the UI layout.

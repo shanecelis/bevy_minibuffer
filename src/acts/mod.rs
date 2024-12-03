@@ -76,8 +76,11 @@ pub struct Act {
 }
 
 /// Maps hotkeys to [Act]s
+///
+/// This is a trie of hotkeys for better performance and it is only updated when
+/// acts with hotkeys are added or removed.
 #[derive(Resource, Default)]
-pub(crate) struct ActCache {
+pub struct ActCache {
     trie: Option<Trie<KeyChord, Act>>,
 }
 

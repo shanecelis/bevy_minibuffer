@@ -122,6 +122,7 @@ pub(crate) enum LookupEvent {
 /// Allows minibuffer to use one channel to dispatch multiple kinds of events.
 #[doc(hidden)]
 #[derive(Debug, Clone, Event)]
+#[allow(private_interfaces)]
 pub enum DispatchEvent {
     /// Send a look up event.
     LookupEvent(LookupEvent),

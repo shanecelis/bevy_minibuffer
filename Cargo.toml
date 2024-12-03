@@ -44,16 +44,6 @@ version-sync = "0.9.5"
 bevy-input-sequence = { git = "https://github.com/shanecelis/bevy-input-sequence.git" }
 
 [[example]]
-name = "simplest-async"
-path = "examples/async/simplest.rs"
-required-features = [ "async" ]
-
-[[example]]
-name = "basic-async"
-path = "examples/async/basic.rs"
-required-features = [ "async" ]
-
-[[example]]
 name = "demo-async"
 path = "examples/async/demo.rs"
 required-features = [ "async" ]

@@ -1,3 +1,4 @@
+//! Demonstrate many of Minibuffer's prompt types.
 use bevy::prelude::*;
 use bevy_asky::prelude::*;
 use bevy_minibuffer::prelude::{Error, *};
@@ -86,7 +87,7 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
 
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
-        .add_systems(PostStartup, demo.pipe(future_result_sink));
+        .add_systems(Startup, demo.pipe(future_result_sink));
 }
 
 fn main() {

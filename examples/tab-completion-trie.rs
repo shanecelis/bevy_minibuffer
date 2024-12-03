@@ -1,7 +1,11 @@
 //! Ask the user a question with tab completion.
+//!
+//! Uses a trie for performance.
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 use trie_rs::Trie;
+#[path = "common/lib.rs"]
+mod common;
 
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer
@@ -20,12 +24,19 @@ fn hello_name(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_systems(PostStartup, hello_name);
+    app.add_plugins(MinibufferPlugins)
+        .add_acts(Act::new(hello_name).bind(keyseq! { Space }))
+        .add_systems(Startup, hello_name);
 }
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, MinibufferPlugins, plugin))
+        // .add_plugins((DefaultPlugins, plugin))
+        .add_plugins((
+            common::VideoCapturePlugin::new("tab-completion-trie")
+                .background(Srgba::hex("aea4bf").unwrap()),
+            plugin,
+        ))
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

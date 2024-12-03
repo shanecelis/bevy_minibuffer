@@ -125,7 +125,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_systems(PostStartup, 
+    app.add_systems(Startup, 
                     hello_name);
 }
 ```
@@ -167,7 +167,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_systems(PostStartup, hello_name);
+    app.add_systems(Startup, hello_name);
 }
 ```
 ``` sh

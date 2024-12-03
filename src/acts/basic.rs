@@ -201,6 +201,7 @@ pub fn list_key_bindings(acts: Query<&Act>) -> String {
 }
 
 /// Toggle visibility.
+#[allow(private_interfaces)]
 pub fn toggle_visibility(
     mut redraw: EventWriter<RequestRedraw>,
     prompt_state: Res<State<PromptState>>,

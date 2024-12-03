@@ -1,3 +1,4 @@
+//! Demonstrate two commands.
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 
@@ -14,10 +15,9 @@ async fn ask_name(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
 }
 
 // Ask the user for their age.
-async fn ask_age(mut asky: MinibufferAsync) -> Result<(), Error> {
-    let age = asky.prompt::<Number<u8>>("What's your age? ").await?;
-    // asky.delay(Duration::from_secs(2)).await?;
-    asky.message(format!("You are {age} years old."));
+async fn ask_age(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
+    let age = minibuffer.prompt::<Number<u8>>("What's your age? ").await?;
+    minibuffer.message(format!("You are {age} years old."));
     Ok(())
 }
 

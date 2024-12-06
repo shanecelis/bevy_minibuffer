@@ -10,7 +10,7 @@ mod common;
 
 fn plugin(app: &mut App) {
     let mut basic_acts = BasicActs::default();
-    /// Acts is a HashMap of act names and [ActBuilder]s.
+    // Acts is a HashMap of act names and [ActBuilder]s.
     let mut acts = basic_acts.take_acts();
     let list_acts = acts.remove("list_acts").unwrap();
     app.add_plugins(MinibufferPlugins)

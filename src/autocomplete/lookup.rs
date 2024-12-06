@@ -1,8 +1,8 @@
 //! Lookup and autocompletion
-use crate::Error;
 use bevy::prelude::*;
 use std::borrow::Cow;
 use trie_rs::{iter::KeysExt, map};
+use crate::Error;
 
 /// Look up error
 ///
@@ -13,9 +13,15 @@ pub enum LookupError {
     /// An error message
     #[error("{0}")]
     Message(Cow<'static, str>),
-    /// A list of possible matches
-    #[error("incomplete {0:?}")]
-    Incomplete(Vec<String>),
+    /// No matches
+    #[error("No matches")]
+    NoMatch,
+    #[error("One match: {0}")]
+    /// One match
+    OneMatch(String),
+    #[error("Many matches")]
+    /// Many matches
+    ManyMatches,
 }
 
 /// Look up possible completions
@@ -24,22 +30,34 @@ pub enum LookupError {
 pub trait Lookup {
     /// Look up the `input`. If it matches exactly, this returns `Ok(())`.
     /// Otherwise it returns [LookupError], which can include its partial matches.
-    fn look_up(&self, input: &str) -> Result<(), LookupError>;
+    fn lookup(&self, input: &str) -> Result<(), LookupError>;
     /// Return the longest prefix for `input`.
     fn longest_prefix(&self, input: &str) -> Option<String>;
+    /// Return all matches for `input`.
+    fn all_lookups(&self, input: &str) -> Vec<String>;
 }
 
 /// Resolve the input to a value of type `Item`.
 ///
 /// This trait is not object-safe.
-pub trait Resolve {
+pub trait Resolve: Lookup {
     /// The type this resolves to.
     type Item: Send;
+    /// Resolve the `input`.
+    fn resolve(&self, input: &str) -> Option<Self::Item>;
+
     /// Resolve the `input` or provide an error.
-    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError>;
+    fn resolve_res(&self, input: &str) -> Result<Self::Item, LookupError> {
+        self.resolve(input).ok_or_else(|| {
+            match self.lookup(input) {
+                Ok(()) => LookupError::Message("Inconsistent: Resolve failed but lookup succeeded.".into()),
+                Err(e) => e,
+            }
+        })
+    }
 }
 
-/// When we resolve a string, it can be mapped to another value T.
+/// Triggered from `.resolve()` with value `T` and input string
 #[derive(Event, Deref, DerefMut, Debug)]
 pub struct Resolved<T> {
     /// The result if not taken yet.
@@ -78,68 +96,105 @@ impl<T> Resolved<T> {
     }
 }
 
+
 impl<V: Send + Sync + Clone> Resolve for map::Trie<u8, V> {
     type Item = V;
 
-    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
-        if let Some(value) = self.exact_match(input) {
-            return Ok(value.clone());
+    fn resolve(&self, input: &str) -> Option<Self::Item> {
+        self.exact_match(input).cloned()
+    }
+}
+
+fn iter_to_error(mut matches: impl Iterator<Item = impl AsRef<str>>) -> LookupError {
+    if let Some(one_match) = matches.next() {
+        if matches.next().is_none() {
+            LookupError::OneMatch(one_match.as_ref().to_string())
+        } else {
+            LookupError::ManyMatches
         }
-        let matches: Vec<String> = self.predictive_search(input).keys().collect();
-        match matches.len() {
-            0 => Err(LookupError::Message("no matches".into())),
-            // 1 =>
-            //     if matches[0] == input {
-            //         Ok(self.exact_match(input).cloned().unwrap())
-            //     } else {
-            //         Err(LookupError::Incomplete(matches))
-            //     },
-            _ => Err(LookupError::Incomplete(matches)),
-        }
+    } else {
+        LookupError::NoMatch
     }
 }
 
 impl<V: Send + Sync + Clone> Lookup for map::Trie<u8, V> {
-    fn look_up(&self, input: &str) -> Result<(), LookupError> {
-        self.resolve(input).map(|_| ())
+    fn lookup(&self, input: &str) -> Result<(), LookupError> {
+        if let Some(_) = self.exact_match(input) {
+            return Ok(());
+        }
+        let matches = self.predictive_search::<String, trie_rs::try_collect::StringCollect>(input).keys();
+        Err(iter_to_error(matches))
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
         map::Trie::<u8, V>::longest_prefix(self, input)
     }
-}
 
-impl Resolve for trie_rs::Trie<u8> {
-    type Item = ();
-
-    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
-        self.0.look_up(input)
+    fn all_lookups(&self, input: &str) -> Vec<String> {
+        self.predictive_search(input).keys().collect()
     }
 }
 
+// // Why have this?
+// impl Resolve for trie_rs::Trie<u8> {
+//     type Item = ();
+
+//     fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
+//         self.0.lookup(input)
+//     }
+// }
+
 impl Lookup for trie_rs::Trie<u8> {
-    fn look_up(&self, input: &str) -> Result<(), LookupError> {
-        self.0.resolve(input)
+    fn lookup(&self, input: &str) -> Result<(), LookupError> {
+
+        // self.exact_match(input).cloned()
+        // self.0.resolve(input)
+        if self.exact_match(input) {
+            return Ok(());
+        }
+        let mut iter = self.predictive_search::<String, trie_rs::try_collect::StringCollect>(input);
+        if let Some(x) = iter.next() {
+            if iter.next().is_none() {
+                Err(LookupError::OneMatch(x))
+            } else {
+                Err(LookupError::ManyMatches)
+            }
+        } else {
+                Err(LookupError::NoMatch)
+        }
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
         self.0.longest_prefix(input)
     }
+
+    fn all_lookups(&self, input: &str) -> Vec<String> {
+        self.0.predictive_search(input).keys().collect()
+    }
 }
 
 impl<T: AsRef<str>> Lookup for Vec<T> {
-    fn look_up(&self, input: &str) -> Result<(), LookupError> {
-        self[..].look_up(input)
+    fn lookup(&self, input: &str) -> Result<(), LookupError> {
+        self[..].lookup(input)
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
         self[..].longest_prefix(input)
     }
+
+
+    fn all_lookups(&self, input: &str) -> Vec<String> {
+        self
+            .iter()
+            .map(|word| word.as_ref())
+            .filter_map(|word| word.starts_with(input).then(|| input.to_string()))
+            .collect()
+    }
 }
 
 impl<T: AsRef<str>> Resolve for Vec<T> {
     type Item = String;
-    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
+    fn resolve(&self, input: &str) -> Option<Self::Item> {
         self[..].resolve(input)
     }
 }
@@ -147,7 +202,7 @@ impl<T: AsRef<str>> Resolve for Vec<T> {
 /// Handles arrays of &str, String, Cow<'_, str>. Does it all.
 impl<T: AsRef<str>> Resolve for [T] {
     type Item = String;
-    fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
+    fn resolve(&self, input: &str) -> Option<Self::Item> {
         // Collecting and matching is nice expressively. But manually iterating
         // avoids that allocation.
 
@@ -170,26 +225,35 @@ impl<T: AsRef<str>> Resolve for [T] {
             .filter(|word| word.starts_with(input));
 
         if let Some(first) = matches.next() {
-            if let Some(second) = matches.next() {
-                let mut result = vec![first.to_string(), second.to_string()];
-                for item in matches {
-                    result.push(item.to_string());
-                }
-                Err(LookupError::Incomplete(result))
-            } else if input == first {
-                Ok(first.to_string())
-            } else {
-                Err(LookupError::Incomplete(vec![first.to_string()]))
+            if matches.next().is_none() {
+                return Some(first.to_string());
             }
-        } else {
-            Err(LookupError::Message(" no matches".into()))
         }
+        None
     }
 }
 
 impl<T: AsRef<str>> Lookup for [T] {
-    fn look_up(&self, input: &str) -> Result<(), LookupError> {
-        self.resolve(input).map(|_| ())
+    fn lookup(&self, input: &str) -> Result<(), LookupError> {
+        let mut one_match = None;
+        for x in self {
+            let x = x.as_ref();
+            if x == input {
+                return Ok(());
+            }
+            if x.starts_with(input) {
+                if one_match.is_none() {
+                    one_match = Some(x.to_string());
+                } else {
+                    return Err(LookupError::ManyMatches);
+                }
+            }
+        }
+        if let Some(one_match) = one_match {
+            Err(LookupError::OneMatch(one_match))
+        } else {
+            Err(LookupError::NoMatch)
+        }
     }
 
     fn longest_prefix(&self, input: &str) -> Option<String> {
@@ -234,6 +298,14 @@ impl<T: AsRef<str>> Lookup for [T] {
             }
         }
         accum.or_else(|| a_match.then(|| String::from(input)))
+    }
+
+    fn all_lookups(&self, input: &str) -> Vec<String> {
+        self
+            .iter()
+            .map(|word| word.as_ref())
+            .filter_map(|word| word.starts_with(input).then(|| input.to_string()))
+            .collect()
     }
 }
 

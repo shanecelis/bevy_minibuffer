@@ -47,7 +47,7 @@ fn plugin(app: &mut App) {
                 .named("ask_age")
                 .bind(keyseq!(A)),
             // Add a basic act but just one of them.
-            BasicActs::default().remove("exec_act").unwrap(),
+            BasicActs::default().remove("run_act").unwrap(),
         ))
         .add_systems(Startup, |mut minibuffer: Minibuffer| {
             minibuffer.message("Hit 'N' for ask_name. Hit 'A' for ask_age.");

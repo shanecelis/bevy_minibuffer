@@ -31,14 +31,14 @@ use futures::Future;
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 #[cfg(feature = "async")]
-pub fn exec_act(
+pub fn run_act(
     mut minibuffer: MinibufferAsync,
     acts: Query<&Act>,
     last_act: Res<LastRunAct>,
 ) -> impl Future<Output = Result<(), crate::Error>> {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
-        if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
+        if act.flags.contains(ActFlags::RunAct | ActFlags::Active) {
             builder.push(act.name(), act.clone());
         }
     }
@@ -50,7 +50,7 @@ pub fn exec_act(
                 .hotkey
                 .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
         })
-        .unwrap_or("exec_act: ".into());
+        .unwrap_or("run_act: ".into());
     async move {
         match minibuffer.read(prompt, acts.clone()).await {
             // TODO: Get rid of clone.
@@ -75,10 +75,10 @@ pub fn exec_act(
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 #[cfg(not(feature = "async"))]
-pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<LastRunAct>) {
+pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<LastRunAct>) {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
-        if act.flags.contains(ActFlags::ExecAct | ActFlags::Active) {
+        if act.flags.contains(ActFlags::RunAct | ActFlags::Active) {
             builder.push(act.name(), act.clone());
         }
     }
@@ -90,7 +90,7 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Las
                 .hotkey
                 .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
         })
-        .unwrap_or("exec_act".into());
+        .unwrap_or("run_act".into());
     minibuffer
         .read(prompt, acts.clone())
         .insert(RequireMatch)
@@ -99,7 +99,7 @@ pub fn exec_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Las
                   mut writer: EventWriter<RunActEvent>,
                   mut minibuffer: Minibuffer| {
                 match trigger.event_mut().take().unwrap() {
-                    Ok(act_name) => match acts.resolve(&act_name) {
+                    Ok(act_name) => match acts.resolve_res(&act_name) {
                         Ok(act) => {
                             writer.send(RunActEvent::new(act));
                         }
@@ -236,19 +236,20 @@ pub fn describe_key(
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
     async move {
         let mut search = trie.inc_search();
-        let mut accum = String::from("Press key: ");
+        let prompt = "Press key: ";
+        let mut accum = String::new();
 
         loop {
-            minibuffer.message(accum.clone());
+            minibuffer.message(format!("{}{}", prompt, accum));
             let chord = minibuffer.get_chord().await?;
             match search.query(&chord) {
                 Some(x) => {
                     let _ = write!(accum, "{} ", chord);
                     let v = search.value();
                     let msg = match x {
-                        Answer::Match => format!("{}is bound to {:?}", accum, v.unwrap().name),
+                        Answer::Match => format!("{}is bound to {}", accum, v.unwrap().name),
                         Answer::PrefixAndMatch => {
-                            format!("{}is bound to {:?} and more", accum, v.unwrap().name)
+                            format!("{}is bound to {} and more", accum, v.unwrap().name)
                         }
                         Answer::Prefix => accum.clone(),
                     };
@@ -347,21 +348,21 @@ impl Default for BasicActs {
                 ActBuilder::new(toggle_visibility)
                     .named("toggle_visibility")
                     .bind(keyseq! { Backquote })
-                    .sub_flags(ActFlags::ExecAct),
+                    .sub_flags(ActFlags::RunAct),
                 #[cfg(feature = "async")]
-                ActBuilder::new(exec_act.pipe(future_result_sink))
-                    .named("exec_act")
+                ActBuilder::new(run_act.pipe(future_result_sink))
+                    .named("run_act")
                     .bind_aliased(keyseq! { Shift-; }, ":")
                     .bind(keyseq! { Alt-X })
                     .add_flags(ActFlags::Adverb)
-                    .sub_flags(ActFlags::ExecAct),
+                    .sub_flags(ActFlags::RunAct),
                 #[cfg(not(feature = "async"))]
-                ActBuilder::new(exec_act)
-                    .named("exec_act")
+                ActBuilder::new(run_act)
+                    .named("run_act")
                     .bind_aliased(keyseq! { Shift-; }, ":")
                     .bind(keyseq! { Alt-X })
                     .add_flags(ActFlags::Adverb)
-                    .sub_flags(ActFlags::ExecAct),
+                    .sub_flags(ActFlags::RunAct),
                 #[cfg(feature = "async")]
                 ActBuilder::new(describe_key.pipe(future_result_sink))
                     .named("describe_key")
@@ -376,12 +377,12 @@ impl Default for BasicActs {
 }
 
 impl BasicActs {
-    /// Make exec_act look like 'M-x ' at the prompt.
+    /// Make run_act look like 'M-x ' at the prompt.
     pub fn emacs() -> Self {
         let mut basic = Self::default();
-        let exec_act = basic.get_mut("exec_act").unwrap();
-        exec_act.hotkeys.clear();
-        exec_act.bind_aliased(keyseq! { Alt-X }, "M-x ");
+        let run_act = basic.get_mut("run_act").unwrap();
+        run_act.hotkeys.clear();
+        run_act.bind_aliased(keyseq! { Alt-X }, "M-x ");
         basic
     }
 }

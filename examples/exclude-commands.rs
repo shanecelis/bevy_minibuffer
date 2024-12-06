@@ -2,7 +2,7 @@
 //!
 //! We keep the list_acts only because that is easiest way to show that acts
 //! have been excluded. However, in practice if one were to remove all but one
-//! command, one would probably keep exec_act.
+//! command, one would probably keep run_act.
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 #[path = "common/lib.rs"]

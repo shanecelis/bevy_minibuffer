@@ -41,7 +41,7 @@ impl Default for UniversalArgActs {
             acts: Acts::new(vec![Act::new(universal_arg.pipe(future_sink))
                 .named("universal_arg")
                 .bind(keyseq! { Ctrl-U })
-                .sub_flags(ActFlags::ExecAct)]),
+                .sub_flags(ActFlags::RunAct)]),
         }
     }
 }

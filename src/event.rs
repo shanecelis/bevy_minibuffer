@@ -149,7 +149,7 @@ impl From<RunActEvent> for DispatchEvent {
 
 pub(crate) fn dispatch_events(
     mut dispatch_events: EventReader<DispatchEvent>,
-    mut look_up_events: EventWriter<LookupEvent>,
+    mut lookup_events: EventWriter<LookupEvent>,
     mut request_act_events: EventWriter<RunActEvent>,
     mut minibuffer: Minibuffer,
 ) {
@@ -157,7 +157,7 @@ pub(crate) fn dispatch_events(
     for e in dispatch_events.read() {
         match e {
             LookupEvent(l) => {
-                look_up_events.send(l.clone());
+                lookup_events.send(l.clone());
             }
             RunActEvent(s) => {
                 request_act_events.send(s.clone());
@@ -177,14 +177,14 @@ pub(crate) fn dispatch_events(
 
 pub(crate) fn dispatch_trigger(
     dispatch_events: Trigger<DispatchEvent>,
-    mut look_up_events: EventWriter<LookupEvent>,
+    mut lookup_events: EventWriter<LookupEvent>,
     mut request_act_events: EventWriter<RunActEvent>,
     mut minibuffer: Minibuffer,
 ) {
     use crate::event::DispatchEvent::*;
     match dispatch_events.event() {
         LookupEvent(l) => {
-            look_up_events.send(l.clone());
+            lookup_events.send(l.clone());
         }
         RunActEvent(s) => {
             request_act_events.send(s.clone());

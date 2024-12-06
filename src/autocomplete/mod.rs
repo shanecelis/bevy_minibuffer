@@ -43,11 +43,11 @@ pub struct RequireMatch;
 
 impl AutoComplete {
     /// Wrap a prompt in autocomplete.
-    pub fn new<L>(look_up: L) -> Self
+    pub fn new<L>(lookup: L) -> Self
     where
         L: Lookup + Send + Sync + 'static,
     {
-        Self(Box::new(look_up))
+        Self(Box::new(lookup))
     }
 
     // pub fn from_resolve<R>(resolve: R) -> Self
@@ -137,28 +137,35 @@ fn autocomplete_controller(
             }
             match &ev.logical_key {
                 Key::Tab => {
-                    if let Err(e) = autocomplete.look_up(&text_state.value) {
+                    if let Err(e) = autocomplete.lookup(&text_state.value) {
                         use LookupError::*;
                         match e {
+                            NoMatch => {
+                                lookup_events.send(LookupEvent::Hide);
+                                if let Some(mut ecommands) = commands.get_entity(id) {
+                                    ecommands.try_insert(Feedback::info(format!("{}", e)));
+                                }
+                            }
+                            OneMatch(s) => {
+                                lookup_events.send(LookupEvent::Hide);
+                                text_state.set_value(&s);
+                            }
+                            ManyMatches => {
+                                let matches = autocomplete.all_lookups(&text_state.value);
+
+                                lookup_events.send(LookupEvent::Completions(matches));
+                                if let Some(new_input) =
+                                    autocomplete.longest_prefix(&text_state.value)
+                                {
+                                    text_state.set_value(&new_input);
+                                }
+                            }
                             Message(s) => {
                                 lookup_events.send(LookupEvent::Hide);
                                 if let Some(mut ecommands) = commands.get_entity(id) {
                                     ecommands.try_insert(Feedback::info(s)); // Err(s),
                                 }
                             }
-                            Incomplete(v) => {
-                                lookup_events.send(LookupEvent::Completions(v));
-                                if let Some(new_input) =
-                                    autocomplete.longest_prefix(&text_state.value)
-                                {
-                                    text_state.set_value(&new_input);
-                                }
-                            } // Minibuffer(e) => {
-                              //     lookup_events.send(LookupEvent::Hide);
-                              //     if let Some(mut ecommands) = commands.get_entity(id) {
-                              //         ecommands.try_insert(Feedback::warn(format!("{:?}", e)));
-                              //     }
-                              // }
                         }
                     }
                 }
@@ -174,32 +181,38 @@ fn autocomplete_controller(
                 Key::ArrowRight => text_state.move_cursor(CursorDirection::Right),
                 Key::Enter => {
                     if require_match.is_some() {
-                        if let Err(e) = autocomplete.look_up(&text_state.value) {
+                        if let Err(e) = autocomplete.lookup(&text_state.value) {
                             use LookupError::*;
                             match e {
+                                NoMatch => {
+                                    lookup_events.send(LookupEvent::Hide);
+                                    if let Some(mut ecommands) = commands.get_entity(id) {
+                                        ecommands.try_insert(Feedback::info(format!("{}", e)));
+                                    }
+                                }
                                 Message(s) => {
                                     lookup_events.send(LookupEvent::Hide);
                                     if let Some(mut ecommands) = commands.get_entity(id) {
                                         ecommands.try_insert(Feedback::info(s));
-                                        // Err(s),
                                     }
                                 }
-                                Incomplete(v) => {
+                                OneMatch(s) => {
+                                    lookup_events.send(LookupEvent::Hide);
+                                    text_state.set_value(&s);
+                                }
+                                ManyMatches => {
                                     if let Some(mut ecommands) = commands.get_entity(id) {
                                         ecommands.try_insert(Feedback::warn("require match"));
                                     }
-                                    lookup_events.send(LookupEvent::Completions(v));
+                                    let matches = autocomplete.all_lookups(&text_state.value);
+
+                                    lookup_events.send(LookupEvent::Completions(matches));
                                     if let Some(new_input) =
                                         autocomplete.longest_prefix(&text_state.value)
                                     {
                                         text_state.set_value(&new_input);
                                     }
-                                } // Minibuffer(e) => {
-                                  //     lookup_events.send(LookupEvent::Hide);
-                                  //     if let Some(mut ecommands) = commands.get_entity(id) {
-                                  //         ecommands.try_insert(Feedback::warn(format!("{:?}", e)));
-                                  //     }
-                                  // }
+                                }
                             }
                             continue;
                         }

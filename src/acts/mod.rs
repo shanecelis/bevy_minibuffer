@@ -39,14 +39,14 @@ pub mod universal;
 // }
 
 bitflags! {
-    /// `Active | Adverb | ExecAct | ShowMinibuffer`
+    /// `Active | Adverb | RunAct | ShowMinibuffer`
     #[derive(Clone, Copy, Debug, PartialOrd, PartialEq, Eq, Hash, Ord)]
     pub struct ActFlags: u8 {
         /// Act is active.
         const Active         = 0b00000001;
-        /// Act is shown in [crate::act::exec_act].
-        const ExecAct        = 0b00000010;
-        /// Act usually runs another act like exec_act.
+        /// Act is shown in [crate::act::run_act].
+        const RunAct        = 0b00000010;
+        /// Act usually runs another act like run_act.
         const Adverb         = 0b00000100;
         /// Act shows the minibuffer when run.
         const ShowMinibuffer = 0b00001000;
@@ -55,7 +55,7 @@ bitflags! {
 
 impl Default for ActFlags {
     fn default() -> Self {
-        ActFlags::Active | ActFlags::ExecAct
+        ActFlags::Active | ActFlags::RunAct
     }
 }
 
@@ -135,7 +135,7 @@ impl ActBuilder {
             name: None,
             hotkeys: Vec::new(),
             system: Some(Box::new(IntoSystem::into_system(system))),
-            flags: ActFlags::Active | ActFlags::ExecAct,
+            flags: ActFlags::Active | ActFlags::RunAct,
             shorten_name: true,
         }
     }
@@ -280,7 +280,7 @@ impl AsRef<str> for Act {
 //     type Item = Act;
 //     fn resolve(&self, input: &str) -> Result<Act, LookupError> {
 //         let mut matches = self.iter().filter(|command| {
-//             command.flags.contains(ActFlags::ExecAct | ActFlags::Active)
+//             command.flags.contains(ActFlags::RunAct | ActFlags::Active)
 //                 && command.name.starts_with(input)
 //         });
 //         // Collecting and matching is nice expressively. But manually iterating
@@ -304,7 +304,7 @@ impl AsRef<str> for Act {
 // }
 
 // impl Lookup for Vec<Act> {
-//     fn look_up(&self, input: &str) -> Result<(), LookupError> {
+//     fn lookup(&self, input: &str) -> Result<(), LookupError> {
 //         self.resolve(input).map(|_| ())
 //     }
 

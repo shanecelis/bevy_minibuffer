@@ -205,8 +205,8 @@ fn completion_set(
     }
 }
 
-pub(crate) fn look_up_events(
-    mut look_up_events: EventReader<LookupEvent>,
+pub(crate) fn lookup_events(
+    mut lookup_events: EventReader<LookupEvent>,
     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
     mut next_completion_state: ResMut<NextState<CompletionState>>,
     mut redraw: EventWriter<RequestRedraw>,
@@ -215,7 +215,7 @@ pub(crate) fn look_up_events(
     config: Res<Config>,
 ) {
     let text_style = &config.text_style;
-    for e in look_up_events.read() {
+    for e in lookup_events.read() {
         // info!("look up event: {e:?}");
         match e {
             LookupEvent::Completions(v) => {

@@ -30,7 +30,7 @@ cargo run --example demo-async --features async
 - No default kitchen sink
 
 The default functionality should be a blank slate that does nothing if no
-commands or key bindings have been added. Basic functions like `exec_act` and
+commands or key bindings have been added. Basic functions like `run_act` and
 the ":" key binding should be opt-in.
 - No general-purpose text editing
 - No windows or panels
@@ -51,7 +51,7 @@ provides the following acts and key bindings:
 | ACT               | KEY BINDING |
 |-------------------|-------------|
 | describe_key      | Ctrl-H K    |
-| exec_act          | :<br>Alt-X  |
+| run_act           | :<br>Alt-X  |
 | list_acts         | Ctrl-H A    |
 | list_key_bindings | Ctrl-H B    |
 | toggle_visibility | `           |
@@ -74,7 +74,7 @@ cargo run --example opt-in
 Acts are systems. Any system[^1] will do.
 
 NOTE: We add `BasicActs` acts here only because there would be no way to run an
-act otherwise without a key binding.
+act otherwise. To run an act without `BasicActs`, one would need a key binding.
 
 ``` rust no_run
 # use bevy::prelude::*;
@@ -263,7 +263,7 @@ available in this crate: `BasicActs` and `UniversalArgActs`.
 ## BasicActs
 
 `BasicActs` has the bare necessities of acts: 
-- exec_act
+- run_act
 
 Asks for what act to run, provides tab completion.
 - list_acts
@@ -280,7 +280,8 @@ Listens for key chords and reveals what act they would run.
 Hides and shows the minibuffer.
 
 But one can trim it down further if one likes by calling `take_acts()`,
-manipulating them, and submitting that to `add_acts()`. For instance to only use 'exec_act', one would do the following:
+manipulating them, and submitting that to `add_acts()`. For instance to only add
+'run_act', one would do the following:
 
 ``` rust no_run
 # use bevy::prelude::*;
@@ -344,7 +345,9 @@ what they require. It is a "pull" model of interaction versus a "push" model.
 [^2]: Although one could implement keyboard macros, which are a form of interactive scripting. Pull requests are welcome.
 
 # TODO
-- [ ] Use a real cursor/selection highlight.
+- [ ] Use a "real" cursor/selection highlight.
+- [ ] Add `HashMap<String,V>` completer.
+- [ ] Make universal-arg work without async.
 - [x] Re-write [asky](https://github.com/axelvc/asky) to be [bevy native](https://github.com/shanecelis/bevy_asky).
 
 # Design Questions

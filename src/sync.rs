@@ -104,7 +104,7 @@ impl Minibuffer<'_, '_> {
         }
     }
 
-    /// Read input from user that must match a [Lookup].
+    /// Read input from user with autocomplete provided by a [Lookup].
     pub fn read<L>(
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
@@ -140,18 +140,18 @@ impl Minibuffer<'_, '_> {
             // TODO: We should probably return something other than submit.
             .observe(
                 move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
-                    let mut mapped = Resolved::empty();
+                    let mut resolved = Resolved::empty();
                     let r: Result<L::Item, Error> = trigger
                         .event_mut()
                         .take_result()
                         .map_err(Error::from)
                         .and_then(|s| {
-                            let r = lookup.resolve(&s).map_err(Error::from);
-                            mapped.input = Some(s);
+                            let r = lookup.resolve_res(&s).map_err(Error::from);
+                            resolved.input = Some(s);
                             r
                         });
-                    mapped.result = Some(r);
-                    commands.trigger_targets(mapped, trigger.entity());
+                    resolved.result = Some(r);
+                    commands.trigger_targets(resolved, trigger.entity());
                 },
             );
         ecommands

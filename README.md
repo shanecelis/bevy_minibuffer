@@ -56,7 +56,9 @@ provides the following acts and key bindings:
 | list_key_bindings | Ctrl-H B    |
 | toggle_visibility | `           |
 
-``` rust ignore
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
        .add_acts(BasicActs::default());
@@ -74,7 +76,9 @@ Acts are systems. Any system[^1] will do.
 NOTE: We add `BasicActs` acts here only because there would be no way to run an
 act otherwise without a key binding.
 
-```rust ignore 
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
 fn hello_world(mut minibuffer: Minibuffer) {
     minibuffer.message("Hello, World!");
 }
@@ -96,7 +100,9 @@ cargo run --example add-act
 <img align="right" src="https://github.com/user-attachments/assets/336a79c1-f934-4d69-a3fe-6b55778663be"/>
 We can bind key chord `Ctrl-W` or even a key chord sequence `Ctrl-W Alt-O Super-R Shift-L D` to an act.
 
-```rust ignore
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
 fn hello_world(mut minibuffer: Minibuffer) {
     minibuffer.message("Hello, World!");
     minibuffer.set_visible(true);
@@ -114,7 +120,9 @@ cargo run --example bind-hotkey
 <img align="right" src="https://github.com/user-attachments/assets/03cbb697-8263-41cb-b40f-583d1a25d429"/>
 Ask the user for information. 
 
-```rust ignore 
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
 fn hello_name(mut minibuffer: Minibuffer) {
   minibuffer
     .prompt::<TextField>("What's your name? ")
@@ -156,7 +164,9 @@ Text centric user interfaces ought to support tab completion where possible.
 
 One can provide a list of strings for simple completions. 
 
-``` rust ignore
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer.read("What's your name? ",
                     vec!["John", "Sean", "Shane"])
@@ -177,7 +187,10 @@ cargo run --example tab-completion
 ### Use a `Trie`
 One can provide a trie for more performant completion. 
 
-``` rust ignore
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
+# use trie_rs::Trie;
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer.read("What's your name? ",
                     Trie::from_iter(["John", "Sean", "Shane"]))
@@ -195,7 +208,10 @@ cargo run --example tab-completion-trie
 Further one can provide a trie that maps to an arbitary value type `V` and
 receive the value `V` type in reponse in addition to the string.
 
-```rust ignore
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
+# use trie_rs::map::Trie;
 #[derive(Debug, Clone)]
 enum Popular {
     Common,
@@ -241,7 +257,8 @@ fn plugin(app: &mut App) {
 
 # Acts and Plugins
 
-An `ActsPlugin` is a `Plugin` that also contains `Act`s. The `BasicActs` is an `ActsPlugin`.
+An `ActsPlugin` is a `Plugin` that contains `Act`s. Two `ActsPlugin`s are
+available in this crate: `BasicActs` and `UniversalArgActs`.
 
 ## BasicActs
 
@@ -265,10 +282,19 @@ Hides and shows the minibuffer.
 But one can trim it down further if one likes by calling `take_acts()`,
 manipulating them, and submitting that to `add_acts()`. For instance to only use 'exec_act', one would do the following:
 
-``` rust ignore
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
+
 fn plugin(app: &mut App) {
+    let mut basic_acts = BasicActs::default();
+    // Acts is a HashMap of act names and [ActBuilder]s.
+    let mut acts = basic_acts.take_acts();
+    // `basic_acts` no longer has any acts in it. We took them.
+    let list_acts = acts.remove("list_acts").unwrap();
     app.add_plugins(MinibufferPlugins)
-       .add_acts(BasicActs::default().take_acts().remove("exec_act").unwrap());
+        .add_acts((basic_acts, // Or one could do: `.add_plugins(basic_acts)`.
+                   list_acts));
 }
 ```
 
@@ -305,8 +331,8 @@ believe it represents the best interaction model for game developer consoles.
 
 A non-interactive Unix command requires one to provide the arguments it expects.
 Failure to do so results in an error message. Often one must consult the
-command's help or usage to determine the right arguments. We tolerate this
-because we can then script these interactions.
+command's help or usage to determine the right arguments. This is
+tolerable partly because we can then script these interactions.
 
 In general the Unix shell trades interactive convenience for non-interactive
 scriptability, and it is a good trade because of its scriptability. Minibuffer
@@ -315,14 +341,11 @@ better interactive experience. For instance instead of being required to know
 the arguments for any given command, Minibuffer commands will query the user for
 what they require. It is a "pull" model of interaction versus a "push" model.
 
-[^2]: Although one could implement keyboard macros, which are a form of interactive scripting. PRs are welcome.
+[^2]: Although one could implement keyboard macros, which are a form of interactive scripting. Pull requests are welcome.
 
 # TODO
 - [ ] Use a real cursor/selection highlight.
-- [x] Change the keyseq macros to capitalize modifiers like "Ctrl-C" instead of "ctrl-C".
-- [x] Copy-and-paste the color::View to create Minibuffer's own View.
 - [x] Re-write [asky](https://github.com/axelvc/asky) to be [bevy native](https://github.com/shanecelis/bevy_asky).
-- [ ] Get off of unreleased dependencies.
 
 # Design Questions
 ## Re: No windows antigoal
@@ -330,6 +353,12 @@ The minibuffer can show more than one line of text, but what to do if its asked
 to show multiple pages of text?
 
 This is an unresolved issue.
+
+# Compatibility
+
+| bevy_minibuffer | bevy |
+|-----------------|------|
+| 0.1.0           | 0.14 |
 
 # License
 

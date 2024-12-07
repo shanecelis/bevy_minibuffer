@@ -119,7 +119,7 @@ fn iter_to_error(mut matches: impl Iterator<Item = impl AsRef<str>>) -> LookupEr
 
 impl<V: Send + Sync + Clone> Lookup for map::Trie<u8, V> {
     fn lookup(&self, input: &str) -> Result<(), LookupError> {
-        if let Some(_) = self.exact_match(input) {
+        if self.exact_match(input).is_some() {
             return Ok(());
         }
         let matches = self.predictive_search::<String, trie_rs::try_collect::StringCollect>(input).keys();
@@ -187,7 +187,7 @@ impl<T: AsRef<str>> Lookup for Vec<T> {
         self
             .iter()
             .map(|word| word.as_ref())
-            .filter_map(|word| word.starts_with(input).then(|| input.to_string()))
+            .filter(|&word| word.starts_with(input)).map(|word| input.to_string())
             .collect()
     }
 }
@@ -304,7 +304,7 @@ impl<T: AsRef<str>> Lookup for [T] {
         self
             .iter()
             .map(|word| word.as_ref())
-            .filter_map(|word| word.starts_with(input).then(|| input.to_string()))
+            .filter(|&word| word.starts_with(input)).map(|word| input.to_string())
             .collect()
     }
 }

@@ -2,7 +2,7 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
-    acts::{Act, ActArg},
+    acts::ActArg,
     autocomplete::{AutoComplete, Lookup, Resolve, Resolved},
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,

@@ -12,7 +12,7 @@ use crate::{
 
 use std::{
     borrow::Cow,
-    fmt::{Debug, Write},
+    fmt::Debug,
 };
 
 use crate::{autocomplete::RequireMatch, prompt::KeyChordEvent};
@@ -43,7 +43,7 @@ pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Last
                 match trigger.event_mut().take_result() {
                     Ok(act_name) => match acts.resolve_res(&act_name) {
                         Ok(act) => {
-                            let _ = minibuffer.run_act(act);
+                            minibuffer.run_act(act);
                         }
                         Err(e) => {
                             minibuffer.message(format!(

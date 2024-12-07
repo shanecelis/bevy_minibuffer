@@ -1,5 +1,5 @@
 //! Events
-use crate::{acts::{Act, ActArg}, acts::ActFlags, input::Hotkey, prompt::PromptState, Minibuffer};
+use crate::{acts::Act, acts::ActFlags, input::Hotkey, prompt::PromptState, Minibuffer};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -203,10 +203,10 @@ pub(crate) fn dispatch_events(
                 lookup_events.send(l.clone());
             }
             RunActEvent(e) => {
-                let _ = minibuffer.run_act(e.clone().act);
+                minibuffer.run_act(e.clone().act);
             }
             LookupAndRunActEvent(e) => {
-                let _ = minibuffer.run_act(e.clone().name);
+                minibuffer.run_act(e.clone().name);
             }
             EmitMessage(s) => {
                 minibuffer.message(s.to_string());
@@ -234,11 +234,11 @@ pub(crate) fn dispatch_trigger(
             lookup_events.send(l);
         }
         RunActEvent(e) => {
-            let _ = minibuffer.run_act(e.act);
+            minibuffer.run_act(e.act);
         }
 
         LookupAndRunActEvent(e) => {
-            let _ = minibuffer.run_act(e.name);
+            minibuffer.run_act(e.name);
         }
         EmitMessage(s) => {
             minibuffer.message(s);

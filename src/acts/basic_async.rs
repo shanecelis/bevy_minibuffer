@@ -1,13 +1,10 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    input::{KeyChord, Hotkey},
     acts::{ActCache, ActFlags, ActsPlugin, basic::BasicActs},
     autocomplete::Resolve,
     event::LastRunAct,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
-    prompt::{CompletionState, PromptState},
-    Minibuffer,
 };
 
 use std::{
@@ -15,9 +12,8 @@ use std::{
     fmt::{Debug, Write},
 };
 use crate::sink::future_result_sink;
-use bevy::{prelude::*, window::RequestRedraw};
+use bevy::prelude::*;
 use bevy_defer::AsyncWorld;
-use tabular::{Row, Table};
 use trie_rs::map::{Trie, TrieBuilder};
 use futures::Future;
 
@@ -120,10 +116,12 @@ pub struct BasicAsyncActs {
 
 impl BasicAsyncActs {
     /// Substitute acts within [BasicActs].
-    pub fn subtitute_async(self, basic_acts: &mut BasicActs) {
-        for (name, act) in self.acts.into_iter() {
+    pub fn subtitute_async(mut self, basic_acts: &mut BasicActs) {
+        let mut last_name = String::new();
+        for (name, act) in self.take_acts().0.into_iter() {
+            last_name.replace_range(.., &name);
             if basic_acts.insert(name, act).is_none() {
-                warn!("Substitution of act '{}' not present.", name);
+                warn!("Substitution of act '{}' not present.", last_name);
             }
         }
     }
@@ -147,13 +145,13 @@ impl Default for BasicAsyncActs {
     }
 }
 
-impl Plugin for BasicActs {
+impl Plugin for BasicAsyncActs {
     fn build(&self, _app: &mut App) {
         self.warn_on_unused_acts();
     }
 }
 
-impl ActsPlugin for BasicActs {
+impl ActsPlugin for BasicAsyncActs {
     fn acts(&self) -> &Acts {
         &self.acts
     }

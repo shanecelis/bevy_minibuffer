@@ -288,7 +288,7 @@ impl AsRef<str> for Act {
     }
 }
 
-// impl Resolve for Vec<Act> {
+// impl LookupMap for Vec<Act> {
 //     type Item = Act;
 //     fn resolve(&self, input: &str) -> Result<Act, LookupError> {
 //         let mut matches = self.iter().filter(|command| {

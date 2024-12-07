@@ -2,7 +2,7 @@
 use crate::{
     input::{KeyChord, Hotkey},
     acts::{ActCache, ActFlags, ActsPlugin},
-    autocomplete::Resolve,
+    autocomplete::LookupMap,
     event::LastRunAct,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},

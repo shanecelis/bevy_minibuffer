@@ -3,7 +3,7 @@
 //! It uses triggers rather than promises.
 use crate::{
     acts::ActArg,
-    autocomplete::{AutoComplete, Lookup, Resolve, Resolved},
+    autocomplete::{AutoComplete, Lookup, LookupMap, Resolved},
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
@@ -149,8 +149,8 @@ impl Minibuffer<'_, '_> {
         lookup: L,
     ) -> EntityCommands
     where
-        L: Lookup + Clone + Resolve + Send + Sync + 'static,
-        <L as Resolve>::Item: Sync,
+        L: Lookup + Clone + LookupMap + Send + Sync + 'static,
+        <L as LookupMap>::Item: Sync,
     {
         let dest = self.dest.single();
         let commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);

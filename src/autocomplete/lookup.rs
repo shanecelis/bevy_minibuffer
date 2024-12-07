@@ -37,20 +37,20 @@ pub trait Lookup {
     fn all_lookups(&self, input: &str) -> Vec<String>;
 }
 
-/// Resolve the input to a value of type `Item`.
+/// LookupMap the input to a value of type `Item`.
 ///
 /// NOTE: This trait is not object-safe.
-pub trait Resolve: Lookup {
+pub trait LookupMap: Lookup {
     /// The type this resolves to.
     type Item: Send;
-    /// Resolve the `input`.
+    /// LookupMap the `input`.
     fn resolve(&self, input: &str) -> Option<Self::Item>;
 
-    /// Resolve the `input` or provide an error.
+    /// LookupMap the `input` or provide an error.
     fn resolve_res(&self, input: &str) -> Result<Self::Item, LookupError> {
         self.resolve(input).ok_or_else(|| {
             match self.lookup(input) {
-                Ok(()) => LookupError::Message("Inconsistent: Resolve failed but lookup succeeded.".into()),
+                Ok(()) => LookupError::Message("Inconsistent: LookupMap failed but lookup succeeded.".into()),
                 Err(e) => e,
             }
         })
@@ -97,7 +97,7 @@ impl<T> Resolved<T> {
 }
 
 
-impl<V: Send + Sync + Clone> Resolve for map::Trie<u8, V> {
+impl<V: Send + Sync + Clone> LookupMap for map::Trie<u8, V> {
     type Item = V;
 
     fn resolve(&self, input: &str) -> Option<Self::Item> {
@@ -136,7 +136,7 @@ impl<V: Send + Sync + Clone> Lookup for map::Trie<u8, V> {
 }
 
 // // Why have this?
-// impl Resolve for trie_rs::Trie<u8> {
+// impl LookupMap for trie_rs::Trie<u8> {
 //     type Item = ();
 
 //     fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
@@ -193,7 +193,7 @@ impl<T: AsRef<str>> Lookup for Vec<T> {
     }
 }
 
-impl<T: AsRef<str>> Resolve for Vec<T> {
+impl<T: AsRef<str>> LookupMap for Vec<T> {
     type Item = String;
     fn resolve(&self, input: &str) -> Option<Self::Item> {
         self[..].resolve(input)
@@ -201,7 +201,7 @@ impl<T: AsRef<str>> Resolve for Vec<T> {
 }
 
 /// Handles arrays of &str, String, Cow<'_, str>. Does it all.
-impl<T: AsRef<str>> Resolve for [T] {
+impl<T: AsRef<str>> LookupMap for [T] {
     type Item = String;
     fn resolve(&self, input: &str) -> Option<Self::Item> {
         // Collecting and matching is nice expressively. But manually iterating

@@ -38,7 +38,7 @@ pub struct RequireMatch;
 // #[derive(Component)]
 // pub enum AutoComplete<T = ()> {
 //     Lookup(Box<dyn Lookup + Send + Sync>),
-//     Resolve(Box<dyn Resolve<Item = T> + Send + Sync>)
+//     LookupMap(Box<dyn LookupMap<Item = T> + Send + Sync>)
 // }
 
 impl AutoComplete {
@@ -52,9 +52,9 @@ impl AutoComplete {
 
     // pub fn from_resolve<R>(resolve: R) -> Self
     // where
-    //     R: Resolve<Item = T> + Send + Sync + 'static,
+    //     R: LookupMap<Item = T> + Send + Sync + 'static,
     // {
-    //     Self::Resolve(Box::new(resolve))
+    //     Self::LookupMap(Box::new(resolve))
     // }
 
     /// Construct an autocomplete UI element.

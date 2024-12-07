@@ -187,7 +187,8 @@ impl<T: AsRef<str>> Lookup for Vec<T> {
         self
             .iter()
             .map(|word| word.as_ref())
-            .filter(|&word| word.starts_with(input)).map(|word| input.to_string())
+            .filter(|word| word.starts_with(input))
+            .map(|word| word.to_string())
             .collect()
     }
 }
@@ -304,7 +305,8 @@ impl<T: AsRef<str>> Lookup for [T] {
         self
             .iter()
             .map(|word| word.as_ref())
-            .filter(|&word| word.starts_with(input)).map(|word| input.to_string())
+            .filter(|word| word.starts_with(input))
+            .map(|word| word.to_string())
             .collect()
     }
 }

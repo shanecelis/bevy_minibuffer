@@ -150,7 +150,7 @@ impl Minibuffer<'_, '_> {
     ) -> EntityCommands
     where
         L: Lookup + Clone + LookupMap + Send + Sync + 'static,
-        <L as LookupMap>::Item: Sync,
+        <L as LookupMap>::Item: Sync + Debug,
     {
         let dest = self.dest.single();
         let commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);
@@ -161,18 +161,17 @@ impl Minibuffer<'_, '_> {
             // TODO: We should probably return something other than submit.
             .observe(
                 move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
-                    let mut resolved = Completed::empty();
+                    let mut input = None;
                     let r: Result<L::Item, Error> = trigger
                         .event_mut()
                         .take_result()
                         .map_err(Error::from)
                         .and_then(|s| {
                             let r = lookup.resolve_res(&s).map_err(Error::from);
-                            resolved.input = Some(s);
+                            input = Some(s);
                             r
                         });
-                    resolved.result = Some(r);
-                    commands.trigger_targets(resolved, trigger.entity());
+                    commands.trigger_targets(Completed::Unhandled { value: r, input: input }, trigger.entity());
                 },
             );
         ecommands

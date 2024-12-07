@@ -9,7 +9,7 @@ mod common;
 
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer
-        .read_with_lookup(
+        .prompt_with_lookup(
             "What's your name? ",
             Trie::from_iter(["John", "Sean", "Shane"]),
         )

@@ -125,31 +125,8 @@ impl Minibuffer<'_, '_> {
         }
     }
 
-    ///
-    /// prompt
-    /// completing_prompt
-    /// completing_map_prompt
-    /// map_completing_prompt
-    ///
-    /// read
-    /// lookup_read
-    /// lookup_map_read
-    ///
-    /// read_lookup
-    /// read_lookup_map
-    /// read_with_lookup
-    /// read_with_lookup_map
-    ///
-    /// completing_read
-    /// completing_map_read
-    /// map_completing_read
-    /// mapped_completing_read
-    ///
-    /// read_completed
-    /// read_completed_map
-
     /// Read input from user with autocomplete provided by a [Lookup].
-    pub fn read_with_lookup<L>(
+    pub fn prompt_with_lookup<L>(
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
         lookup: L,
@@ -166,7 +143,7 @@ impl Minibuffer<'_, '_> {
     /// Read input from user that maps to other another type.
     ///
     /// Instead of triggering [`Submit<String>`] it will trigger [`Completed<T>`].
-    pub fn read_with_lookup_map<L>(
+    pub fn prompt_with_lookup_map<L>(
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
         lookup: L,

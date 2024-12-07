@@ -118,20 +118,16 @@ fn universal_arg(
 
     let mut bindkey: Option<KeyChord> = None;
     let multiplier: i32 = multiplier.0;
-    let prompt: Cow<'static, str> = (*last_act)
-        .as_ref()
-        .and_then(|run_act| {
-            run_act.hotkey.map(|index| {
-                let keyseq = &run_act.act.hotkeys[index];
-                if keyseq.chords.len() == 1 {
-                    bindkey = Some(keyseq.chords[0].clone());
-                }
-                format!("{}", keyseq).into()
-            })
+    let prompt: Cow<'static, str> = last_act
+        .hotkey()
+        .map(|hotkey| {
+            if hotkey.chords.len() == 1 {
+                bindkey = Some(hotkey.chords[0].clone());
+            }
+            format!("{}", hotkey).into()
         })
-        .unwrap_or("universal_arg ".into());
-
-    minibuffer.message(format!("{prompt}"));
+        .unwrap_or("universal_arg".into());
+    minibuffer.message(prompt.clone());
     async move {
         let mut accum = 0;
         let mut accumulated = false;
@@ -147,7 +143,7 @@ fn universal_arg(
                         accum *= multiplier;
                     }
                     accumulated = true;
-                    minibuffer.message(format!("{prompt}{accum}"));
+                    minibuffer.message(format!("{prompt} {accum}"));
                     continue;
                 }
             }
@@ -163,11 +159,6 @@ fn universal_arg(
                 Digit8 => 8,
                 Digit9 => 9,
                 Minus => -1,
-                // TODO: If the key chord is hit multiple times, we should
-                // add some multiple to it like 4 or 8.
-                //
-                // KeyU => {
-                // }
                 _ => {
                     let world = AsyncWorld::new();
                     let _ = world
@@ -191,7 +182,7 @@ fn universal_arg(
                 accum *= digit;
             }
             accumulated = true;
-            minibuffer.message(format!("{prompt}{accum}"));
+            minibuffer.message(format!("{prompt} {accum}"));
         }
     }
 }

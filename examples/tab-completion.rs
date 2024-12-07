@@ -7,7 +7,7 @@ mod common;
 
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer
-        .read_with_lookup("What's your name? ", vec!["John", "Sean", "Shane"])
+        .prompt_with_lookup("What's your name? ", vec!["John", "Sean", "Shane"])
         .observe(
             |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
                 minibuffer.message(format!(

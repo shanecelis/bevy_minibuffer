@@ -4,7 +4,7 @@
 use crate::{
     acts::ActArg,
     autocomplete::{AutoComplete, Lookup},
-    event::{DispatchEvent, RunActEvent, LookupAndRunActEvent},
+    event::{DispatchEvent, RunActEvent, RunActByNameEvent},
     prompt::{GetKeyChord, KeyChordEvent, PromptState},
     ui::PromptContainer,
     view::View,
@@ -102,7 +102,7 @@ impl MinibufferAsync {
                 self.sender.send(DispatchEvent::RunActEvent(RunActEvent::new(act)));
             }
             ActArg::Name(name) => {
-                self.sender.send(DispatchEvent::LookupAndRunActEvent(LookupAndRunActEvent::new(name)));
+                self.sender.send(DispatchEvent::RunActByNameEvent(RunActByNameEvent::new(name)));
             }
         }
     }

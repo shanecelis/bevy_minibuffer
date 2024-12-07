@@ -24,7 +24,7 @@ pub(crate) fn plugin(app: &mut App) {
     app
         .add_event::<DispatchEvent>()
         .add_event::<RunActEvent>()
-        .add_event::<LookupAndRunActEvent>()
+        .add_event::<RunActByNameEvent>()
         .init_resource::<LastRunAct>();
 }
 
@@ -40,12 +40,12 @@ pub struct RunActEvent {
 
 /// Requests an act by name to be run
 #[derive(Clone, Event, Debug)]
-pub struct LookupAndRunActEvent {
+pub struct RunActByNameEvent {
     /// Name of the act to run
     pub name: Cow<'static, str>,
 }
 
-impl LookupAndRunActEvent {
+impl RunActByNameEvent {
     /// Lookup and run act with given name.
     pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
         Self { name: name.into() }
@@ -169,7 +169,7 @@ pub enum DispatchEvent {
     /// Send a run act event.
     RunActEvent(RunActEvent),
     /// Send a lookup and run act event.
-    LookupAndRunActEvent(LookupAndRunActEvent),
+    RunActByNameEvent(RunActByNameEvent),
     /// Emit a message.
     EmitMessage(String),
     /// Clear the buffer.
@@ -205,7 +205,7 @@ pub(crate) fn dispatch_events(
             RunActEvent(e) => {
                 minibuffer.run_act(e.clone().act);
             }
-            LookupAndRunActEvent(e) => {
+            RunActByNameEvent(e) => {
                 minibuffer.run_act(e.clone().name);
             }
             EmitMessage(s) => {
@@ -237,7 +237,7 @@ pub(crate) fn dispatch_trigger(
             minibuffer.run_act(e.act);
         }
 
-        LookupAndRunActEvent(e) => {
+        RunActByNameEvent(e) => {
             minibuffer.run_act(e.name);
         }
         EmitMessage(s) => {
@@ -270,9 +270,9 @@ pub(crate) fn run_acts(
 }
 
 
-/// Lookup and run act for any [LookupAndRunActEvent].
+/// Lookup and run act for any [RunActByNameEvent].
 pub(crate) fn run_acts_by_name(
-    mut events: EventReader<LookupAndRunActEvent>,
+    mut events: EventReader<RunActByNameEvent>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,

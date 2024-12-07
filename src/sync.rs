@@ -7,7 +7,7 @@ use crate::{
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
-    event::{LookupAndRunActEvent, RunActEvent},
+    event::{RunActByNameEvent, RunActEvent},
     Error,
 };
 use bevy::{
@@ -47,7 +47,7 @@ pub struct Minibuffer<'w, 's> {
     // /// Acts available
     // acts: Query<'w, 's, &'static Act>,
     run_act_event: EventWriter<'w, RunActEvent>,
-    lookup_and_run_act_event: EventWriter<'w, LookupAndRunActEvent>,
+    lookup_and_run_act_event: EventWriter<'w, RunActByNameEvent>,
 }
 
 /// An [EntityCommands] extension trait
@@ -120,7 +120,7 @@ impl Minibuffer<'_, '_> {
                 self.run_act_event.send(RunActEvent::new(act));
             }
             ActArg::Name(name) => {
-                self.lookup_and_run_act_event.send(LookupAndRunActEvent::new(name));
+                self.lookup_and_run_act_event.send(RunActByNameEvent::new(name));
             }
         }
     }

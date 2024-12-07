@@ -42,6 +42,8 @@ pub struct Minibuffer<'w, 's> {
     prompt_state: Res<'w, State<PromptState>>,
     /// next prompt state
     next_prompt_state: ResMut<'w, NextState<PromptState>>,
+    /// Acts available
+    acts: Query<'w, 's, &'static Act>,
 }
 
 /// An [EntityCommands] extension trait
@@ -102,6 +104,10 @@ impl Minibuffer<'_, '_> {
             commands.insert(TextBundle::from_section(msg, TextStyle::default()));
             // commands.construct::<Message>(msg);
         }
+    }
+
+    pub fn run_act(&mut self, name: &str) -> bool {
+        todo!("WRITE ME");
     }
 
     /// Read input from user with autocomplete provided by a [Lookup].

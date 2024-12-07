@@ -226,7 +226,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
         ("Shane", Popular::Rare),
     ]);
     minibuffer.resolve("What's your name? ", trie).observe(
-        |mut trigger: Trigger<Resolved<Popular>>, 
+        |mut trigger: Trigger<Completed<Popular>>, 
          mut minibuffer: Minibuffer| {
             let popular = trigger.event_mut().take_result();
             minibuffer.message(match popular {

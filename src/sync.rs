@@ -3,7 +3,7 @@
 //! It uses triggers rather than promises.
 use crate::{
     acts::ActArg,
-    autocomplete::{AutoComplete, Lookup, LookupMap, Resolved},
+    autocomplete::{AutoComplete, Lookup, LookupMap, Completed},
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
@@ -142,7 +142,7 @@ impl Minibuffer<'_, '_> {
 
     /// Read input from user that maps to other another type.
     ///
-    /// Instead of triggering [`Submit<String>`] it will trigger [`Resolved<T>`].
+    /// Instead of triggering [`Submit<String>`] it will trigger [`Completed<T>`].
     pub fn resolve<L>(
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
@@ -161,7 +161,7 @@ impl Minibuffer<'_, '_> {
             // TODO: We should probably return something other than submit.
             .observe(
                 move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
-                    let mut resolved = Resolved::empty();
+                    let mut resolved = Completed::empty();
                     let r: Result<L::Item, Error> = trigger
                         .event_mut()
                         .take_result()

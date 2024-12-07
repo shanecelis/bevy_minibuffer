@@ -59,15 +59,15 @@ pub trait LookupMap: Lookup {
 
 /// Triggered from `.resolve()` with value `T` and input string
 #[derive(Event, Deref, DerefMut, Debug)]
-pub struct Resolved<T> {
+pub struct Completed<T> {
     /// The result if not taken yet.
     #[deref]
     pub result: Option<Result<T, Error>>,
-    /// Input string mapped from if available.
+    /// Input string if available.
     pub input: Option<String>,
 }
 
-impl<T> Resolved<T> {
+impl<T> Completed<T> {
     /// Create a new mapped event.
     pub fn new(result: Result<T, Error>) -> Self {
         Self {

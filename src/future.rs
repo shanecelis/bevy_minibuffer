@@ -40,7 +40,7 @@ use std::{borrow::Cow, fmt::Debug};
 pub struct MinibufferAsync {
     asky: AskyAsync,
     dest: Entity,
-    sender: ChannelSender<DispatchEvent>,
+    trigger: ChannelSender<DispatchEvent>,
 }
 
 unsafe impl SystemParam for MinibufferAsync {
@@ -72,7 +72,7 @@ unsafe impl SystemParam for MinibufferAsync {
         MinibufferAsync {
             asky: AskyAsync,
             dest: state.0,
-            sender: state.1,
+            trigger: state.1,
         }
     }
 }
@@ -99,10 +99,10 @@ impl MinibufferAsync {
     pub fn run_act(&mut self, act: impl Into<ActArg>) {
         match act.into() {
             ActArg::Act(act) => {
-                self.sender.send(DispatchEvent::RunActEvent(RunActEvent::new(act)));
+                self.trigger.send(DispatchEvent::RunActEvent(RunActEvent::new(act)));
             }
             ActArg::Name(name) => {
-                self.sender.send(DispatchEvent::RunActByNameEvent(RunActByNameEvent::new(name)));
+                self.trigger.send(DispatchEvent::RunActByNameEvent(RunActByNameEvent::new(name)));
             }
         }
     }
@@ -125,11 +125,11 @@ impl MinibufferAsync {
 
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
-        self.sender.send(DispatchEvent::EmitMessage(msg.into()));
+        self.trigger.send(DispatchEvent::EmitMessage(msg.into()));
     }
 
     /// Read input from user that must match a [Lookup].
-    pub fn read<L>(
+    pub fn prompt_with_lookup<L>(
         &mut self,
         prompt: impl Into<Cow<'static, str>>,
         lookup: L,
@@ -164,12 +164,12 @@ impl MinibufferAsync {
 
     /// Clear the minibuffer.
     pub fn clear(&mut self) {
-        self.sender.send(DispatchEvent::Clear);
+        self.trigger.send(DispatchEvent::Clear);
     }
 
     /// Hide the minibuffer.
     pub fn set_visible(&mut self, show: bool) {
-        self.sender.send(DispatchEvent::SetVisible(show));
+        self.trigger.send(DispatchEvent::SetVisible(show));
     }
 
     /// Show the minibuffer.
@@ -191,8 +191,14 @@ impl MinibufferAsync {
 
     /// Wait for a certain duration or a key chord, whichever comes first.
     pub async fn delay_or_chord(&mut self, duration: Duration) -> Option<KeyChord> {
+        const SMALL_DURATION: Duration = Duration::from_millis(250);
         let sleep = AsyncWorld::new().sleep(duration);
-        let get_key = self.get_chord();
+        let get_key = async move {
+            // We sleep a tiny bit at the beginning so that we don't accept a
+            // key press that happened right as the sleep timer died.
+            AsyncWorld::new().sleep(SMALL_DURATION.min(duration / 4)).await;
+            self.get_chord().await
+        };
         pin_mut!(sleep);
         pin_mut!(get_key);
         match futures::future::select(sleep, get_key).await {

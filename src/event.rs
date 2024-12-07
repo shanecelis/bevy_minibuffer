@@ -269,6 +269,21 @@ pub(crate) fn run_acts(
     }
 }
 
+/// Run act for any [RunActEvent].
+pub(crate) fn run_acts_trigger(
+    trigger: Trigger<RunActEvent>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
+    mut commands: Commands,
+    mut last_act: ResMut<LastRunAct>,
+) {
+    let e = trigger.event();
+    if e.act.flags.contains(ActFlags::ShowMinibuffer) {
+        next_prompt_state.set(PromptState::Visible);
+    }
+    last_act.0 = Some(e.clone());
+    commands.run_system(e.act.system_id);
+}
+
 
 /// Lookup and run act for any [RunActByNameEvent].
 pub(crate) fn run_acts_by_name(
@@ -287,5 +302,23 @@ pub(crate) fn run_acts_by_name(
             last_act.0 = Some(RunActEvent::new(act.clone()));
             commands.run_system(system_id);
         }
+    }
+}
+
+pub(crate) fn run_acts_by_name_trigger(
+    trigger: Trigger<RunActByNameEvent>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
+    mut commands: Commands,
+    mut last_act: ResMut<LastRunAct>,
+    acts: Query<&Act>,
+) {
+    let e = trigger.event();
+    if let Some(act) = acts.iter().find(|a| a.name == e.name) {
+        if act.flags.contains(ActFlags::ShowMinibuffer) {
+            next_prompt_state.set(PromptState::Visible);
+        }
+        let system_id = act.system_id;
+        last_act.0 = Some(RunActEvent::new(act.clone()));
+        commands.run_system(system_id);
     }
 }

@@ -135,6 +135,8 @@ impl bevy::app::Plugin for MinibufferPlugin {
                 InputSequenceSet.run_if(in_state(MinibufferState::Inactive)),
             ))
             .observe(crate::event::dispatch_trigger)
+            .observe(crate::event::run_acts_trigger)
+            .observe(crate::event::run_acts_by_name_trigger)
             .add_systems(Update,
                          ((run_acts_by_name, run_acts, prompt::set_minibuffer_state).chain(),
                           (dispatch_events, lookup_events).chain())

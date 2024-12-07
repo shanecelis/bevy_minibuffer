@@ -36,7 +36,7 @@ fn make_cube(
                 break;
             }
         }
-        minibuffer.message(format!("Removed {} cubes.", despawned));
+        minibuffer.message(format!("Removed {} cube{}.", despawned, if count == 1 { "" } else { "s" }));
     } else {
         for _ in 0..count {
             let v = 2.0 * rnd_vec(&mut rng);
@@ -47,7 +47,7 @@ fn make_cube(
                 ..default()
             },));
         }
-        minibuffer.message(format!("Made {} cubes.", count));
+        minibuffer.message(format!("Made {} cube{}.", count, if count == 1 { "" } else { "s" }));
     }
 }
 

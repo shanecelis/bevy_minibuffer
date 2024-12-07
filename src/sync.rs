@@ -2,10 +2,12 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
+    acts::{Act, ActArg},
     autocomplete::{AutoComplete, Lookup, Resolve, Resolved},
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
+    event::{LookupAndRunActEvent, RunActEvent},
     Error,
 };
 use bevy::{
@@ -16,7 +18,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, TextBundle, TextStyle, Trigger},
+    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, TextBundle, TextStyle, Trigger, EventWriter},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
 use std::fmt::Debug;
@@ -42,8 +44,10 @@ pub struct Minibuffer<'w, 's> {
     prompt_state: Res<'w, State<PromptState>>,
     /// next prompt state
     next_prompt_state: ResMut<'w, NextState<PromptState>>,
-    /// Acts available
-    acts: Query<'w, 's, &'static Act>,
+    // /// Acts available
+    // acts: Query<'w, 's, &'static Act>,
+    run_act_event: EventWriter<'w, RunActEvent>,
+    lookup_and_run_act_event: EventWriter<'w, LookupAndRunActEvent>,
 }
 
 /// An [EntityCommands] extension trait
@@ -65,7 +69,7 @@ impl MinibufferCommands for EntityCommands<'_> {
     where
         <T as Construct>::Props: Send,
     {
-        self.construct_children::<Add<T, View>>(props);
+        self.construct_children::<Add0<T, View>>(props);
         self.reborrow()
     }
 }
@@ -82,7 +86,7 @@ impl Minibuffer<'_, '_> {
     {
         let dest = self.dest.single();
         self.commands
-            .prompt::<Add<T, View>>(props, Dest::ReplaceChildren(dest))
+            .prompt::<Add0<T, View>>(props, Dest::ReplaceChildren(dest))
     }
 
     // pub fn with_prompt<T: Submitter>(
@@ -106,8 +110,19 @@ impl Minibuffer<'_, '_> {
         }
     }
 
-    pub fn run_act(&mut self, name: &str) -> bool {
-        todo!("WRITE ME");
+    /// Request an act be run.
+    ///
+    /// Returns true if act found and request sent. If given a name for no
+    /// corresponding act, it will return false.
+    pub fn run_act(&mut self, act: impl Into<ActArg>) {
+        match act.into() {
+            ActArg::Act(act) => {
+                self.run_act_event.send(RunActEvent::new(act));
+            }
+            ActArg::Name(name) => {
+                self.lookup_and_run_act_event.send(LookupAndRunActEvent::new(name));
+            }
+        }
     }
 
     /// Read input from user with autocomplete provided by a [Lookup].

@@ -1,5 +1,6 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
+    input::{KeyChord, Hotkey},
     acts::{ActCache, ActFlags, ActsPlugin},
     autocomplete::Resolve,
     event::LastRunAct,
@@ -14,67 +15,13 @@ use std::{
     fmt::{Debug, Write},
 };
 
-#[cfg(feature = "async")]
-use crate::sink::future_result_sink;
-#[cfg(not(feature = "async"))]
 use crate::{autocomplete::RequireMatch, prompt::KeyChordEvent};
 use bevy::{prelude::*, window::RequestRedraw};
-#[cfg(feature = "async")]
-use bevy_defer::AsyncWorld;
 use tabular::{Row, Table};
-#[cfg(not(feature = "async"))]
 use trie_rs::inc_search::IncSearch;
 use trie_rs::map::{Trie, TrieBuilder};
 
-#[cfg(feature = "async")]
-use futures::Future;
-
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
-#[cfg(feature = "async")]
-pub fn run_act(
-    mut minibuffer: MinibufferAsync,
-    acts: Query<&Act>,
-    last_act: Res<LastRunAct>,
-) -> impl Future<Output = Result<(), crate::Error>> {
-    let mut builder = TrieBuilder::new();
-    for act in acts.iter() {
-        if act.flags.contains(ActFlags::RunAct | ActFlags::Active) {
-            builder.push(act.name(), act.clone());
-        }
-    }
-    let acts: Trie<u8, Act> = builder.build();
-    let prompt: Cow<'static, str> = (*last_act)
-        .as_ref()
-        .and_then(|run_act| {
-            run_act
-                .hotkey
-                .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
-        })
-        .unwrap_or("run_act: ".into());
-    async move {
-        match minibuffer.read(prompt, acts.clone()).await {
-            // TODO: Get rid of clone.
-            Ok(act_name) => match acts.resolve(&act_name) {
-                Ok(act) => {
-                    AsyncWorld::new().send_event(RunActEvent::new(act))?;
-                }
-                Err(e) => {
-                    minibuffer.message(format!(
-                        "Error: Could not resolve act named {:?}: {}",
-                        act_name, e
-                    ));
-                }
-            },
-            Err(e) => {
-                minibuffer.message(format!("Error: {e}"));
-            }
-        }
-        Ok(())
-    }
-}
-
-/// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
-#[cfg(not(feature = "async"))]
 pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<LastRunAct>) {
     let mut builder = TrieBuilder::new();
     for act in acts.iter() {
@@ -83,25 +30,20 @@ pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Last
         }
     }
     let acts: Trie<u8, Act> = builder.build();
-    let prompt: Cow<'static, str> = (*last_act)
-        .as_ref()
-        .and_then(|run_act| {
-            run_act
-                .hotkey
-                .map(|index| format!("{}", run_act.act.hotkeys[index]).into())
-        })
+    let prompt: Cow<'static, str> = last_act
+        .hotkey()
+        .map(|hotkey| format!("{} ", hotkey).into())
         .unwrap_or("run_act".into());
     minibuffer
         .read(prompt, acts.clone())
         .insert(RequireMatch)
         .observe(
             move |mut trigger: Trigger<Submit<String>>,
-                  mut writer: EventWriter<RunActEvent>,
                   mut minibuffer: Minibuffer| {
-                match trigger.event_mut().take().unwrap() {
+                match trigger.event_mut().take_result() {
                     Ok(act_name) => match acts.resolve_res(&act_name) {
                         Ok(act) => {
-                            writer.send(RunActEvent::new(act));
+                            let _ = minibuffer.run_act(act);
                         }
                         Err(e) => {
                             minibuffer.message(format!(
@@ -225,79 +167,44 @@ pub fn toggle_visibility(
     }
 }
 
-/// Input a key sequence. This will tell you what it does.
-#[cfg(feature = "async")]
-pub fn describe_key(
-    acts: Query<&Act>,
-    mut cache: ResMut<ActCache>,
-    mut minibuffer: MinibufferAsync,
-) -> impl Future<Output = Result<(), crate::Error>> {
-    use trie_rs::inc_search::Answer;
-    let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
-    async move {
-        let mut search = trie.inc_search();
-        let prompt = "Press key: ";
-        let mut accum = String::new();
-
-        loop {
-            minibuffer.message(format!("{}{}", prompt, accum));
-            let chord = minibuffer.get_chord().await?;
-            match search.query(&chord) {
-                Some(x) => {
-                    let _ = write!(accum, "{} ", chord);
-                    let v = search.value();
-                    let msg = match x {
-                        Answer::Match => format!("{}is bound to {}", accum, v.unwrap().name),
-                        Answer::PrefixAndMatch => {
-                            format!("{}is bound to {} and more", accum, v.unwrap().name)
-                        }
-                        Answer::Prefix => accum.clone(),
-                    };
-                    minibuffer.message(msg);
-                    if matches!(x, Answer::Match) {
-                        break;
-                    }
-                }
-                None => {
-                    let _ = write!(accum, "{} ", chord);
-                    let msg = format!("{}is unbound", accum);
-                    minibuffer.message(msg);
-                    break;
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
 /// Reveal act for inputted key chord sequence.
 ///
 /// Allow the user to input a key chord sequence. Reveal the bindings it has.
-#[cfg(not(feature = "async"))]
 pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuffer: Minibuffer) {
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
     let mut position = trie.inc_search().into();
     // search
-    let mut accum = String::from("");
+    let mut accum = Hotkey::empty();
 
     minibuffer.message("Press key: ");
     minibuffer.get_chord().observe(
-        move |trigger: Trigger<KeyChordEvent>,
+        move |mut trigger: Trigger<KeyChordEvent>,
               mut commands: Commands,
               mut minibuffer: Minibuffer| {
             use trie_rs::inc_search::Answer;
             let mut search = IncSearch::resume(&trie, position);
-            let chord = &trigger.event().0;
-            match search.query(chord) {
+            let chord: KeyChord = trigger.event_mut().take().expect("key chord");
+            match search.query(&chord) {
                 Some(x) => {
-                    let _ = write!(accum, "{} ", chord);
+                    // let _ = write!(accum, "{} ", chord);
+                    accum.chords.push(chord);
                     let v = search.value();
                     let msg = match x {
-                        Answer::Match => format!("{}is bound to {:?}", accum, v.unwrap().name),
-                        Answer::PrefixAndMatch => {
-                            format!("{}is bound to {:?} and more", accum, v.unwrap().name)
+                        Answer::Match => {
+                            let act = v.expect("act");
+                            // Use the hotkey's alias if available.
+                            let binding = act.find_hotkey(&accum.chords)
+                                             .unwrap_or(&accum);
+                            format!("{} is bound to {}", binding, act.name)
                         }
-                        Answer::Prefix => format!("Press key: {}", accum),
+                        Answer::PrefixAndMatch => {
+                            let act = v.expect("act");
+                            // Use the hotkey's alias if available.
+                            let binding = act.find_hotkey(&accum.chords)
+                                             .unwrap_or(&accum);
+                            format!("{} is bound to {} and more", binding, act.name)
+                        }
+                        Answer::Prefix => format!("Press key: {}", &accum),
                     };
                     minibuffer.message(msg);
                     if matches!(x, Answer::Match) {
@@ -306,8 +213,8 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuff
                     }
                 }
                 None => {
-                    let _ = write!(accum, "{} ", chord);
-                    let msg = format!("{}is unbound", accum);
+                    accum.chords.push(chord);
+                    let msg = format!("{} is unbound", &accum);
                     minibuffer.message(msg);
                     commands.entity(trigger.entity()).despawn_recursive();
                     // break;
@@ -349,25 +256,12 @@ impl Default for BasicActs {
                     .named("toggle_visibility")
                     .bind(keyseq! { Backquote })
                     .sub_flags(ActFlags::RunAct),
-                #[cfg(feature = "async")]
-                ActBuilder::new(run_act.pipe(future_result_sink))
-                    .named("run_act")
-                    .bind_aliased(keyseq! { Shift-; }, ":")
-                    .bind(keyseq! { Alt-X })
-                    .add_flags(ActFlags::Adverb)
-                    .sub_flags(ActFlags::RunAct),
-                #[cfg(not(feature = "async"))]
                 ActBuilder::new(run_act)
                     .named("run_act")
                     .bind_aliased(keyseq! { Shift-; }, ":")
                     .bind(keyseq! { Alt-X })
                     .add_flags(ActFlags::Adverb)
                     .sub_flags(ActFlags::RunAct),
-                #[cfg(feature = "async")]
-                ActBuilder::new(describe_key.pipe(future_result_sink))
-                    .named("describe_key")
-                    .bind(keyseq! { Ctrl-H K }),
-                #[cfg(not(feature = "async"))]
                 ActBuilder::new(describe_key)
                     .named("describe_key")
                     .bind(keyseq! { Ctrl-H K }),
@@ -384,12 +278,6 @@ impl BasicActs {
         run_act.hotkeys.clear();
         run_act.bind_aliased(keyseq! { Alt-X }, "M-x ");
         basic
-    }
-}
-
-impl From<BasicActs> for Acts {
-    fn from(basic: BasicActs) -> Acts {
-        basic.acts
     }
 }
 

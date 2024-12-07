@@ -26,7 +26,7 @@ pub enum LookupError {
 
 /// Look up possible completions
 ///
-/// This trait is object-safe.
+/// NOTE: This trait is object-safe.
 pub trait Lookup {
     /// Look up the `input`. If it matches exactly, this returns `Ok(())`.
     /// Otherwise it returns [LookupError], which can include its partial matches.
@@ -39,7 +39,7 @@ pub trait Lookup {
 
 /// Resolve the input to a value of type `Item`.
 ///
-/// This trait is not object-safe.
+/// NOTE: This trait is not object-safe.
 pub trait Resolve: Lookup {
     /// The type this resolves to.
     type Item: Send;

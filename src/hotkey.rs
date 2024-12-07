@@ -19,6 +19,18 @@ pub struct Hotkey {
     pub alias: Option<Cow<'static, str>>,
 }
 
+impl PartialEq<[KeyChord]> for Hotkey {
+    fn eq(&self, other: &[KeyChord]) -> bool {
+        self.chords == other
+    }
+}
+
+// impl PartialEq<[&KeyChord]> for Hotkey {
+//     fn eq(&self, other: &[&KeyChord]) -> bool {
+//         self.chords == *other
+//     }
+// }
+
 impl Hotkey {
     /// New hotkey from any [KeyChord]-able sequence.
     pub fn new<T>(chords: impl IntoIterator<Item = T>) -> Self
@@ -27,6 +39,14 @@ impl Hotkey {
     {
         Self {
             chords: chords.into_iter().map(|v| v.into()).collect(),
+            alias: None,
+        }
+    }
+
+    /// Return an empty hotkey.
+    pub fn empty() -> Self {
+        Self {
+            chords: Vec::new(),
             alias: None,
         }
     }
@@ -43,8 +63,12 @@ impl fmt::Display for Hotkey {
         if let Some(alias) = &self.alias {
             write!(f, "{}", alias)
         } else {
-            for key_chord in &self.chords {
-                write!(f, "{} ", key_chord)?;
+            let mut iter = self.chords.iter();
+            if let Some(first) = iter.next() {
+                write!(f, "{}", first)?;
+            }
+            for key_chord in iter {
+                write!(f, " {}", key_chord)?;
             }
             Ok(())
         }

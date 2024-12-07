@@ -2,8 +2,9 @@
 //!
 //! It uses promises rather than triggers.
 use crate::{
+    acts::ActArg,
     autocomplete::{AutoComplete, Lookup},
-    event::DispatchEvent,
+    event::{DispatchEvent, RunActEvent, LookupAndRunActEvent},
     prompt::{GetKeyChord, KeyChordEvent, PromptState},
     ui::PromptContainer,
     view::View,
@@ -21,7 +22,7 @@ use bevy::{
     utils::Duration,
 };
 use bevy_asky::{
-    construct::{Add, Construct},
+    construct::{Add0, Construct},
     AskyAsync, Dest, Submit, Submitter,
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
@@ -87,11 +88,26 @@ impl MinibufferAsync {
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
         self.asky
-            .prompt::<Add<T, View>>(props, Dest::ReplaceChildren(self.dest))
+            .prompt::<Add0<T, View>>(props, Dest::ReplaceChildren(self.dest))
             .map_err(Error::from)
     }
 
-    /// Builds a prompt and accepts a closure that may alter that element.
+    /// Request an act be run.
+    ///
+    /// Returns true if act found and request sent. If given a name for no
+    /// corresponding act, it will return false.
+    pub fn run_act(&mut self, act: impl Into<ActArg>) {
+        match act.into() {
+            ActArg::Act(act) => {
+                self.sender.send(DispatchEvent::RunActEvent(RunActEvent::new(act)));
+            }
+            ActArg::Name(name) => {
+                self.sender.send(DispatchEvent::LookupAndRunActEvent(LookupAndRunActEvent::new(name)));
+            }
+        }
+    }
+
+    /// Builds a prompt and accepts a closure that may alter that entity.
     pub fn prompt_with<T: Submitter + Construct + Bundle>(
         &mut self,
         props: impl Into<T::Props>,
@@ -103,7 +119,7 @@ impl MinibufferAsync {
     {
         let p = props.into();
         self.asky
-            .prompt_with::<Add<T, View>>(p, Dest::ReplaceChildren(self.dest), f)
+            .prompt_with::<Add0<T, View>>(p, Dest::ReplaceChildren(self.dest), f)
             .map_err(Error::from)
     }
 
@@ -135,7 +151,7 @@ impl MinibufferAsync {
                     move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             promise
-                                .send(trigger.event_mut().take().unwrap().map_err(Error::from))
+                                .send(trigger.event_mut().take_result().map_err(Error::from))
                                 .expect("send");
                         }
                         commands.entity(trigger.entity()).despawn_recursive();
@@ -194,10 +210,9 @@ impl MinibufferAsync {
             async_world.apply_command(move |world: &mut World| {
                 let mut commands = world.commands();
                 commands.spawn(GetKeyChord).observe(
-                    move |trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
+                    move |mut trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
-                            let _ = promise.send(Ok(trigger.event().0.clone()));
-                            //.expect("send");
+                            let _ = promise.send(trigger.event_mut().take().ok_or(Error::Message("no key chord".into())));
                         }
                         commands.entity(trigger.entity()).despawn();
                     },

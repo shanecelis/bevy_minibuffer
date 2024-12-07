@@ -1,5 +1,5 @@
 //! Events
-use crate::{acts::Act, acts::ActFlags, prompt::PromptState, Minibuffer};
+use crate::{acts::{Act, ActArg}, acts::ActFlags, input::Hotkey, prompt::PromptState, Minibuffer};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -11,7 +11,7 @@ use bevy::{
 use bevy_channel_trigger::ChannelTriggerApp;
 // #[cfg(feature = "async")]
 // use bevy_crossbeam_event::CrossbeamEventApp;
-use std::fmt;
+use std::{borrow::Cow, fmt};
 
 pub(crate) fn plugin(app: &mut App) {
     // #[cfg(feature = "async")]
@@ -21,20 +21,35 @@ pub(crate) fn plugin(app: &mut App) {
         let sender = app.add_channel_trigger::<DispatchEvent>();
         app.insert_resource(sender);
     }
-    // #[cfg(not(feature = "async"))]
-    app.add_event::<DispatchEvent>();
-    app.init_resource::<LastRunAct>();
+    app
+        .add_event::<DispatchEvent>()
+        .add_event::<RunActEvent>()
+        .add_event::<LookupAndRunActEvent>()
+        .init_resource::<LastRunAct>();
 }
 
 /// Requests an act to be run
 #[derive(Clone, Event, Debug, Deref)]
-// pub struct RunActEvent(pub SystemId);
 pub struct RunActEvent {
-    /// The act that was one.
     #[deref]
+    /// The act to run
     pub act: Act,
-    /// Which one if any of its hotkeys started it.
+    /// Which one if any of its hotkeys started it
     pub hotkey: Option<usize>,
+}
+
+/// Requests an act by name to be run
+#[derive(Clone, Event, Debug)]
+pub struct LookupAndRunActEvent {
+    /// Name of the act to run
+    pub name: Cow<'static, str>,
+}
+
+impl LookupAndRunActEvent {
+    /// Lookup and run act with given name.
+    pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
+        Self { name: name.into() }
+    }
 }
 
 /// This holds the last act run.
@@ -44,18 +59,43 @@ pub struct RunActEvent {
 #[derive(Resource, Debug, Default, Deref, DerefMut)]
 pub struct LastRunAct(Option<RunActEvent>);
 
+impl LastRunAct {
+    /// Return the hotkey associated with this run.
+    pub fn hotkey(&self) -> Option<&Hotkey> {
+        self.0.as_ref().and_then(|run_act| run_act.hotkey())
+    }
+}
+
 impl RunActEvent {
     /// Make a new run act event.
     pub fn new(act: Act) -> Self {
         Self { act, hotkey: None }
     }
 
+    // pub fn from_name(name: impl Into<Cow<'static, str>>) -> Self {
+    //     Self { act: ActArg::from(name.into()), hotkey: None }
+    // }
+
     /// Set the hotkey index.
-    pub fn hotkey(mut self, index: usize) -> Self {
+    pub fn with_hotkey(mut self, index: usize) -> Self {
         self.hotkey = Some(index);
         self
     }
+
+    /// Return the hotkey associated with this run.
+    pub fn hotkey(&self) -> Option<&Hotkey> {
+        self.hotkey
+            .map(|index| &self.act.hotkeys[index])
+    }
+
 }
+
+// impl RunActEvent<ActArg> {
+//     /// Make a new run act event.
+//     pub fn from_arg(act: impl Into<ActArg>) -> Self {
+//         Self { act: act.into(), hotkey: None }
+//     }
+// }
 
 impl fmt::Display for RunActEvent {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -126,14 +166,18 @@ pub(crate) enum LookupEvent {
 pub enum DispatchEvent {
     /// Send a look up event.
     LookupEvent(LookupEvent),
-    /// Send a start act event.
+    /// Send a run act event.
     RunActEvent(RunActEvent),
+    /// Send a lookup and run act event.
+    LookupAndRunActEvent(LookupAndRunActEvent),
     /// Emit a message.
     EmitMessage(String),
     /// Clear the buffer.
     Clear,
     /// Show the buffer.
     SetVisible(bool),
+    /// This event has been "taken" already.
+    Taken
 }
 
 impl From<LookupEvent> for DispatchEvent {
@@ -150,7 +194,6 @@ impl From<RunActEvent> for DispatchEvent {
 pub(crate) fn dispatch_events(
     mut dispatch_events: EventReader<DispatchEvent>,
     mut lookup_events: EventWriter<LookupEvent>,
-    mut request_act_events: EventWriter<RunActEvent>,
     mut minibuffer: Minibuffer,
 ) {
     use crate::event::DispatchEvent::*;
@@ -159,11 +202,14 @@ pub(crate) fn dispatch_events(
             LookupEvent(l) => {
                 lookup_events.send(l.clone());
             }
-            RunActEvent(s) => {
-                request_act_events.send(s.clone());
+            RunActEvent(e) => {
+                let _ = minibuffer.run_act(e.clone().act);
+            }
+            LookupAndRunActEvent(e) => {
+                let _ = minibuffer.run_act(e.clone().name);
             }
             EmitMessage(s) => {
-                minibuffer.message(s.clone());
+                minibuffer.message(s.to_string());
             }
             Clear => {
                 minibuffer.clear();
@@ -171,33 +217,39 @@ pub(crate) fn dispatch_events(
             SetVisible(show) => {
                 minibuffer.set_visible(*show);
             }
+            Taken => {}
         }
     }
 }
 
 pub(crate) fn dispatch_trigger(
-    dispatch_events: Trigger<DispatchEvent>,
+    mut dispatch_events: Trigger<DispatchEvent>,
     mut lookup_events: EventWriter<LookupEvent>,
-    mut request_act_events: EventWriter<RunActEvent>,
     mut minibuffer: Minibuffer,
 ) {
     use crate::event::DispatchEvent::*;
-    match dispatch_events.event() {
+    let event = std::mem::replace(dispatch_events.event_mut(), DispatchEvent::Taken);
+    match event {
         LookupEvent(l) => {
-            lookup_events.send(l.clone());
+            lookup_events.send(l);
         }
-        RunActEvent(s) => {
-            request_act_events.send(s.clone());
+        RunActEvent(e) => {
+            let _ = minibuffer.run_act(e.act);
+        }
+
+        LookupAndRunActEvent(e) => {
+            let _ = minibuffer.run_act(e.name);
         }
         EmitMessage(s) => {
-            minibuffer.message(s.clone());
+            minibuffer.message(s);
         }
         Clear => {
             minibuffer.clear();
         }
         SetVisible(show) => {
-            minibuffer.set_visible(*show);
+            minibuffer.set_visible(show);
         }
+        Taken => {}
     }
 }
 
@@ -214,5 +266,26 @@ pub(crate) fn run_acts(
         }
         last_act.0 = Some(e.clone());
         commands.run_system(e.act.system_id);
+    }
+}
+
+
+/// Lookup and run act for any [LookupAndRunActEvent].
+pub(crate) fn run_acts_by_name(
+    mut events: EventReader<LookupAndRunActEvent>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
+    mut commands: Commands,
+    mut last_act: ResMut<LastRunAct>,
+    acts: Query<&Act>,
+) {
+    for e in events.read() {
+        if let Some(act) = acts.iter().find(|a| a.name == e.name) {
+            if act.flags.contains(ActFlags::ShowMinibuffer) {
+                next_prompt_state.set(PromptState::Visible);
+            }
+            let system_id = act.system_id;
+            last_act.0 = Some(RunActEvent::new(act.clone()));
+            commands.run_system(system_id);
+        }
     }
 }

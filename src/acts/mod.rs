@@ -23,8 +23,13 @@ mod add_acts;
 pub use add_acts::AddActs;
 mod plugin;
 pub use plugin::*;
+mod arg;
+pub use arg::*;
 
 pub mod basic;
+#[cfg(feature = "async")]
+pub mod basic_async;
+
 #[cfg(feature = "async")]
 pub mod universal;
 // impl<'w, 's> AddActs for Commands<'w, 's> {
@@ -261,12 +266,19 @@ impl Act {
             .enumerate()
             .map(|(i, hotkey)| {
                 KeySequence::new(
-                    action::send_event(RunActEvent::new(self.clone()).hotkey(i)),
+                    action::send_event(RunActEvent::new(self.clone()).with_hotkey(i)),
                     hotkey.chords.clone(),
                 )
                 .build(world)
             })
             .collect()
+    }
+
+    /// Find hotkey based on chords.
+    pub fn find_hotkey(&self, chords: &[KeyChord]) -> Option<&Hotkey> {
+        self.hotkeys
+           .iter()
+           .find(|h| *h == chords)
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::{
     acts,
     autocomplete::LookupError,
-    event::{dispatch_events, run_acts, LookupEvent, RunActEvent},
+    event::{dispatch_events, run_acts, run_acts_by_name, LookupEvent, RunActEvent},
     prompt::{
         self, get_key_chords, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
         lookup_events, show, CompletionState, KeyChordEvent, MinibufferState, PromptState,
@@ -121,7 +121,6 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .init_resource::<acts::ActCache>()
             .insert_resource(self.config.clone())
             .add_event::<LookupEvent>()
-            .add_event::<RunActEvent>()
             .add_event::<KeyChordEvent>()
             .add_systems(Update,
                          (hide_prompt_maybe,
@@ -137,7 +136,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             ))
             .observe(crate::event::dispatch_trigger)
             .add_systems(Update,
-                         ((run_acts, prompt::set_minibuffer_state).chain(),
+                         ((run_acts_by_name, run_acts, prompt::set_minibuffer_state).chain(),
                           (dispatch_events, lookup_events).chain())
                          .in_set(MinibufferSet::Process))
             .add_systems(OnEnter(MinibufferState::Inactive),hide_delayed::<ui::PromptContainer>)

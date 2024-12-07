@@ -65,7 +65,23 @@ pub(crate) struct HideTime {
 pub(crate) struct GetKeyChord;
 
 #[derive(Event, Debug, Reflect)]
-pub(crate) struct KeyChordEvent(pub(crate) KeyChord);
+pub(crate) enum KeyChordEvent {
+    Unhandled(KeyChord),
+    Handled
+}
+
+impl KeyChordEvent {
+    pub(crate) fn new(chord: KeyChord) -> Self {
+        Self::Unhandled(chord)
+    }
+
+    pub(crate) fn take(&mut self) -> Option<KeyChord> {
+        match std::mem::replace(self, KeyChordEvent::Handled) {
+            KeyChordEvent::Unhandled(chord) => Some(chord),
+            KeyChordEvent::Handled => None
+        }
+    }
+}
 
 // impl GetKeyChord {
 //     pub(crate) fn new(promise: Sender<Result<KeyChord, Error>>) -> Self {
@@ -121,7 +137,7 @@ pub(crate) fn get_key_chords(
 
     if let Some(chord) = buffer.pop_front().or_else(|| chords.pop_front()) {
         for id in query.iter_mut() {
-            commands.trigger_targets(KeyChordEvent(chord.clone()), id);
+            commands.trigger_targets(KeyChordEvent::new(chord.clone()), id);
             // NOTE: Don't remove this here. Let the consumer decide when they're done.
             //
             // commands.entity(id).remove::<GetKeyChord>();

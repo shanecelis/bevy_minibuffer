@@ -18,12 +18,12 @@ fn plugin(app: &mut App) {
         .add_acts((
             BasicActs::default(),
             // Add commands.
-            Act::new(stop).bind(keyseq! { D }),
-            Act::new(start).bind(keyseq! { A }),
+            Act::new(stop).bind(keyseq! { A }),
             Act::new(speed).bind(keyseq! { S }),
+            Act::new(start).bind(keyseq! { D }),
         ))
         .add_systems(Startup, |mut minibuffer: Minibuffer| {
-            minibuffer.message("Hit 'S' to change cube speed. Hit 'Ctrl-H B' for keys.");
+            minibuffer.message("Hit A, S, or D to change cube speed. Hit 'Ctrl-H B' for keys.");
             minibuffer.set_visible(true);
         });
 }
@@ -31,7 +31,7 @@ fn plugin(app: &mut App) {
 fn main() {
     App::new()
         .add_plugins((
-            common::VideoCapturePlugin::new("basic").background(Srgba::hex("390099").unwrap()),
+            common::VideoCapturePlugin::new("cube").background(Srgba::hex("390099").unwrap()),
             plugin,
         ))
         .add_systems(Startup, setup)

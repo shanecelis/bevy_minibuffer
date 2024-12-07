@@ -20,7 +20,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
         ("Shane", Popular::Rare),
     ]);
     // minibuffer.completing_read("What's your name? ", trie).observe(
-    minibuffer.resolve("What's your name? ", trie).observe(
+    minibuffer.read_with_lookup_map("What's your name? ", trie).observe(
         // |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
         |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
             let (popular, input) = trigger.event_mut().take_inner().unwrap();

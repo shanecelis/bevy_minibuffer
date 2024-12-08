@@ -26,7 +26,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
                 let popular = trigger.event_mut().take_result().unwrap();
                 minibuffer.message(match popular {
                     Ok(popular) => format!("That's a {:?} name.", popular),
-                    _ => format!("I don't know what kind of name that is."),
+                    _ => "I don't know what kind of name that is.".to_string(),
                 });
             },
         );

@@ -1,27 +1,22 @@
 //! Acts and their flags, builders, and collections
 use crate::{
-    event::RunActEvent,
     acts::{Act, ActFlags},
     input::Hotkey};
 use bevy::{
     ecs::{
-        system::{BoxedSystem, SystemId, EntityCommand},
+        system::{BoxedSystem, EntityCommand},
         world::Command
     },
     prelude::*,
 };
-use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
-use bitflags::bitflags;
+use bevy_input_sequence::KeyChord;
 use std::{
     borrow::Cow,
     fmt::{
-        self,
         Debug,
-        Display,
         // Write
     },
 };
-use trie_rs::map::{Trie, TrieBuilder};
 
 /// Builds an [Act]
 #[derive(Debug)]
@@ -156,7 +151,7 @@ impl Command for ActBuilder {
         let act = self.build(world);
         let keyseqs = act.build_keyseqs(world);
         let name = Name::new(act.name.clone());
-        let system_entity = act.system_id.clone().entity();
+        let system_entity = act.system_id.entity();
 
         let id = world.spawn(act)
                       .insert(name)

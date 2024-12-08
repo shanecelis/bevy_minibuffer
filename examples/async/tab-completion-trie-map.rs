@@ -22,7 +22,7 @@ async fn hello_name(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
     let result = minibuffer.prompt_map("What's your name? ", trie).await;
     minibuffer.message(match result {
         Ok(popular) => format!("That's a {:?} name.", popular),
-        _ => format!("I don't know what kind of name that is."),
+        _ => "I don't know what kind of name that is.".to_string(),
     });
     Ok(())
 }

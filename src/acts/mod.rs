@@ -1,7 +1,7 @@
 //! Acts and their flags, builders, and collections
 use crate::{event::RunActEvent, input::Hotkey};
 use bevy::{
-    ecs::system::{BoxedSystem, SystemId, EntityCommand},
+    ecs::system::{SystemId, EntityCommand},
     prelude::*,
 };
 use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
@@ -15,7 +15,6 @@ use std::{
         // Write
     },
 };
-use trie_rs::map::{Trie, TrieBuilder};
 
 mod collection;
 pub use collection::*;

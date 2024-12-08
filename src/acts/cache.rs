@@ -1,20 +1,7 @@
 //! Acts and their flags, builders, and collections
-use crate::{event::RunActEvent, input::Hotkey, acts::Act};
-use bevy::{
-    ecs::system::{BoxedSystem, SystemId},
-    prelude::*,
-};
-use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
-use bitflags::bitflags;
-use std::{
-    borrow::Cow,
-    fmt::{
-        self,
-        Debug,
-        Display,
-        // Write
-    },
-};
+use crate::acts::Act;
+use bevy::prelude::*;
+use bevy_input_sequence::KeyChord;
 use trie_rs::map::{Trie, TrieBuilder};
 
 /// Maps hotkeys to [Act]s

@@ -164,9 +164,9 @@ impl Minibuffer<'_, '_> {
                         .take_result()
                         .map_err(Error::from)
                         .and_then(|s| {
-                            let r = lookup.resolve_res(&s).map_err(Error::from);
+                            
                             // r.map(|x| (x, s))
-                            r
+                            lookup.resolve_res(&s).map_err(Error::from)
                         });
                     commands.trigger_targets(
                         Completed::Unhandled(r),

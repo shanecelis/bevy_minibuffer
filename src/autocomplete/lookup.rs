@@ -289,7 +289,7 @@ impl<T: AsRef<str>> Lookup for [T] {
         let count = input.chars().count();
         let mut entries: Vec<_> =
             self
-            .into_iter()
+            .iter()
             .filter_map(|s| {
                 let s = s.as_ref();
                 s.starts_with(input).then(|| s.chars().skip(count))

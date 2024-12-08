@@ -2,9 +2,9 @@
 use crate::Error;
 use bevy::prelude::*;
 use std::{
-    hash::Hash,
+    borrow::{Borrow, Cow},
     collections::HashMap,
-    borrow::{Cow, Borrow},
+    hash::Hash,
 };
 use trie_rs::{iter::KeysExt, map};
 
@@ -91,7 +91,6 @@ impl<T> Completed<T> {
             Completed::Handled => None,
         }
     }
-
 }
 
 impl<V: Send + Sync + Clone> LookupMap for map::Trie<u8, V> {
@@ -230,7 +229,7 @@ impl<T: AsRef<str>> LookupMap for [T] {
     }
 }
 
-impl<K: Borrow<str> + AsRef<str> + Hash + Eq, V: Clone + Send> LookupMap for HashMap<K,V> {
+impl<K: Borrow<str> + AsRef<str> + Hash + Eq, V: Clone + Send> LookupMap for HashMap<K, V> {
     type Item = V;
     fn resolve(&self, input: &str) -> Option<Self::Item> {
         self.get(input).cloned()
@@ -242,7 +241,9 @@ impl<K: Borrow<str> + AsRef<str> + Hash + Eq, V> Lookup for HashMap<K, V> {
         if self.contains_key(input) {
             Ok(())
         } else {
-            Err(iter_to_error(self.keys().filter(|k| k.as_ref().starts_with(input))))
+            Err(iter_to_error(
+                self.keys().filter(|k| k.as_ref().starts_with(input)),
+            ))
         }
     }
 
@@ -287,8 +288,7 @@ impl<T: AsRef<str>> Lookup for [T] {
     fn longest_prefix(&self, input: &str) -> Option<String> {
         let mut accum: Option<String> = None;
         let count = input.chars().count();
-        let mut entries: Vec<_> =
-            self
+        let mut entries: Vec<_> = self
             .iter()
             .filter_map(|s| {
                 let s = s.as_ref();

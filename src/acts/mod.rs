@@ -1,7 +1,7 @@
 //! Acts and their flags, builders, and collections
 use crate::{event::RunActEvent, input::Hotkey};
 use bevy::{
-    ecs::system::{SystemId, EntityCommand},
+    ecs::system::{EntityCommand, SystemId},
     prelude::*,
 };
 use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
@@ -113,7 +113,8 @@ impl Act {
                 KeySequence::new(
                     action::send_event(RunActEvent::new(self.clone()).with_hotkey(i)),
                     hotkey.chords.clone(),
-                ).apply(id, world);
+                )
+                .apply(id, world);
                 id
             })
             .collect()

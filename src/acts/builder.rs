@@ -1,11 +1,12 @@
 //! Acts and their flags, builders, and collections
 use crate::{
     acts::{Act, ActFlags},
-    input::Hotkey};
+    input::Hotkey,
+};
 use bevy::{
     ecs::{
         system::{BoxedSystem, EntityCommand},
-        world::Command
+        world::Command,
     },
     prelude::*,
 };
@@ -30,7 +31,6 @@ pub struct ActBuilder {
     /// Shorten the name to just the first system.
     pub shorten_name: bool,
 }
-
 
 impl ActBuilder {
     /// Create a new [Act].
@@ -153,16 +153,11 @@ impl Command for ActBuilder {
         let name = Name::new(act.name.clone());
         let system_entity = act.system_id.entity();
 
-        let id = world.spawn(act)
-                      .insert(name)
-                      .id();
+        let id = world.spawn(act).insert(name).id();
         for keyseq_id in keyseqs {
-            world.entity_mut(keyseq_id)
-                .set_parent(id);
+            world.entity_mut(keyseq_id).set_parent(id);
         }
-        world.entity_mut(system_entity)
-            .set_parent(id);
-
+        world.entity_mut(system_entity).set_parent(id);
     }
 }
 
@@ -173,8 +168,7 @@ impl EntityCommand for ActBuilder {
         let mut entity = world.get_entity_mut(id).unwrap();
         entity.insert(act);
         for keyseq_id in keyseqs {
-            world.entity_mut(keyseq_id)
-                .set_parent(id);
+            world.entity_mut(keyseq_id).set_parent(id);
         }
     }
 }

@@ -2,14 +2,13 @@
 //!
 //! It uses promises rather than triggers.
 use crate::{
-    Minibuffer,
     acts::ActArg,
-    autocomplete::{AutoComplete, Lookup, LookupMap, Completed},
+    autocomplete::{AutoComplete, Completed, Lookup, LookupMap},
     event::{DispatchEvent, RunActByNameEvent, RunActEvent},
     prompt::{GetKeyChord, KeyChordEvent, PromptState},
     ui::PromptContainer,
     view::View,
-    Error,
+    Error, Minibuffer,
 };
 use bevy::{
     ecs::{
@@ -220,7 +219,12 @@ impl MinibufferAsync {
                     move |mut trigger: Trigger<Completed<L::Item>>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             promise
-                                .send(trigger.event_mut().take_result().expect("completed already handled"))
+                                .send(
+                                    trigger
+                                        .event_mut()
+                                        .take_result()
+                                        .expect("completed already handled"),
+                                )
                                 .expect("send");
                         }
                         commands.entity(trigger.entity()).despawn_recursive();

@@ -164,14 +164,10 @@ impl Minibuffer<'_, '_> {
                         .take_result()
                         .map_err(Error::from)
                         .and_then(|s| {
-                            
                             // r.map(|x| (x, s))
                             lookup.resolve_res(&s).map_err(Error::from)
                         });
-                    commands.trigger_targets(
-                        Completed::Unhandled(r),
-                        trigger.entity(),
-                    );
+                    commands.trigger_targets(Completed::Unhandled(r), trigger.entity());
                 },
             );
         ecommands

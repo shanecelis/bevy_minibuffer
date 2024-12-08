@@ -5,21 +5,17 @@ use crate::{
     acts::{Act, ActFlags, Acts, ActsPlugin},
     event::{LastRunAct, RunActEvent},
     prelude::{keyseq, KeyChordEvent},
-    Minibuffer
+    Minibuffer,
 };
 #[cfg(feature = "async")]
-use crate::{
-    prelude::future_sink,
-    MinibufferAsync,
-};
+use crate::{prelude::future_sink, MinibufferAsync};
 use bevy::prelude::*;
 #[cfg(feature = "async")]
 use bevy_defer::{AsyncAccess, AsyncWorld};
 use bevy_input_sequence::{KeyChord, KeyChordQueue};
-use std::{borrow::Cow, fmt::Debug};
 #[cfg(feature = "async")]
 use std::future::Future;
-
+use std::{borrow::Cow, fmt::Debug};
 
 /// Universal argument plugin and acts
 ///
@@ -50,9 +46,10 @@ impl Default for UniversalArgActs {
             acts: Acts::new(vec![
                 // Act::new(universal_arg.pipe(future_sink))
                 Act::new(universal_arg)
-                .named("universal_arg")
-                .bind(keyseq! { Ctrl-U })
-                .sub_flags(ActFlags::RunAct)]),
+                    .named("universal_arg")
+                    .bind(keyseq! { Ctrl-U })
+                    .sub_flags(ActFlags::RunAct),
+            ]),
         }
     }
 }
@@ -79,7 +76,8 @@ impl UniversalArgActs {
             Act::new(universal_arg_async.pipe(future_sink))
                 .named("universal_arg")
                 .bind(keyseq! { Ctrl-U })
-                .sub_flags(ActFlags::RunAct));
+                .sub_flags(ActFlags::RunAct),
+        );
         self
     }
 }
@@ -155,12 +153,12 @@ fn universal_arg(
         })
         .unwrap_or("universal_arg".into());
     minibuffer.message(prompt.clone());
-    minibuffer.get_chord()
-        .observe(move |mut trigger: Trigger<KeyChordEvent>,
-                 mut universal_arg: ResMut<UniversalArg>,
-                 mut chord_queue: ResMut<KeyChordQueue>,
-                 mut minibuffer: Minibuffer,
-                 mut commands: Commands| {
+    minibuffer.get_chord().observe(
+        move |mut trigger: Trigger<KeyChordEvent>,
+              mut universal_arg: ResMut<UniversalArg>,
+              mut chord_queue: ResMut<KeyChordQueue>,
+              mut minibuffer: Minibuffer,
+              mut commands: Commands| {
             let Some(chord @ KeyChord(_mods, key)) = trigger.event_mut().take() else {
                 commands.entity(trigger.entity()).despawn();
                 return;
@@ -207,7 +205,8 @@ fn universal_arg(
             }
             accumulated = true;
             minibuffer.message(format!("{prompt} {accum}"));
-        });
+        },
+    );
 }
 
 #[cfg(feature = "async")]

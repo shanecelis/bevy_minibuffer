@@ -46,7 +46,7 @@ fn main() {
                 .background(Srgba::hex("00f0b5").unwrap()),
             plugin,
         ))
-        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
+        // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

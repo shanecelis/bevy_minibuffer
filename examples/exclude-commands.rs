@@ -25,6 +25,7 @@ fn main() {
                 .background(Srgba::hex("023047").unwrap()),
             plugin,
         ))
+        // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(
             Startup,
             |mut commands: Commands, mut minibuffer: Minibuffer| {

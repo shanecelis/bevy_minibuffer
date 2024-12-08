@@ -35,12 +35,6 @@ impl Acts {
     }
 }
 
-impl From<ActBuilder> for Acts {
-    fn from(builder: ActBuilder) -> Acts {
-        Acts::new([builder])
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -242,10 +242,6 @@ impl Default for BasicActs {
                 ActBuilder::new(list_acts.pipe(to_message))
                     .named("list_acts")
                     .add_flags(ActFlags::ShowMinibuffer)
-                    .bind(keyseq!(Ctrl-H A))
-                    .bind(keyseq![Ctrl-H A])
-                    .bind(keyseq![ Ctrl-H A ])
-                    .bind(keyseq! {Ctrl-H A})
                     .bind(keyseq! { Ctrl-H A }),
                 ActBuilder::new(list_key_bindings.pipe(to_message))
                     .named("list_key_bindings")

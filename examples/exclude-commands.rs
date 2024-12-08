@@ -14,8 +14,7 @@ fn plugin(app: &mut App) {
     let mut acts = basic_acts.take_acts();
     let list_acts = acts.remove("list_acts").unwrap();
     app.add_plugins(MinibufferPlugins)
-        .add_acts((basic_acts,
-                   list_acts));
+        .add_acts((basic_acts, list_acts));
 }
 
 fn main() {
@@ -26,10 +25,13 @@ fn main() {
                 .background(Srgba::hex("023047").unwrap()),
             plugin,
         ))
-        .add_systems(Startup, |mut commands: Commands, mut minibuffer: Minibuffer| {
-            commands.spawn(Camera2dBundle::default());
-            minibuffer.message("Type 'Ctrl-H A' to see only one command remains.");
-            minibuffer.set_visible(true);
-        })
+        .add_systems(
+            Startup,
+            |mut commands: Commands, mut minibuffer: Minibuffer| {
+                commands.spawn(Camera2dBundle::default());
+                minibuffer.message("Type 'Ctrl-H A' to see only one command remains.");
+                minibuffer.set_visible(true);
+            },
+        )
         .run();
 }

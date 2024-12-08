@@ -276,9 +276,7 @@ impl Act {
 
     /// Find hotkey based on chords.
     pub fn find_hotkey(&self, chords: &[KeyChord]) -> Option<&Hotkey> {
-        self.hotkeys
-           .iter()
-           .find(|h| *h == chords)
+        self.hotkeys.iter().find(|h| *h == chords)
     }
 }
 

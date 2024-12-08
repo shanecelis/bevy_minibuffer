@@ -4,7 +4,7 @@
 use crate::{
     acts::ActArg,
     autocomplete::{AutoComplete, Lookup},
-    event::{DispatchEvent, RunActEvent, RunActByNameEvent},
+    event::{DispatchEvent, RunActByNameEvent, RunActEvent},
     prompt::{GetKeyChord, KeyChordEvent, PromptState},
     ui::PromptContainer,
     view::View,
@@ -99,10 +99,14 @@ impl MinibufferAsync {
     pub fn run_act(&mut self, act: impl Into<ActArg>) {
         match act.into() {
             ActArg::Act(act) => {
-                self.trigger.send(DispatchEvent::RunActEvent(RunActEvent::new(act)));
+                self.trigger
+                    .send(DispatchEvent::RunActEvent(RunActEvent::new(act)));
             }
             ActArg::Name(name) => {
-                self.trigger.send(DispatchEvent::RunActByNameEvent(RunActByNameEvent::new(name)));
+                self.trigger
+                    .send(DispatchEvent::RunActByNameEvent(RunActByNameEvent::new(
+                        name,
+                    )));
             }
         }
     }
@@ -196,7 +200,9 @@ impl MinibufferAsync {
         let get_key = async move {
             // We sleep a tiny bit at the beginning so that we don't accept a
             // key press that happened right as the sleep timer died.
-            AsyncWorld::new().sleep(SMALL_DURATION.min(duration / 4)).await;
+            AsyncWorld::new()
+                .sleep(SMALL_DURATION.min(duration / 4))
+                .await;
             self.get_chord().await
         };
         pin_mut!(sleep);
@@ -218,7 +224,12 @@ impl MinibufferAsync {
                 commands.spawn(GetKeyChord).observe(
                     move |mut trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
-                            let _ = promise.send(trigger.event_mut().take().ok_or(Error::Message("no key chord".into())));
+                            let _ = promise.send(
+                                trigger
+                                    .event_mut()
+                                    .take()
+                                    .ok_or(Error::Message("no key chord".into())),
+                            );
                         }
                         commands.entity(trigger.entity()).despawn();
                     },

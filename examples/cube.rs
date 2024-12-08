@@ -13,8 +13,7 @@ struct Rotatable {
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
+    app.add_plugins(MinibufferPlugins)
         .add_acts((
             BasicActs::default(),
             // Add commands.

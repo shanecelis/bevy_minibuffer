@@ -20,16 +20,21 @@ fn hello_name(mut minibuffer: Minibuffer) {
         ("Shane", Popular::Rare),
     ]);
     // minibuffer.completing_read("What's your name? ", trie).observe(
-    minibuffer.prompt_with_lookup_map("What's your name? ", trie).observe(
-        // |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
-        |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
-            let (popular, input) = trigger.event_mut().take_inner().unwrap();
-            minibuffer.message(match popular {
-                Ok(popular) => format!("That's a {:?} name.", popular),
-                _ => format!("I don't know what kind of name {:?} is.", input.unwrap_or("that".into()))
-            });
-        },
-    );
+    minibuffer
+        .prompt_with_lookup_map("What's your name? ", trie)
+        .observe(
+            // |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
+            |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
+                let (popular, input) = trigger.event_mut().take_inner().unwrap();
+                minibuffer.message(match popular {
+                    Ok(popular) => format!("That's a {:?} name.", popular),
+                    _ => format!(
+                        "I don't know what kind of name {:?} is.",
+                        input.unwrap_or("that".into())
+                    ),
+                });
+            },
+        );
 }
 
 fn plugin(app: &mut App) {

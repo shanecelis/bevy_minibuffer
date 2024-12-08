@@ -60,8 +60,7 @@ impl UniversalArgActs {
 
 impl Plugin for UniversalArgActs {
     fn build(&self, app: &mut bevy::app::App) {
-        app
-            .register_type::<Multiplier>()
+        app.register_type::<Multiplier>()
             .register_type::<UniversalArg>()
             .init_resource::<Multiplier>()
             .init_resource::<UniversalArg>()

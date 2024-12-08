@@ -3,11 +3,11 @@
 //! It uses triggers rather than promises.
 use crate::{
     acts::ActArg,
-    autocomplete::{AutoComplete, Lookup, LookupMap, Completed},
+    autocomplete::{AutoComplete, Completed, Lookup, LookupMap},
+    event::{RunActByNameEvent, RunActEvent},
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
-    event::{RunActByNameEvent, RunActEvent},
     Error,
 };
 use bevy::{
@@ -169,7 +169,13 @@ impl Minibuffer<'_, '_> {
                             input = Some(s);
                             r
                         });
-                    commands.trigger_targets(Completed::Unhandled { value: r, input: input }, trigger.entity());
+                    commands.trigger_targets(
+                        Completed::Unhandled {
+                            value: r,
+                            input: input,
+                        },
+                        trigger.entity(),
+                    );
                 },
             );
         ecommands

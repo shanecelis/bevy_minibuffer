@@ -25,8 +25,7 @@ async fn ask_age(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
+    app.add_plugins(MinibufferPlugins)
         .add_acts((
             Act::new(ask_name.pipe(future_result_sink))
                 .named("ask_name")
@@ -47,7 +46,8 @@ fn main() {
     App::new()
         // .add_plugins((DefaultPlugins, plugin))
         .add_plugins((
-            common::VideoCapturePlugin::new("two-commands-async").background(Srgba::hex("8ecae6").unwrap()),
+            common::VideoCapturePlugin::new("two-commands-async")
+                .background(Srgba::hex("8ecae6").unwrap()),
             plugin,
         ))
         .add_systems(Startup, |mut commands: Commands| {

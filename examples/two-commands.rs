@@ -37,15 +37,10 @@ fn ask_age(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
+    app.add_plugins(MinibufferPlugins)
         .add_acts((
-            Act::new(ask_name)
-                .named("ask_name")
-                .bind(keyseq!(N)),
-            Act::new(ask_age)
-                .named("ask_age")
-                .bind(keyseq!(A)),
+            Act::new(ask_name).named("ask_name").bind(keyseq!(N)),
+            Act::new(ask_age).named("ask_age").bind(keyseq!(A)),
             // Add a basic act but just one of them.
             BasicActs::default().remove("run_act").unwrap(),
         ))
@@ -59,7 +54,8 @@ fn main() {
     App::new()
         // .add_plugins((DefaultPlugins, plugin))
         .add_plugins((
-            common::VideoCapturePlugin::new("two-commands").background(Srgba::hex("219ebc").unwrap()),
+            common::VideoCapturePlugin::new("two-commands")
+                .background(Srgba::hex("219ebc").unwrap()),
             plugin,
         ))
         .add_systems(Startup, |mut commands: Commands| {

@@ -6,7 +6,7 @@ pub enum ActArg {
     /// Reference by value
     Act(Act),
     /// Reference by name
-    Name(Cow<'static, str>)
+    Name(Cow<'static, str>),
 }
 
 impl From<Act> for ActArg {

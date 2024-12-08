@@ -1,8 +1,8 @@
 //! Lookup and autocompletion
+use crate::Error;
 use bevy::prelude::*;
 use std::borrow::Cow;
 use trie_rs::{iter::KeysExt, map};
-use crate::Error;
 
 /// Look up error
 ///
@@ -48,11 +48,11 @@ pub trait LookupMap: Lookup {
 
     /// LookupMap the `input` or provide an error.
     fn resolve_res(&self, input: &str) -> Result<Self::Item, LookupError> {
-        self.resolve(input).ok_or_else(|| {
-            match self.lookup(input) {
-                Ok(()) => LookupError::Message("Inconsistent: LookupMap failed but lookup succeeded.".into()),
-                Err(e) => e,
+        self.resolve(input).ok_or_else(|| match self.lookup(input) {
+            Ok(()) => {
+                LookupError::Message("Inconsistent: LookupMap failed but lookup succeeded.".into())
             }
+            Err(e) => e,
         })
     }
 }
@@ -61,22 +61,20 @@ pub trait LookupMap: Lookup {
 #[derive(Event, Debug)]
 pub enum Completed<T> {
     /// A completion event with its associated input if available
-    Unhandled {/// The result if not taken yet.
+    Unhandled {
+        /// The result if not taken yet.
         value: Result<T, Error>,
-        /// Input string 
+        /// Input string
         input: Option<String>,
     },
     /// This completion event has been handled.
-    Handled
+    Handled,
 }
 
 impl<T> Completed<T> {
     /// Create a new completed event.
     pub fn new(value: Result<T, Error>, input: Option<String>) -> Self {
-        Self::Unhandled {
-            value,
-            input
-        }
+        Self::Unhandled { value, input }
     }
 
     /// Return the result; leave a Handled event in its place.
@@ -107,7 +105,6 @@ impl<T> Completed<T> {
     }
 }
 
-
 impl<V: Send + Sync + Clone> LookupMap for map::Trie<u8, V> {
     type Item = V;
 
@@ -133,7 +130,9 @@ impl<V: Send + Sync + Clone> Lookup for map::Trie<u8, V> {
         if self.exact_match(input).is_some() {
             return Ok(());
         }
-        let matches = self.predictive_search::<String, trie_rs::try_collect::StringCollect>(input).keys();
+        let matches = self
+            .predictive_search::<String, trie_rs::try_collect::StringCollect>(input)
+            .keys();
         Err(iter_to_error(matches))
     }
 
@@ -157,7 +156,6 @@ impl<V: Send + Sync + Clone> Lookup for map::Trie<u8, V> {
 
 impl Lookup for trie_rs::Trie<u8> {
     fn lookup(&self, input: &str) -> Result<(), LookupError> {
-
         // self.exact_match(input).cloned()
         // self.0.resolve(input)
         if self.exact_match(input) {
@@ -171,7 +169,7 @@ impl Lookup for trie_rs::Trie<u8> {
                 Err(LookupError::ManyMatches)
             }
         } else {
-                Err(LookupError::NoMatch)
+            Err(LookupError::NoMatch)
         }
     }
 
@@ -193,10 +191,8 @@ impl<T: AsRef<str>> Lookup for Vec<T> {
         self[..].longest_prefix(input)
     }
 
-
     fn all_lookups(&self, input: &str) -> Vec<String> {
-        self
-            .iter()
+        self.iter()
             .map(|word| word.as_ref())
             .filter(|word| word.starts_with(input))
             .map(|word| word.to_string())
@@ -313,8 +309,7 @@ impl<T: AsRef<str>> Lookup for [T] {
     }
 
     fn all_lookups(&self, input: &str) -> Vec<String> {
-        self
-            .iter()
+        self.iter()
             .map(|word| word.as_ref())
             .filter(|word| word.starts_with(input))
             .map(|word| word.to_string())

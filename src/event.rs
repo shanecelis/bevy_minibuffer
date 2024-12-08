@@ -21,8 +21,7 @@ pub(crate) fn plugin(app: &mut App) {
         let sender = app.add_channel_trigger::<DispatchEvent>();
         app.insert_resource(sender);
     }
-    app
-        .add_event::<DispatchEvent>()
+    app.add_event::<DispatchEvent>()
         .add_event::<RunActEvent>()
         .add_event::<RunActByNameEvent>()
         .init_resource::<LastRunAct>();
@@ -84,10 +83,8 @@ impl RunActEvent {
 
     /// Return the hotkey associated with this run.
     pub fn hotkey(&self) -> Option<&Hotkey> {
-        self.hotkey
-            .map(|index| &self.act.hotkeys[index])
+        self.hotkey.map(|index| &self.act.hotkeys[index])
     }
-
 }
 
 // impl RunActEvent<ActArg> {
@@ -177,7 +174,7 @@ pub enum DispatchEvent {
     /// Show the buffer.
     SetVisible(bool),
     /// This event has been "taken" already.
-    Taken
+    Taken,
 }
 
 impl From<LookupEvent> for DispatchEvent {
@@ -283,7 +280,6 @@ pub(crate) fn run_acts_trigger(
     last_act.0 = Some(e.clone());
     commands.run_system(e.act.system_id);
 }
-
 
 /// Lookup and run act for any [RunActByNameEvent].
 pub(crate) fn run_acts_by_name(

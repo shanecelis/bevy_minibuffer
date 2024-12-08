@@ -1,21 +1,21 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    acts::{ActCache, ActFlags, ActsPlugin, basic::BasicActs},
+    acts::{basic::BasicActs, ActCache, ActFlags, ActsPlugin},
     autocomplete::LookupMap,
     event::LastRunAct,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
 };
 
+use crate::sink::future_result_sink;
+use bevy::prelude::*;
+use bevy_defer::AsyncWorld;
+use futures::Future;
 use std::{
     borrow::Cow,
     fmt::{Debug, Write},
 };
-use crate::sink::future_result_sink;
-use bevy::prelude::*;
-use bevy_defer::AsyncWorld;
 use trie_rs::map::{Trie, TrieBuilder};
-use futures::Future;
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 pub fn run_act(

@@ -67,7 +67,7 @@ pub(crate) struct GetKeyChord;
 #[derive(Event, Debug, Reflect)]
 pub(crate) enum KeyChordEvent {
     Unhandled(KeyChord),
-    Handled
+    Handled,
 }
 
 impl KeyChordEvent {
@@ -78,7 +78,7 @@ impl KeyChordEvent {
     pub(crate) fn take(&mut self) -> Option<KeyChord> {
         match std::mem::replace(self, KeyChordEvent::Handled) {
             KeyChordEvent::Unhandled(chord) => Some(chord),
-            KeyChordEvent::Handled => None
+            KeyChordEvent::Handled => None,
         }
     }
 }

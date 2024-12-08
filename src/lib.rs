@@ -35,7 +35,6 @@ pub mod input {
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
     pub use super::acts::basic::BasicActs;
-    #[cfg(feature = "async")]
     pub use super::acts::universal::*;
     pub use super::acts::{self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, AddActs};
     pub use super::autocomplete::*;

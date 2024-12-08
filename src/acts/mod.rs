@@ -30,7 +30,6 @@ pub mod basic;
 #[cfg(feature = "async")]
 pub mod basic_async;
 
-#[cfg(feature = "async")]
 pub mod universal;
 // impl<'w, 's> AddActs for Commands<'w, 's> {
 //     fn add_acts(&mut self, acts: impl Into<Acts>) -> &mut Self {

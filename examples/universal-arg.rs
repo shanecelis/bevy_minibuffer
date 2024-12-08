@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 use rand::prelude::*;
 
-#[path = "../common/lib.rs"]
+#[path = "common/lib.rs"]
 mod common;
 
 fn rnd_vec<R: Rng>(rng: &mut R) -> Vec3 {
@@ -62,7 +62,7 @@ fn make_cube(
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins).add_acts((
         BasicActs::default(),
-        UniversalArgActs::default().use_async().include_display_act(),
+        UniversalArgActs::default().include_display_act(),
         Act::new(make_cube).bind(keyseq! { Space }),
     ));
 }

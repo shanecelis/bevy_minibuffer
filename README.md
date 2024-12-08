@@ -168,8 +168,8 @@ One can provide a list of strings for simple completions.
 # use bevy::prelude::*;
 # use bevy_minibuffer::prelude::*;
 fn hello_name(mut minibuffer: Minibuffer) {
-    minibuffer.read("What's your name? ",
-                    vec!["John", "Sean", "Shane"])
+    minibuffer.prompt_lookup("What's your name? ",
+                             vec!["John", "Sean", "Shane"])
         .observe(|mut trigger: Trigger<Submit<String>>, 
                   mut minibuffer: Minibuffer| {
             minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
@@ -192,8 +192,8 @@ One can provide a trie for more performant completion.
 # use bevy_minibuffer::prelude::*;
 # use trie_rs::Trie;
 fn hello_name(mut minibuffer: Minibuffer) {
-    minibuffer.read("What's your name? ",
-                    Trie::from_iter(["John", "Sean", "Shane"]))
+    minibuffer.prompt_lookup("What's your name? ",
+                             Trie::from_iter(["John", "Sean", "Shane"]))
         .observe(|mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
             minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
         });
@@ -225,10 +225,10 @@ fn hello_name(mut minibuffer: Minibuffer) {
         ("Sean", Popular::Uncommon),
         ("Shane", Popular::Rare),
     ]);
-    minibuffer.resolve("What's your name? ", trie).observe(
+    minibuffer.prompt_map("What's your name? ", trie).observe(
         |mut trigger: Trigger<Completed<Popular>>, 
          mut minibuffer: Minibuffer| {
-            let popular = trigger.event_mut().take_result();
+            let popular = trigger.event_mut().take_result().unwrap();
             minibuffer.message(match popular {
                 Ok(popular) => format!("That's a {:?} name.", popular),
                 _ => "I don't know what kind of name that is.".into(),
@@ -347,7 +347,7 @@ what they require. It is a "pull" model of interaction versus a "push" model.
 # TODO
 - [ ] Use a "real" cursor/selection highlight.
 - [ ] Add `HashMap<String,V>` completer.
-- [ ] Make universal-arg work without async.
+- [x] Make universal-arg work without async.
 - [x] Re-write [asky](https://github.com/axelvc/asky) to be [bevy native](https://github.com/shanecelis/bevy_asky).
 
 # Design Questions

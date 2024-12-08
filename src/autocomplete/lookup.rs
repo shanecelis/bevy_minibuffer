@@ -1,7 +1,11 @@
 //! Lookup and autocompletion
 use crate::Error;
 use bevy::prelude::*;
-use std::borrow::Cow;
+use std::{
+    hash::Hash,
+    collections::HashMap,
+    borrow::{Cow, Borrow},
+};
 use trie_rs::{iter::KeysExt, map};
 
 /// Look up error
@@ -226,6 +230,37 @@ impl<T: AsRef<str>> LookupMap for [T] {
     }
 }
 
+impl<K: Borrow<str> + AsRef<str> + Hash + Eq, V: Clone + Send> LookupMap for HashMap<K,V> {
+    type Item = V;
+    fn resolve(&self, input: &str) -> Option<Self::Item> {
+        self.get(input).cloned()
+    }
+}
+
+impl<K: Borrow<str> + AsRef<str> + Hash + Eq, V> Lookup for HashMap<K, V> {
+    fn lookup(&self, input: &str) -> Result<(), LookupError> {
+        if self.contains_key(input) {
+            Ok(())
+        } else {
+            Err(iter_to_error(self.keys().filter(|k| k.as_ref().starts_with(input))))
+        }
+    }
+
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        // XXX: Don't love this.
+        let v: Vec<_> = self.keys().collect();
+        v.as_slice().longest_prefix(input)
+    }
+
+    fn all_lookups(&self, input: &str) -> Vec<String> {
+        self.keys()
+            .map(|word| word.as_ref())
+            .filter(|word| word.starts_with(input))
+            .map(|word| word.to_string())
+            .collect()
+    }
+}
+
 impl<T: AsRef<str>> Lookup for [T] {
     fn lookup(&self, input: &str) -> Result<(), LookupError> {
         let mut one_match = None;
@@ -252,8 +287,9 @@ impl<T: AsRef<str>> Lookup for [T] {
     fn longest_prefix(&self, input: &str) -> Option<String> {
         let mut accum: Option<String> = None;
         let count = input.chars().count();
-        let mut entries: Vec<_> = self
-            .iter()
+        let mut entries: Vec<_> =
+            self
+            .into_iter()
             .filter_map(|s| {
                 let s = s.as_ref();
                 s.starts_with(input).then(|| s.chars().skip(count))
@@ -274,6 +310,7 @@ impl<T: AsRef<str>> Lookup for [T] {
                         c = Some(d);
                     }
                 } else {
+                    c = None;
                     break;
                 }
             }
@@ -336,7 +373,25 @@ mod test {
 
     #[test]
     fn lookup_vec() {
-        let a = vec!["abc", "abcd", "abcde"];
+        let a = vec!["abcd", "abc", "abcde"];
+        assert_eq!(a.longest_prefix(""), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix("a"), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix("ab"), Some(String::from("abc")));
+        assert_eq!(a.longest_prefix("abcd"), Some(String::from("abcd")));
+        assert_eq!(a.longest_prefix("abcde"), Some(String::from("abcde")));
+        assert_eq!(a.longest_prefix("abcdef"), None);
+        assert_eq!(a.longest_prefix("e"), None);
+    }
+
+    #[test]
+    fn lookup_map() {
+        let mut a = HashMap::new();
+        a.insert("abc", 0);
+        a.insert("abcd", 1);
+        a.insert("abcde", 2);
+        // let v: Vec<_> = a.keys().map(|s| s.to_string()).collect();
+        // assert_eq!(v, vec!["abc", "abcd", "abcde"]);
+        assert_eq!(a.len(), 3);
         assert_eq!(a.longest_prefix(""), Some(String::from("abc")));
         assert_eq!(a.longest_prefix("a"), Some(String::from("abc")));
         assert_eq!(a.longest_prefix("ab"), Some(String::from("abc")));

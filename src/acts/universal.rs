@@ -295,7 +295,7 @@ mod tests {
     #[test]
     fn check_acts() {
         let plugin = UniversalArgActs::default();
-        assert_eq!(plugin.acts.len(), 2);
+        assert_eq!(plugin.acts.len(), 1);
     }
 
     #[test]

@@ -30,16 +30,12 @@ pub use lookup::*;
 /// | `Right`     | Move cursor right            |
 ///
 #[derive(Component, Deref)]
+// #[reflect(opaque)]
 pub(crate) struct AutoComplete(Box<dyn Lookup + Send + Sync>);
 
 /// Means that an auto completing read must match one of its lookups.
 #[derive(Component, Debug)]
 pub struct RequireMatch;
-// #[derive(Component)]
-// pub enum AutoComplete<T = ()> {
-//     Lookup(Box<dyn Lookup + Send + Sync>),
-//     LookupMap(Box<dyn LookupMap<Item = T> + Send + Sync>)
-// }
 
 impl AutoComplete {
     /// Wrap a prompt in autocomplete.
@@ -50,35 +46,28 @@ impl AutoComplete {
         Self(Box::new(lookup))
     }
 
-    // pub fn from_resolve<R>(resolve: R) -> Self
-    // where
-    //     R: LookupMap<Item = T> + Send + Sync + 'static,
-    // {
-    //     Self::LookupMap(Box::new(resolve))
-    // }
-
     /// Construct an autocomplete UI element.
+    ///
+    /// NOTE: Could not use the `Construct` trait.
     pub fn construct(
         self,
         mut commands: EntityCommands,
         prompt: impl Into<Cow<'static, str>>,
     ) -> EntityCommands {
-        // let prompt = prompt.into();
-        // move |world: &mut World| {
-        // let mut commands = world.commands();
-        // let mut commands = match entity {
-        //     None => commands.spawn_empty(),
-        //     Some(id) => commands.entity(id)
-        // };
         commands
             .insert(Prompt(prompt.into()))
-            .insert(NodeBundle::default())
+            .insert(NodeBundle {
+                style: Style {
+                    flex_wrap: FlexWrap::Wrap,
+                    ..default()
+                },
+                ..default()
+            })
             .insert(StringCursor::default())
             .insert(Focusable::default())
             .insert(crate::view::View)
             .insert(self);
         commands
-        // }
     }
 }
 

@@ -3,7 +3,7 @@
 //! It uses triggers rather than promises.
 use crate::{
     acts::ActArg,
-    autocomplete::{AutoComplete, Completed, Lookup, LookupMap},
+    autocomplete::{AutoComplete, Completed, Lookup, LookupMap, RequireMatch},
     event::{RunActByNameEvent, RunActEvent},
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
@@ -124,7 +124,7 @@ impl Minibuffer<'_, '_> {
     }
 
     /// Read input from user with autocomplete provided by a [Lookup].
-    pub fn prompt_with_lookup<L>(
+    pub fn prompt_lookup<L>(
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
         lookup: L,
@@ -141,7 +141,7 @@ impl Minibuffer<'_, '_> {
     /// Read input from user that maps to other another type.
     ///
     /// Instead of triggering [`Submit<String>`] it will trigger [`Completed<T>`].
-    pub fn prompt_with_lookup_map<L>(
+    pub fn prompt_map<L>(
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
         lookup: L,
@@ -155,25 +155,21 @@ impl Minibuffer<'_, '_> {
         let autocomplete = AutoComplete::new(lookup.clone());
         let mut ecommands = autocomplete.construct(commands, prompt);
         ecommands
-            // .insert(RequireMatch)
+            .insert(RequireMatch)
             // TODO: We should probably return something other than submit.
             .observe(
                 move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
-                    let mut input = None;
                     let r: Result<L::Item, Error> = trigger
                         .event_mut()
                         .take_result()
                         .map_err(Error::from)
                         .and_then(|s| {
                             let r = lookup.resolve_res(&s).map_err(Error::from);
-                            input = Some(s);
+                            // r.map(|x| (x, s))
                             r
                         });
                     commands.trigger_targets(
-                        Completed::Unhandled {
-                            value: r,
-                            input: input,
-                        },
+                        Completed::Unhandled(r),
                         trigger.entity(),
                     );
                 },

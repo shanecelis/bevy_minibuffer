@@ -19,19 +19,14 @@ fn hello_name(mut minibuffer: Minibuffer) {
         ("Sean", Popular::Uncommon),
         ("Shane", Popular::Rare),
     ]);
-    // minibuffer.completing_read("What's your name? ", trie).observe(
     minibuffer
-        .prompt_with_lookup_map("What's your name? ", trie)
+        .prompt_map("What's your name? ", trie)
         .observe(
-            // |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
             |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
-                let (popular, input) = trigger.event_mut().take_inner().unwrap();
+                let popular = trigger.event_mut().take_result().unwrap();
                 minibuffer.message(match popular {
                     Ok(popular) => format!("That's a {:?} name.", popular),
-                    _ => format!(
-                        "I don't know what kind of name {:?} is.",
-                        input.unwrap_or("that".into())
-                    ),
+                    _ => format!("I don't know what kind of name that is."),
                 });
             },
         );
@@ -51,6 +46,7 @@ fn main() {
                 .background(Srgba::hex("00f0b5").unwrap()),
             plugin,
         ))
+        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2dBundle::default());
         })

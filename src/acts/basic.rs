@@ -32,7 +32,7 @@ pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Last
         .map(|hotkey| format!("{} ", hotkey).into())
         .unwrap_or("run_act".into());
     minibuffer
-        .prompt_with_lookup(prompt, acts.clone())
+        .prompt_lookup(prompt, acts.clone())
         .insert(RequireMatch)
         .observe(
             move |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| match trigger

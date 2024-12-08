@@ -61,20 +61,20 @@ pub trait LookupMap: Lookup {
 #[derive(Event, Debug)]
 pub enum Completed<T> {
     /// A completion event with its associated input if available
-    Unhandled {
-        /// The result if not taken yet.
-        value: Result<T, Error>,
-        /// Input string
-        input: Option<String>,
-    },
+    Unhandled(Result<T, Error>),
     /// This completion event has been handled.
     Handled,
 }
 
 impl<T> Completed<T> {
     /// Create a new completed event.
-    pub fn new(value: Result<T, Error>, input: Option<String>) -> Self {
-        Self::Unhandled { value, input }
+    pub fn new(value: Result<T, Error>) -> Self {
+        Self::Unhandled(value)
+    }
+
+    /// Take this completed and leave `Completed::Handled`.
+    pub fn take(&mut self) -> Self {
+        std::mem::replace(self, Completed::Handled)
     }
 
     /// Return the result; leave a Handled event in its place.
@@ -83,26 +83,11 @@ impl<T> Completed<T> {
     /// and input.
     pub fn take_result(&mut self) -> Option<Result<T, Error>> {
         match std::mem::replace(self, Completed::Handled) {
-            Completed::Unhandled { value, .. } => Some(value),
+            Completed::Unhandled(r) => Some(r),
             Completed::Handled => None,
         }
     }
 
-    /// Return the contents; leave a Handled event in its place.
-    pub fn take_inner(&mut self) -> Option<(Result<T, Error>, Option<String>)> {
-        match std::mem::replace(self, Completed::Handled) {
-            Completed::Unhandled { value, input } => Some((value, input)),
-            Completed::Handled => None,
-        }
-    }
-
-    /// Provide input string if available.
-    pub fn with_input(mut self, the_input: String) -> Self {
-        if let Completed::Unhandled { ref mut input, .. } = self {
-            *input = Some(the_input)
-        }
-        self
-    }
 }
 
 impl<V: Send + Sync + Clone> LookupMap for map::Trie<u8, V> {

@@ -2,8 +2,9 @@
 //!
 //! It uses promises rather than triggers.
 use crate::{
+    Minibuffer,
     acts::ActArg,
-    autocomplete::{AutoComplete, Lookup},
+    autocomplete::{AutoComplete, Lookup, LookupMap, Completed},
     event::{DispatchEvent, RunActByNameEvent, RunActEvent},
     prompt::{GetKeyChord, KeyChordEvent, PromptState},
     ui::PromptContainer,
@@ -132,8 +133,8 @@ impl MinibufferAsync {
         self.trigger.send(DispatchEvent::EmitMessage(msg.into()));
     }
 
-    /// Read input from user that must match a [Lookup].
-    pub fn prompt_with_lookup<L>(
+    /// Read input from user with autocomplete provided by a [Lookup].
+    pub fn prompt_lookup<L>(
         &mut self,
         prompt: impl Into<Cow<'static, str>>,
         lookup: L,
@@ -141,15 +142,29 @@ impl MinibufferAsync {
     where
         L: Lookup + Clone + Send + Sync + 'static,
     {
+        self.prompt_lookup_with(prompt, lookup, |_| ())
+    }
+
+    /// Read input from user with autocomplete provided by a [Lookup].
+    pub fn prompt_lookup_with<L>(
+        &mut self,
+        prompt: impl Into<Cow<'static, str>>,
+        lookup: L,
+        f: impl FnOnce(&mut EntityCommands) + Send + 'static,
+    ) -> impl Future<Output = Result<String, Error>> + '_
+    where
+        L: Lookup + Clone + Send + Sync + 'static,
+    {
         let prompt = prompt.into();
-        async {
-            let dest = self.dest;
-            let (promise, waiter) = oneshot::channel::<Result<String, Error>>();
-            let mut promise = Some(promise);
+        let dest = self.dest;
+        let (promise, waiter) = oneshot::channel::<Result<String, Error>>();
+        async move {
             let async_world = AsyncWorld::new();
             async_world.apply_command(move |world: &mut World| {
+                let mut promise = Some(promise);
                 let mut commands = world.commands();
-                let commands = Dest::ReplaceChildren(dest).entity(&mut commands);
+                let mut commands = Dest::ReplaceChildren(dest).entity(&mut commands);
+                f(&mut commands);
                 let autocomplete = AutoComplete::new(lookup);
                 autocomplete.construct(commands, prompt).observe(
                     move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
@@ -161,6 +176,57 @@ impl MinibufferAsync {
                         commands.entity(trigger.entity()).despawn_recursive();
                     },
                 );
+            });
+            waiter.await?
+        }
+    }
+
+    /// Read input from user with autocomplete provided by a [Lookup].
+    pub fn prompt_map<L>(
+        &mut self,
+        prompt: impl Into<Cow<'static, str>>,
+        lookup: L,
+    ) -> impl Future<Output = Result<L::Item, Error>> + '_
+    where
+        L: LookupMap + Lookup + Clone + Send + Sync + 'static,
+        <L as LookupMap>::Item: Sync + Debug,
+    {
+        self.prompt_map_with(prompt, lookup, |_| ())
+    }
+
+    /// Read input from user with autocomplete provided by a [Lookup].
+    pub fn prompt_map_with<L>(
+        &mut self,
+        prompt: impl Into<Cow<'static, str>>,
+        lookup: L,
+        f: impl FnOnce(&mut EntityCommands) + Send + 'static,
+    ) -> impl Future<Output = Result<L::Item, Error>> + '_
+    where
+        L: LookupMap + Lookup + Clone + Send + Sync + 'static,
+        <L as LookupMap>::Item: Sync + Debug,
+    {
+        let prompt = prompt.into();
+        // let dest = self.dest;
+        let (promise, waiter) = oneshot::channel::<Result<L::Item, Error>>();
+        async move {
+            let async_world = AsyncWorld::new();
+            async_world.apply_command(move |world: &mut World| {
+                let mut promise = Some(promise);
+                let mut state: SystemState<(Minibuffer,)> = SystemState::new(world);
+                let (mut minibuffer,) = state.get_mut(world);
+                let mut ecommands = minibuffer.prompt_map(prompt, lookup);
+                f(&mut ecommands);
+                ecommands.observe(
+                    move |mut trigger: Trigger<Completed<L::Item>>, mut commands: Commands| {
+                        if let Some(promise) = promise.take() {
+                            promise
+                                .send(trigger.event_mut().take_result().expect("completed already handled"))
+                                .expect("send");
+                        }
+                        commands.entity(trigger.entity()).despawn_recursive();
+                    },
+                );
+                state.apply(world);
             });
             waiter.await?
         }

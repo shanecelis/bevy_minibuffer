@@ -35,7 +35,7 @@ pub fn run_act(
         .map(|hotkey| format!("{} ", hotkey).into())
         .unwrap_or("run_act".into());
     async move {
-        match minibuffer.prompt_with_lookup(prompt, acts.clone()).await {
+        match minibuffer.prompt_lookup(prompt, acts.clone()).await {
             // TODO: Get rid of clone.
             Ok(act_name) => match acts.resolve_res(&act_name) {
                 Ok(act) => {

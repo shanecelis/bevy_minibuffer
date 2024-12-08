@@ -22,7 +22,7 @@ bitflags = "2.3.1"
 trie-rs = "0.4.2"
 bevy-input-sequence = "0.6.0"
 keyseq = { version = "0.4", features = [ "bevy" ]}
-bevy_asky = { git = "https://github.com/shanecelis/bevy_asky.git", default-features = false }
+bevy_asky = { version = "0.1", default-features = false }
 futures = { version = "0.3.30", optional = true }
 tabular = "0.2.0"
 thiserror = "1.0.58"
@@ -39,9 +39,6 @@ bevy_framepace = "0.17.1"
 bevy_image_export = "0.11.0"
 rand = "0.8.5"
 version-sync = "0.9.5"
-
-[patch.crates-io]
-bevy-input-sequence = { git = "https://github.com/shanecelis/bevy-input-sequence.git" }
 
 [[example]]
 name = "demo-async"

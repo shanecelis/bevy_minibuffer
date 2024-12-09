@@ -93,7 +93,7 @@ fn plugin(app: &mut App) {
 cargo run --example add-act
 ```
 
-[^1]: Any system with no input or output. This does exclude pipelines, however,
+[^1]: Any system with no input or output. This does not exclude pipelines, however,
   which are used extensively with asynchronous systems.
 
 ## Easily bind key chord sequences to acts 
@@ -340,13 +340,14 @@ scriptability, and it is a good trade because of its scriptability. Minibuffer
 does not provide interactive scriptability[^2] but that means we can make it a
 better interactive experience. For instance instead of being required to know
 the arguments for any given command, Minibuffer commands will query the user for
-what they require. It is a "pull" model of interaction versus a "push" model.
+what is required. It is a "pull" model of interaction versus a "push" model.
 
 [^2]: Although one could implement keyboard macros, which are a form of interactive scripting. Pull requests are welcome.
 
 # TODO
+- [ ] Make it possible to have vim-like prompt (no space after ":").
 - [ ] Use a "real" cursor/selection highlight.
-- [ ] Add `HashMap<String,V>` completer.
+- [x] Add `HashMap<String,V>` completer.
 - [x] Make universal-arg work without async.
 - [x] Re-write [asky](https://github.com/axelvc/asky) to be [bevy native](https://github.com/shanecelis/bevy_asky).
 

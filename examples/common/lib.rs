@@ -183,7 +183,7 @@ fn setup_capture(
             // .insert(IsDefaultUiCamera)
             .with_children(|parent| {
                 parent.spawn((
-                    Camera2dBundle {
+                    Camera2d {
                         camera: Camera {
                             order: 100,
                             // Connect the output texture to a camera as a RenderTarget.

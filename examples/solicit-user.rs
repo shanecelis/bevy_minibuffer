@@ -33,7 +33,7 @@ fn main() {
             plugin,
         ))
         .add_systems(Startup, |mut commands: Commands| {
-            commands.spawn(Camera2dBundle::default());
+            commands.spawn(Camera2d);
         })
         .run();
 }

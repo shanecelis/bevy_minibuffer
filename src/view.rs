@@ -1,10 +1,6 @@
 //! Implements Asky's views for Minibuffer prompts
 #![allow(clippy::type_complexity)]
-use bevy::{
-    ecs::{query::QueryEntityError, system::SystemParam},
-    prelude::*,
-};
-use bevy_asky::{construct::*, prelude::*, string_cursor::*, view::color};
+use bevy_asky::view::color;
 
 pub use color::View;
 

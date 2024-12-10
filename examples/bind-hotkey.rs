@@ -27,7 +27,7 @@ fn main() {
         .add_systems(
             Startup,
             |mut commands: Commands, mut minibuffer: Minibuffer| {
-                commands.spawn(Camera2dBundle::default());
+                commands.spawn(Camera2d);
                 minibuffer.message("Type 'Ctrl-W' to run hello_world.");
                 minibuffer.set_visible(true);
             },

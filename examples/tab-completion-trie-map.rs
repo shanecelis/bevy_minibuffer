@@ -46,7 +46,7 @@ fn main() {
         ))
         // .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, |mut commands: Commands| {
-            commands.spawn(Camera2dBundle::default());
+            commands.spawn(Camera2d);
         })
         .run();
 }

@@ -94,7 +94,7 @@ fn spawn_layout(mut commands: Commands) {
                                 overflow: Overflow::clip_y(),
                                 ..default()
                         },
-                            BackgroundColor(Color::srgb(0.10, 0.10, 0.10).into()),
+                            BackgroundColor(Color::srgb(0.10, 0.10, 0.10)),
                         ))
                         .insert(CompletionContainer)
                         .with_children(|builder| {
@@ -132,7 +132,7 @@ fn spawn_layout(mut commands: Commands) {
                                 // })
                                 ;
 
-                            builder.spawn(NodeBundle::default());
+                            builder.spawn(Node::default());
                         });
                 });
             builder

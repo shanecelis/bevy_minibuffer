@@ -34,6 +34,10 @@ accesskit = "0.17.1"
 async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_trigger" ]
 dev-capture = []
 
+[patch.crates-io]
+bevy-input-sequence = { path = "../bevy-input-sequence" }
+bevy_asky = { path = "../bevy_asky" }
+
 [dev-dependencies]
 bevy = "0.15.0"
 bevy-inspector-egui = "0.25"

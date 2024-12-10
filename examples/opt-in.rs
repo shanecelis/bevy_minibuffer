@@ -20,7 +20,7 @@ fn main() {
         .add_systems(
             Startup,
             |mut commands: Commands, mut minibuffer: Minibuffer| {
-                commands.spawn(Camera2dBundle::default());
+                commands.spawn(Camera2d);
                 minibuffer.message("Type 'Ctrl-H A' to see basic commands.");
                 minibuffer.set_visible(true);
             },

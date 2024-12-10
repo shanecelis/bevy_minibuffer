@@ -57,14 +57,15 @@ impl Plugin for VideoCapturePlugin {
             let fps = 12.0;
             let plugin = ImageExportPlugin::default();
             let export_threads = plugin.threads.clone();
+            // TODO: Add framepace back in when it's updated for bevy 0.15.
             app.add_plugins((
-                bevy_framepace::FramepacePlugin,
+                // bevy_framepace::FramepacePlugin,
                 plugin,
                 // MinibufferPlugins.set(self.minibuffer_plugin()),
             ))
-            .insert_resource(bevy_framepace::FramepaceSettings {
-                limiter: bevy_framepace::Limiter::from_framerate(fps),
-            })
+            // .insert_resource(bevy_framepace::FramepaceSettings {
+            //     limiter: bevy_framepace::Limiter::from_framerate(fps),
+            // })
             .add_systems(Update, move |events: EventReader<AppExit>| {
                 if !events.is_empty() {
                     export_threads.finish();

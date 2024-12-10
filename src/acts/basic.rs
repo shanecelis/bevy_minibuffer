@@ -83,7 +83,6 @@ pub fn list_acts(acts: Query<&Act>) -> String {
             }
         }
     }
-    info!("{}", table);
     format!("{}", table)
 }
 

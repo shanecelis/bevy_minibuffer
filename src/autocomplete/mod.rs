@@ -9,6 +9,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_asky::{
+    construct::ConstructExt,
     focus::{FocusParam, Focusable},
     string_cursor::*,
     Submitter,
@@ -62,7 +63,7 @@ impl AutoComplete {
             })
             .insert(StringCursor::default())
             .insert(Focusable::default())
-            .insert(crate::view::View)
+            .construct::<crate::view::View>(())
             .insert(self);
         commands
     }

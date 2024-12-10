@@ -308,6 +308,8 @@ pub(crate) fn run_acts_by_name(
             let system_id = act.system_id;
             last_act.0 = Some(RunActEvent::new(act.clone()));
             commands.run_system(system_id);
+        } else {
+            warn!("No act named '{}' found.", e.name);
         }
     }
 }
@@ -327,5 +329,7 @@ pub(crate) fn run_acts_by_name_trigger(
         let system_id = act.system_id;
         last_act.0 = Some(RunActEvent::new(act.clone()));
         commands.run_system(system_id);
+    } else {
+        warn!("No act named '{}' found.", e.name);
     }
 }

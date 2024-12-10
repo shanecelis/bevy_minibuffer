@@ -93,7 +93,6 @@ impl Minibuffer<'_, '_> {
     // where
     //     <T as Submitter>::Out: Clone + Debug + Send + Sync + 'static,
     // {
-
     // }
 
     /// Leave a message in the minibuffer.
@@ -113,10 +112,12 @@ impl Minibuffer<'_, '_> {
         match act.into() {
             ActArg::Act(act) => {
                 self.commands.trigger(RunActEvent::new(act));
+                // self.commands.send_event(RunActEvent::new(act));
                 // self.run_act_event.send();
             }
             ActArg::Name(name) => {
                 self.commands.trigger(RunActByNameEvent::new(name));
+                // self.commands.send_event(RunActByNameEvent::new(name));
                 // self.lookup_and_run_act_event.send(RunActByNameEvent::new(name));
             }
         }

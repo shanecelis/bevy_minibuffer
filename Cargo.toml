@@ -40,8 +40,8 @@ bevy_asky = { path = "../bevy_asky" }
 
 [dev-dependencies]
 bevy = "0.15.0"
-bevy-inspector-egui = "0.25"
-bevy_framepace = "0.17.1"
+bevy-inspector-egui = "0.28"
+# bevy_framepace = "0.17.1"
 bevy_image_export = "0.11.0"
 rand = "0.8.5"
 version-sync = "0.9.5"

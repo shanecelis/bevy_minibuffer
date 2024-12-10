@@ -15,7 +15,7 @@ pub fn future_result_sink<
     exec: NonSend<AsyncExecutor>,
     mut minibuffer: Minibuffer,
 ) {
-    exec.spawn(async move {
+    exec.spawn_any(async move {
         if let Err(e) = future.await {
             minibuffer.message(format!("{e}"));
         }
@@ -27,5 +27,5 @@ pub fn future_sink<F: Future<Output = ()> + 'static>(
     In(future): In<F>,
     exec: NonSend<AsyncExecutor>,
 ) {
-    exec.spawn(future);
+    exec.spawn_any(future);
 }

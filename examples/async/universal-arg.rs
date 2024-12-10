@@ -12,7 +12,7 @@ fn rnd_vec<R: Rng>(rng: &mut R) -> Vec3 {
 
 fn make_cube(
     arg: Res<UniversalArg>,
-    cubes: Query<Entity, With<Handle<Mesh>>>,
+    cubes: Query<Entity, With<Mesh3d>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -44,12 +44,11 @@ fn make_cube(
     } else {
         for _ in 0..count {
             let v = 2.0 * rnd_vec(&mut rng);
-            commands.spawn((PbrBundle {
-                mesh: cube_handle.clone(),
-                material: cube_material_handle.clone(),
-                transform: Transform::from_translation(v),
-                ..default()
-            },));
+            commands.spawn((
+                Mesh3d(cube_handle.clone()),
+                MeshMaterial3d(cube_material_handle.clone()),
+                Transform::from_translation(v),
+            ));
         }
         minibuffer.message(format!(
             "Made {} cube{}.",
@@ -71,22 +70,20 @@ fn plugin(app: &mut App) {
 
 fn setup(mut commands: Commands) {
     // light
-    commands.spawn(PointLightBundle {
-        transform: Transform::from_xyz(4.0, 5.0, -4.0),
-        ..default()
-    });
+    commands.spawn((PointLight::default(),
+        Transform::from_xyz(4.0, 5.0, -4.0),
+    ));
     // camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(5.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
+    commands.spawn((Camera3d::default(),
+        Transform::from_xyz(5.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
 }
 
 fn main() {
     App::new()
         // .add_plugins((DefaultPlugins, plugin))
         .add_plugins((
-            common::VideoCapturePlugin::new("universal-arg")
+            common::VideoCapturePlugin::new("universal-arg-async")
                 .background(Srgba::hex("7678ed").unwrap()),
             plugin,
         ))

@@ -59,7 +59,7 @@ pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Last
 
 /// List acts currently operant.
 pub fn list_acts(acts: Query<&Act>) -> String {
-    let mut table = Table::new("{:<}\t {:<}");
+    let mut table = Table::new("{:<}  {:<}");
     table.add_row(Row::new().with_cell("ACT ").with_cell("KEY BINDING"));
     let mut acts: Vec<_> = acts.iter().collect();
     acts.sort_by(|a, b| a.name().cmp(b.name()));
@@ -83,6 +83,7 @@ pub fn list_acts(acts: Query<&Act>) -> String {
             }
         }
     }
+    info!("{}", table);
     format!("{}", table)
 }
 
@@ -105,7 +106,7 @@ pub fn to_message(In(msg): In<String>, mut minibuffer: Minibuffer) {
 
 /// List key bindings available.
 pub fn list_key_bindings(acts: Query<&Act>) -> String {
-    let mut table = Table::new("{:<}\t {:<}");
+    let mut table = Table::new("{:<}  {:<}");
     table.add_row(Row::new().with_cell("KEY BINDING ").with_cell("ACT"));
 
     let mut key_bindings: Vec<(String, Cow<'static, str>)> = acts

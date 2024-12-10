@@ -56,12 +56,9 @@ impl AutoComplete {
     ) -> EntityCommands {
         commands
             .insert(Prompt(prompt.into()))
-            .insert(NodeBundle {
-                style: Style {
+            .insert(Node {
                     flex_wrap: FlexWrap::Wrap,
                     ..default()
-                },
-                ..default()
             })
             .insert(StringCursor::default())
             .insert(Focusable::default())

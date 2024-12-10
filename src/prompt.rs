@@ -206,12 +206,11 @@ fn completion_set(
     completion: Entity,
     children: Option<&Children>,
     labels: Vec<String>,
-    style: TextStyle,
     commands: &mut Commands,
 ) {
     let new_children = labels
         .into_iter()
-        .map(|label| commands.spawn(completion_item(label, style.clone())).id())
+        .map(|label| commands.spawn(completion_item(label)).id())
         .collect::<Vec<Entity>>();
     commands.entity(completion).replace_children(&new_children);
     if let Some(children) = children {
@@ -228,9 +227,7 @@ pub(crate) fn lookup_events(
     mut redraw: EventWriter<RequestRedraw>,
     mut commands: Commands,
     mut last_hash: Local<Option<u64>>,
-    config: Res<Config>,
 ) {
-    let text_style = &config.text_style;
     for e in lookup_events.read() {
         // info!("look up event: {e:?}");
         match e {
@@ -244,7 +241,6 @@ pub(crate) fn lookup_events(
                         completion_node,
                         children,
                         v.clone(),
-                        text_style.clone(),
                         &mut commands,
                     );
                     next_completion_state.set(CompletionState::Visible);

@@ -17,23 +17,25 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/shanecelis/bevy_minibuffer"
 
 [dependencies]
-bevy = "0.14"
+bevy = { version = "0.15.0", default-features = false, features = [ "bevy_text", "bevy_ui", "default_font", "bevy_window", "bevy_state" ] }
 bitflags = "2.3.1"
 trie-rs = "0.4.2"
-bevy-input-sequence = "0.6.0"
-keyseq = { version = "0.4", features = [ "bevy" ]}
-bevy_asky = { version = "0.1", default-features = false }
+bevy-input-sequence = "0.7.0"
+keyseq = { version = "0.5.0", features = [ "bevy" ]}
+bevy_asky = { version = "0.2.0", default-features = false, features = [ "color" ] }
 futures = { version = "0.3.30", optional = true }
 tabular = "0.2.0"
 thiserror = "1.0.58"
-bevy_defer = { version = "0.12", optional = true }
-bevy_channel_trigger = { version = "0.2.0", optional = true }
+bevy_defer = { version = "0.13", optional = true }
+bevy_channel_trigger = { version = "0.3.0", optional = true }
+accesskit = "0.17.1"
 
 [features]
 async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_trigger" ]
 dev-capture = []
 
 [dev-dependencies]
+bevy = "0.15.0"
 bevy-inspector-egui = "0.25"
 bevy_framepace = "0.17.1"
 bevy_image_export = "0.11.0"

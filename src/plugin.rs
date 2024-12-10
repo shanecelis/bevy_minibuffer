@@ -25,7 +25,6 @@ use bevy::{
         // OnEnter, OnExit,
         condition::in_state,
     },
-    text::TextStyle,
 };
 use bevy_asky::AskyPlugin;
 use bevy_input_sequence::InputSequencePlugin;
@@ -59,8 +58,6 @@ pub struct Config {
     pub auto_hide: bool,
     /// Auto hide delay.
     pub hide_delay: Duration,
-    /// The text style for minibuffer
-    pub text_style: TextStyle,
 }
 
 /// Minibuffer error
@@ -134,9 +131,9 @@ impl bevy::app::Plugin for MinibufferPlugin {
                 InputSequenceSet.after(MinibufferSet::Input),
                 InputSequenceSet.run_if(in_state(MinibufferState::Inactive)),
             ))
-            .observe(crate::event::dispatch_trigger)
-            .observe(crate::event::run_acts_trigger)
-            .observe(crate::event::run_acts_by_name_trigger)
+            .add_observer(crate::event::dispatch_trigger)
+            .add_observer(crate::event::run_acts_trigger)
+            .add_observer(crate::event::run_acts_by_name_trigger)
             .add_systems(Update,
                          ((run_acts_by_name, run_acts, prompt::set_minibuffer_state).chain(),
                           (dispatch_events, lookup_events).chain())

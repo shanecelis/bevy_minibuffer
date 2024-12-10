@@ -1,12 +1,14 @@
 //! UI
 use bevy::{
     a11y::{
-        accesskit::{NodeBuilder, Role},
         AccessibilityNode,
     },
     // input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
+
+use accesskit::{Node as Accessible, Role};
+// use bevy_a11y::AccessibilityNode;
 
 const PADDING: Val = Val::Px(3.);
 const LEFT_PADDING: Val = Val::Px(6.);
@@ -43,12 +45,11 @@ pub(crate) struct ScrollingList {
 /// Autocomplete item
 pub(crate) fn completion_item(
     label: String,
-    style: TextStyle,
-) -> (TextBundle, Label, AccessibilityNode) {
+) -> (Text, Label, AccessibilityNode) {
     (
-        TextBundle::from_section(label, style),
+        Text::new(label),
         Label,
-        AccessibilityNode(NodeBuilder::new(Role::ListItem)),
+        AccessibilityNode(Accessible::new(Role::ListItem)),
     )
 }
 
@@ -60,9 +61,8 @@ pub(crate) fn plugin(app: &mut App) {
 /// Create the UI layout.
 fn spawn_layout(mut commands: Commands) {
     let root = commands
-        .spawn(NodeBundle {
+        .spawn(Node {
             // visibility: Visibility::Hidden,
-            style: Style {
                 position_type: PositionType::Absolute,
                 // top: Val::Px(0.0),
                 bottom: Val::Px(0.0),
@@ -73,43 +73,34 @@ fn spawn_layout(mut commands: Commands) {
                 // align_items: AlignItems::FlexEnd,
                 // justify_content:
                 ..Default::default()
-            },
-            ..Default::default()
         })
         .insert(Name::new("Minibuffer"))
         .insert(MinibufferNode)
         .with_children(|builder| {
             builder
-                .spawn(NodeBundle {
-                    visibility: Visibility::Hidden,
-                    style: Style {
+                .spawn((Node {
                         flex_direction: FlexDirection::Row,
-                        ..default()
-                    },
                     ..default()
-                })
+                }, Visibility::Hidden))
                 .insert(Name::new("completions"))
                 .with_children(|builder| {
                     // List with hidden overflow
                     builder
-                        .spawn(NodeBundle {
-                            style: Style {
+                        .spawn((Node {
                                 flex_direction: FlexDirection::Column,
                                 align_self: AlignSelf::FlexEnd,
                                 // height: Val::Percent(50.),
                                 min_width: Val::Percent(25.),
                                 overflow: Overflow::clip_y(),
                                 ..default()
-                            },
-                            background_color: Color::srgb(0.10, 0.10, 0.10).into(),
-                            ..default()
-                        })
+                        },
+                            BackgroundColor(Color::srgb(0.10, 0.10, 0.10).into()),
+                        ))
                         .insert(CompletionContainer)
                         .with_children(|builder| {
                             builder
                                 .spawn((
-                                    NodeBundle {
-                                        style: Style {
+                                    Node {
                                             flex_direction: FlexDirection::Column,
                                             align_items: AlignItems::FlexStart,
                                             flex_grow: 0.,
@@ -124,13 +115,11 @@ fn spawn_layout(mut commands: Commands) {
                                                 ..default()
                                             },
                                             ..default()
-                                        },
-                                        background_color: BackgroundColor(Color::BLACK),
-                                        ..default()
                                     },
+                                    BackgroundColor(Color::BLACK),
                                     ScrollingList::default(),
                                     // CompletionList(vec![]),
-                                    AccessibilityNode(NodeBuilder::new(Role::List)),
+                                    AccessibilityNode(Accessible::new(Role::List)),
                                 ))
                                 // .with_children(|parent| {
                                 //     // List items
@@ -147,9 +136,7 @@ fn spawn_layout(mut commands: Commands) {
                         });
                 });
             builder
-                .spawn(NodeBundle {
-                    visibility: Visibility::Hidden,
-                    style: Style {
+                .spawn((Node {
                         flex_wrap: FlexWrap::Wrap,
                         flex_direction: FlexDirection::Row,
                         flex_grow: 1.,
@@ -161,9 +148,8 @@ fn spawn_layout(mut commands: Commands) {
                         },
                         ..Default::default()
                     },
-                    background_color: BackgroundColor(Color::BLACK),
-                    ..Default::default()
-                })
+Visibility::Hidden,
+                    BackgroundColor(Color::BLACK)))
                 .insert(Name::new("buffer"))
                 .insert(PromptContainer);
         })

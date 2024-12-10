@@ -18,7 +18,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, TextBundle, TextStyle, Trigger},
+    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Trigger, Text},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
 use std::fmt::Debug;
@@ -101,8 +101,7 @@ impl Minibuffer<'_, '_> {
         let msg = msg.into();
         let dest = self.dest.single();
         if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut self.commands) {
-            commands.insert(TextBundle::from_section(msg, TextStyle::default()));
-            // commands.construct::<Message>(msg);
+            commands.insert(Text::new(msg));
         }
     }
 

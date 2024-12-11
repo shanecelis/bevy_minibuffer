@@ -286,6 +286,44 @@ fn plugin(app: &mut App) {
  
 ```
 
+# Async
+
+An "async" feature flag makes the `MinibufferAsync` system parameter available.
+Unlike the regular `Minibuffer` system parameter, `MinibufferAsync` can be
+captured by closures.
+
+Although one can technically achieve the same behavior with `Minibuffer`, there
+are cases like those with many queries in succession where using
+`MinibufferAsync` is more expressive. 
+
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
+
+/// Ask the user for their name. Say hello.
+async fn ask_name(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
+    let first_name = minibuffer
+        .prompt::<TextField>("What's your first name? ")
+        .await?;
+    let last_name = minibuffer
+        .prompt::<TextField>("What's your last name? ")
+        .await?;
+    minibuffer.message(format!("Hello, {first_name} {last_name}!"));
+    Ok(())
+}
+
+fn plugin(app: &mut App) {
+    app.add_acts(ask_name.pipe(future_result_sink));
+}
+```
+The preceding async function `ask_name()` returns a future, technically a `impl Future<Output
+= Result<(), Error>>`. That has to go somewhere so that it will be evaluated.
+There are a series of functions in the `sink` module:
+
+- `future_sink` accepts any future and runs it.
+- `future_result_sink` accepts any future that returns a result and runs it but
+  on return if it delivered an error, it reports that error to the minibuffer.
+
 # Acts and Plugins
 
 An `ActsPlugin` is a `Plugin` that contains `Act`s. Two `ActsPlugin`s are

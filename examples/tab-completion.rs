@@ -13,10 +13,7 @@
 //! ```
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
-use std::{
-    collections::HashMap,
-    process::ExitCode,
-};
+use std::{collections::HashMap, process::ExitCode};
 
 #[path = "common/lib.rs"]
 mod common;
@@ -92,24 +89,24 @@ fn hello_name_trie_map(mut minibuffer: Minibuffer) {
 }
 
 fn plugin(app: &mut App) {
-    app.add_plugins(MinibufferPlugins)
-        .add_acts((BasicActs::default(),
-                   // Bare systems can be passed in if there's no configuration
-                   // for the act that's necessary.
-                   //
-                   // Act::new(hello_name_vec),
-                   hello_name_vec,
-                   hello_name_hash_map,
-                   hello_name_trie,
-                   hello_name_trie_map,
-                  ));
+    app.add_plugins(MinibufferPlugins).add_acts((
+        BasicActs::default(),
+        // Bare systems can be passed in if there's no configuration
+        // for the act that's necessary.
+        //
+        // Act::new(hello_name_vec),
+        hello_name_vec,
+        hello_name_hash_map,
+        hello_name_trie,
+        hello_name_trie_map,
+    ));
 }
 
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
     let argument: Option<String> = args.next();
     let is_help = argument.as_ref().map(|arg| arg == "-h" || arg == "--help");
-    if  is_help.unwrap_or(false) || args.next().is_some() {
+    if is_help.unwrap_or(false) || args.next().is_some() {
         eprintln!("usage: tab-completion <vec, hash-map, trie, trie-map>");
         return ExitCode::from(2);
     }
@@ -139,24 +136,31 @@ const OPTIONS: [(&str, &str); 4] = [
 
 fn choose_completion(In(arg): In<Option<String>>, mut minibuffer: Minibuffer) {
     if let Some(arg) = arg {
-        if let Some(act_name) = OPTIONS.iter().find(|x| x.0.split_whitespace().next().map(|y| y == arg).unwrap_or(false)).map(|x| x.1) {
-
+        if let Some(act_name) = OPTIONS
+            .iter()
+            .find(|x| {
+                x.0.split_whitespace()
+                    .next()
+                    .map(|y| y == arg)
+                    .unwrap_or(false)
+            })
+            .map(|x| x.1)
+        {
             minibuffer.run_act(act_name);
         } else {
             eprintln!("No act for that argument.");
             std::process::exit(1);
         }
-
     } else {
         minibuffer
             .prompt::<RadioGroup>("Choose a completion kind: ")
             .prompt_children::<Radio>(OPTIONS.iter().map(|x| x.0))
             .observe(
-            move |mut trigger: Trigger<Submit<usize>>, mut minibuffer: Minibuffer| {
-                if let Ok(index) = trigger.event_mut().take_result() {
-                    minibuffer.run_act(OPTIONS[index].1);
-                }
-            },
-        );
+                move |mut trigger: Trigger<Submit<usize>>, mut minibuffer: Minibuffer| {
+                    if let Ok(index) = trigger.event_mut().take_result() {
+                        minibuffer.run_act(OPTIONS[index].1);
+                    }
+                },
+            );
     }
 }

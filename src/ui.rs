@@ -1,8 +1,6 @@
 //! UI
 use bevy::{
-    a11y::{
-        AccessibilityNode,
-    },
+    a11y::AccessibilityNode,
     // input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
@@ -43,9 +41,7 @@ pub(crate) struct ScrollingList {
 }
 
 /// Autocomplete item
-pub(crate) fn completion_item(
-    label: String,
-) -> (Text, Label, AccessibilityNode) {
+pub(crate) fn completion_item(label: String) -> (Text, Label, AccessibilityNode) {
     (
         Text::new(label),
         Label,
@@ -63,37 +59,41 @@ fn spawn_layout(mut commands: Commands) {
     let root = commands
         .spawn(Node {
             // visibility: Visibility::Hidden,
-                position_type: PositionType::Absolute,
-                // top: Val::Px(0.0),
-                bottom: Val::Px(0.0),
-                right: Val::Px(0.0),
-                left: Val::Px(0.0),
-                flex_direction: FlexDirection::Column,
+            position_type: PositionType::Absolute,
+            // top: Val::Px(0.0),
+            bottom: Val::Px(0.0),
+            right: Val::Px(0.0),
+            left: Val::Px(0.0),
+            flex_direction: FlexDirection::Column,
 
-                // align_items: AlignItems::FlexEnd,
-                // justify_content:
-                ..Default::default()
+            // align_items: AlignItems::FlexEnd,
+            // justify_content:
+            ..Default::default()
         })
         .insert(Name::new("minibuffer"))
         .insert(MinibufferNode)
         .with_children(|builder| {
             builder
-                .spawn((Node {
+                .spawn((
+                    Node {
                         flex_direction: FlexDirection::Row,
-                    ..default()
-                }, Visibility::Hidden))
+                        ..default()
+                    },
+                    Visibility::Hidden,
+                ))
                 .insert(Name::new("completions"))
                 .with_children(|builder| {
                     // List with hidden overflow
                     builder
-                        .spawn((Node {
+                        .spawn((
+                            Node {
                                 flex_direction: FlexDirection::Column,
                                 align_self: AlignSelf::FlexEnd,
                                 // height: Val::Percent(50.),
                                 min_width: Val::Percent(25.),
                                 overflow: Overflow::clip_y(),
                                 ..default()
-                        },
+                            },
                             BackgroundColor(Color::srgb(0.10, 0.10, 0.10)),
                         ))
                         .insert(CompletionContainer)
@@ -136,7 +136,8 @@ fn spawn_layout(mut commands: Commands) {
                         });
                 });
             builder
-                .spawn((Node {
+                .spawn((
+                    Node {
                         flex_wrap: FlexWrap::Wrap,
                         flex_direction: FlexDirection::Row,
                         flex_grow: 1.,
@@ -148,8 +149,9 @@ fn spawn_layout(mut commands: Commands) {
                         },
                         ..Default::default()
                     },
-Visibility::Hidden,
-                    BackgroundColor(Color::BLACK)))
+                    Visibility::Hidden,
+                    BackgroundColor(Color::BLACK),
+                ))
                 .insert(Name::new("buffer"))
                 .insert(PromptContainer);
         })

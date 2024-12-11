@@ -18,7 +18,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Trigger, Text},
+    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Text, Trigger},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
 use std::fmt::Debug;

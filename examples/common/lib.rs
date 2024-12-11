@@ -30,9 +30,7 @@ use bevy::render::{
     },
 };
 #[cfg(feature = "dev-capture")]
-use bevy_image_export::{
-    ImageExport, ImageExportPlugin, ImageExportSettings, ImageExportSource,
-};
+use bevy_image_export::{ImageExport, ImageExportPlugin, ImageExportSettings, ImageExportSource};
 
 pub struct VideoCapturePlugin {
     pub resolution: Vec2,
@@ -57,19 +55,19 @@ impl Plugin for VideoCapturePlugin {
             let plugin = ImageExportPlugin::default();
             let export_threads = plugin.threads.clone();
             app.add_plugins(plugin)
-            .add_systems(Update, move |events: EventReader<AppExit>| {
-                if !events.is_empty() {
-                    export_threads.finish();
-                }
-            });
+                .add_systems(Update, move |events: EventReader<AppExit>| {
+                    if !events.is_empty() {
+                        export_threads.finish();
+                    }
+                });
             // TODO: Add framepace back in when it's updated for bevy 0.15.
             #[cfg(feature = "dev-framepace")]
             {
                 let fps = 12.0;
                 app.add_plugins(bevy_framepace::FramepacePlugin)
-                   .insert_resource(bevy_framepace::FramepaceSettings {
-                       limiter: bevy_framepace::Limiter::from_framerate(fps),
-                   });
+                    .insert_resource(bevy_framepace::FramepaceSettings {
+                        limiter: bevy_framepace::Limiter::from_framerate(fps),
+                    });
             }
 
             if let Some(background) = background {
@@ -184,14 +182,15 @@ fn setup_capture(
             .entity(id)
             // .insert(IsDefaultUiCamera)
             .with_children(|parent| {
-                parent.spawn((Camera2d,
-                              Camera {
-                                  order: 100,
-                                  // Connect the output texture to a camera as a RenderTarget.
-                                  target: RenderTarget::Image(output_texture_handle.clone()),
-                                  ..default()
-                              },
-                              IsDefaultUiCamera,
+                parent.spawn((
+                    Camera2d,
+                    Camera {
+                        order: 100,
+                        // Connect the output texture to a camera as a RenderTarget.
+                        target: RenderTarget::Image(output_texture_handle.clone()),
+                        ..default()
+                    },
+                    IsDefaultUiCamera,
                 ));
             });
         commands.spawn((
@@ -237,7 +236,8 @@ fn setup_capture(
     }
 
     // Spawn the ImageExportBundle to initiate the export of the output texture.
-    commands.spawn((ImageExport(export_sources.add(output_texture_handle)),
+    commands.spawn((
+        ImageExport(export_sources.add(output_texture_handle)),
         ImageExportSettings {
             // Frames will be saved to "./out/[#####].png".
             output_dir: "out".into(),

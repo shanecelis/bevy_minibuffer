@@ -262,9 +262,9 @@ fn universal_arg_async(
                 Minus => -1,
                 _ => {
                     let world = AsyncWorld::new();
-                    let _ = world
-                        .resource::<UniversalArg>()
-                        .get_mut(move |r| r.0 = (!accumulated).then_some(multiplier).or(Some(accum)));
+                    let _ = world.resource::<UniversalArg>().get_mut(move |r| {
+                        r.0 = (!accumulated).then_some(multiplier).or(Some(accum))
+                    });
                     // This last chord isn't what we expected. Send it back for
                     // processing.
                     let _ = world

@@ -237,12 +237,7 @@ pub(crate) fn lookup_events(
                 // eprintln!("hash {hash}");
                 if last_hash.unwrap_or(0) != hash {
                     let (completion_node, children) = completion.single();
-                    completion_set(
-                        completion_node,
-                        children,
-                        v.clone(),
-                        &mut commands,
-                    );
+                    completion_set(completion_node, children, v.clone(), &mut commands);
                     next_completion_state.set(CompletionState::Visible);
                     redraw.send(RequestRedraw);
                 }

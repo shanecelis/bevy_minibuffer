@@ -79,11 +79,10 @@ fn plugin(app: &mut App) {
 
 fn setup(mut commands: Commands) {
     // light
-    commands.spawn((PointLight::default(),
-        Transform::from_xyz(4.0, 5.0, -4.0),
-    ));
+    commands.spawn((PointLight::default(), Transform::from_xyz(4.0, 5.0, -4.0)));
     // camera
-    commands.spawn((Camera3d::default(),
+    commands.spawn((
+        Camera3d::default(),
         Transform::from_xyz(5.0, 10.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
     ));
 }

@@ -8,8 +8,8 @@ mod sealed {
     use crate::acts::{ActBuilder, Acts, ActsPlugin};
     use bevy::{
         app::App,
-        prelude::IntoSystem,
         ecs::world::{Command, World},
+        prelude::IntoSystem,
     };
     pub struct ActsPluginMarker;
     pub struct ActBuilderMarker;
@@ -38,7 +38,7 @@ mod sealed {
         }
     }
 
-    impl<S: IntoSystem<(), (), P> + 'static, P> ActBuilders<(SystemMarker,P)> for S {
+    impl<S: IntoSystem<(), (), P> + 'static, P> ActBuilders<(SystemMarker, P)> for S {
         fn add_to_world(self, world: &mut World) {
             ActBuilder::new(self).add_to_world(world);
         }

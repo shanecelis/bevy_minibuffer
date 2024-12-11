@@ -13,11 +13,8 @@
 //! ```
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
+use std::{collections::HashMap, process::ExitCode};
 use trie_rs::map::Trie;
-use std::{
-    collections::HashMap,
-    process::ExitCode,
-};
 
 #[path = "../common/lib.rs"]
 mod common;
@@ -72,24 +69,24 @@ async fn hello_name_trie_map(mut minibuffer: MinibufferAsync) -> Result<(), Erro
 }
 
 fn plugin(app: &mut App) {
-    app.add_plugins(MinibufferPlugins)
-        .add_acts((BasicActs::default(),
-                   // Bare systems can be passed in if there's no configuration
-                   // for the act that's necessary.
-                   //
-                   // Act::new(hello_name_vec),
-                   (hello_name_vec.pipe(future_result_sink)),
-                   (hello_name_hash_map.pipe(future_result_sink)),
-                   (hello_name_trie.pipe(future_result_sink)),
-                   (hello_name_trie_map.pipe(future_result_sink)),
-                  ));
+    app.add_plugins(MinibufferPlugins).add_acts((
+        BasicActs::default(),
+        // Bare systems can be passed in if there's no configuration
+        // for the act that's necessary.
+        //
+        // Act::new(hello_name_vec),
+        (hello_name_vec.pipe(future_result_sink)),
+        (hello_name_hash_map.pipe(future_result_sink)),
+        (hello_name_trie.pipe(future_result_sink)),
+        (hello_name_trie_map.pipe(future_result_sink)),
+    ));
 }
 
 fn main() -> ExitCode {
     let mut args = std::env::args().skip(1);
     let argument: Option<String> = args.next();
     let is_help = argument.as_ref().map(|arg| arg == "-h" || arg == "--help");
-    if  is_help.unwrap_or(false) || args.next().is_some() {
+    if is_help.unwrap_or(false) || args.next().is_some() {
         eprintln!("usage: tab-completion <vec, hash-map, trie, trie-map>");
         return ExitCode::from(2);
     }
@@ -105,7 +102,10 @@ fn main() -> ExitCode {
         .add_systems(Startup, |mut commands: Commands| {
             commands.spawn(Camera2d);
         })
-        .add_systems(Startup, (move || argument.clone()).pipe(choose_completion.pipe(future_result_sink)))
+        .add_systems(
+            Startup,
+            (move || argument.clone()).pipe(choose_completion.pipe(future_result_sink)),
+        )
         .run();
     ExitCode::SUCCESS
 }
@@ -117,10 +117,21 @@ const OPTIONS: [(&str, &str); 4] = [
     ("trie-map (performant)", "hello_name_trie_map"),
 ];
 
-async fn choose_completion(In(arg): In<Option<String>>, mut minibuffer: MinibufferAsync) -> Result<(), Error> {
+async fn choose_completion(
+    In(arg): In<Option<String>>,
+    mut minibuffer: MinibufferAsync,
+) -> Result<(), Error> {
     if let Some(arg) = arg {
-        if let Some(act_name) = OPTIONS.iter().find(|x| x.0.split_whitespace().next().map(|y| y == arg).unwrap_or(false)).map(|x| x.1) {
-
+        if let Some(act_name) = OPTIONS
+            .iter()
+            .find(|x| {
+                x.0.split_whitespace()
+                    .next()
+                    .map(|y| y == arg)
+                    .unwrap_or(false)
+            })
+            .map(|x| x.1)
+        {
             minibuffer.run_act(act_name);
         } else {
             eprintln!("No act for that argument.");
@@ -130,7 +141,8 @@ async fn choose_completion(In(arg): In<Option<String>>, mut minibuffer: Minibuff
         let index: usize = minibuffer
             .prompt_with::<RadioGroup>("Choose a completion kind: ", |parent| {
                 parent.prompt_children::<Radio>(OPTIONS.iter().map(|x| x.0));
-            }).await?;
+            })
+            .await?;
         if let Some(tuple) = OPTIONS.get(index) {
             minibuffer.run_act(tuple.1);
         } else {

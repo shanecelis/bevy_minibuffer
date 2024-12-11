@@ -110,10 +110,14 @@ impl Act {
             .map(|(i, hotkey)| {
                 let name = Name::new(hotkey.to_string());
                 let id = world.spawn(name).id();
-                EntityCommand::apply(KeySequence::new(
-                    action::send_event(RunActEvent::new(self.clone()).with_hotkey(i)),
-                    hotkey.chords.clone(),
-                ), id, world);
+                EntityCommand::apply(
+                    KeySequence::new(
+                        action::send_event(RunActEvent::new(self.clone()).with_hotkey(i)),
+                        hotkey.chords.clone(),
+                    ),
+                    id,
+                    world,
+                );
                 id
             })
             .collect()

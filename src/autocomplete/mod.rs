@@ -58,8 +58,8 @@ impl AutoComplete {
         commands
             .insert(Prompt(prompt.into()))
             .insert(Node {
-                    flex_wrap: FlexWrap::Wrap,
-                    ..default()
+                flex_wrap: FlexWrap::Wrap,
+                ..default()
             })
             .insert(StringCursor::default())
             .insert(Focusable::default())

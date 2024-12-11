@@ -18,6 +18,17 @@ The video above shows the [demo-async](/examples/async/demo.rs) example.
 cargo run --example demo-async --features async
 ```
 
+# Features
+- Input prompt, i.e, a "minibuffer"
+  - Specialized prompts: checkboxes, radio buttons, numbers, passwords, confirm, and toggle.
+  - [Tab completion](#tab-completion-where-possible)
+  - [Map to values](#use-a-maptrie)
+- Run acts, i.e., commands
+- Bind key sequences to acts `keyseq! { Ctrl-A Alt-C Shift-T S }`
+- Write your own acts (acts are just systems)
+  - Support for async acts behind "async" feature flag
+- Basic acts: `run_act`, `list_acts`, `list_key_bindings`, `toggle_visibility`, and `describe_key`.
+
 # Goals
 - Easily opt-in to basic functionality
 - Easily add acts, i.e., commands
@@ -284,7 +295,7 @@ cargo run --example tab-completion trie-map
 Minibuffer is a collection of a few distinct pieces:
 
 - Acts, i.e., commands
-- Key bindings
+- Key sequence bindings
 - A "mini-buffer" or buffer, i.e., the small panel at the bottom of the screen
   to query and respond to the user.
   
@@ -424,7 +435,7 @@ One uses it like so, type `Ctrl-U 1 0` and this would place 10 into the
 `UniversalArg` resource. It is cleared after the next act runs. See the example.
 
 ``` sh
-cargo run --example universal-arg --features async
+cargo run --example universal-arg
 ```
 
 # FAQ
@@ -474,6 +485,7 @@ This is an unresolved issue.
 
 | bevy_minibuffer | bevy |
 |-----------------|------|
+| 0.2.0           | 0.15 |
 | 0.1.0           | 0.14 |
 
 # License

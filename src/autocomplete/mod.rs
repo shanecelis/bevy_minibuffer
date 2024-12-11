@@ -216,7 +216,9 @@ fn autocomplete_controller(
                     }
                     focus.block(id);
                 }
-                x => info!("Unhandled key {x:?}"),
+                _x => {
+                    // info!("Unhandled key {x:?}");
+                }
             }
         }
     }

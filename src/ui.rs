@@ -74,7 +74,7 @@ fn spawn_layout(mut commands: Commands) {
                 // justify_content:
                 ..Default::default()
         })
-        .insert(Name::new("Minibuffer"))
+        .insert(Name::new("minibuffer"))
         .insert(MinibufferNode)
         .with_children(|builder| {
             builder

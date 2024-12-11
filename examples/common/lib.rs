@@ -31,7 +31,7 @@ use bevy::render::{
 };
 #[cfg(feature = "dev-capture")]
 use bevy_image_export::{
-    ImageExportBundle, ImageExportPlugin, ImageExportSettings, ImageExportSource,
+    ImageExport, ImageExportPlugin, ImageExportSettings, ImageExportSource,
 };
 
 pub struct VideoCapturePlugin {
@@ -54,23 +54,24 @@ impl Plugin for VideoCapturePlugin {
         #[cfg(feature = "dev-capture")]
         {
             let res = self.resolution;
-            let fps = 12.0;
             let plugin = ImageExportPlugin::default();
             let export_threads = plugin.threads.clone();
-            // TODO: Add framepace back in when it's updated for bevy 0.15.
-            app.add_plugins((
-                // bevy_framepace::FramepacePlugin,
-                plugin,
-                // MinibufferPlugins.set(self.minibuffer_plugin()),
-            ))
-            // .insert_resource(bevy_framepace::FramepaceSettings {
-            //     limiter: bevy_framepace::Limiter::from_framerate(fps),
-            // })
+            app.add_plugins(plugin)
             .add_systems(Update, move |events: EventReader<AppExit>| {
                 if !events.is_empty() {
                     export_threads.finish();
                 }
             });
+            // TODO: Add framepace back in when it's updated for bevy 0.15.
+            #[cfg(feature = "dev-framepace")]
+            {
+                let fps = 12.0;
+                app.add_plugins(bevy_framepace::FramepacePlugin)
+                   .insert_resource(bevy_framepace::FramepaceSettings {
+                       limiter: bevy_framepace::Limiter::from_framerate(fps),
+                   });
+            }
+
             if let Some(background) = background {
                 app.add_systems(
                     PostStartup,
@@ -183,34 +184,25 @@ fn setup_capture(
             .entity(id)
             // .insert(IsDefaultUiCamera)
             .with_children(|parent| {
-                parent.spawn((
-                    Camera2d {
-                        camera: Camera {
-                            order: 100,
-                            // Connect the output texture to a camera as a RenderTarget.
-                            target: RenderTarget::Image(output_texture_handle.clone()),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                    IsDefaultUiCamera,
+                parent.spawn((Camera2d,
+                              Camera {
+                                  order: 100,
+                                  // Connect the output texture to a camera as a RenderTarget.
+                                  target: RenderTarget::Image(output_texture_handle.clone()),
+                                  ..default()
+                              },
+                              IsDefaultUiCamera,
                 ));
             });
         commands.spawn((
-            ImageBundle {
-                image: UiImage {
-                    texture: output_texture_handle.clone(),
-                    ..default()
-                },
-                style: Style {
-                    // Cover the whole image
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    // flex_direction: FlexDirection::Column,
-                    // justify_content: JustifyContent::Center,
-                    // align_items: AlignItems::Center,
-                    ..default()
-                },
+            ImageNode::new(output_texture_handle.clone()),
+            Node {
+                // Cover the whole image
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                // flex_direction: FlexDirection::Column,
+                // justify_content: JustifyContent::Center,
+                // align_items: AlignItems::Center,
                 ..default()
             },
             TargetCamera(id),
@@ -218,32 +210,24 @@ fn setup_capture(
     } else if let Ok(id) = camera3d.get_single() {
         commands.entity(id).with_children(|parent| {
             parent.spawn((
-                Camera3dBundle {
-                    camera: Camera {
-                        // Connect the output texture to a camera as a RenderTarget.
-                        target: RenderTarget::Image(output_texture_handle.clone()),
-                        ..default()
-                    },
+                Camera3d::default(),
+                Camera {
+                    // Connect the output texture to a camera as a RenderTarget.
+                    target: RenderTarget::Image(output_texture_handle.clone()),
                     ..default()
                 },
                 IsDefaultUiCamera,
             ));
         });
         commands.spawn((
-            ImageBundle {
-                image: UiImage {
-                    texture: output_texture_handle.clone(),
-                    ..default()
-                },
-                style: Style {
-                    // Cover the whole image
-                    width: Val::Percent(100.),
-                    height: Val::Percent(100.),
-                    // flex_direction: FlexDirection::Column,
-                    // justify_content: JustifyContent::Center,
-                    // align_items: AlignItems::Center,
-                    ..default()
-                },
+            ImageNode::new(output_texture_handle.clone()),
+            Node {
+                // Cover the whole image
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                // flex_direction: FlexDirection::Column,
+                // justify_content: JustifyContent::Center,
+                // align_items: AlignItems::Center,
                 ..default()
             },
             TargetCamera(id),
@@ -253,13 +237,12 @@ fn setup_capture(
     }
 
     // Spawn the ImageExportBundle to initiate the export of the output texture.
-    commands.spawn(ImageExportBundle {
-        source: export_sources.add(output_texture_handle),
-        settings: ImageExportSettings {
+    commands.spawn((ImageExport(export_sources.add(output_texture_handle)),
+        ImageExportSettings {
             // Frames will be saved to "./out/[#####].png".
             output_dir: "out".into(),
             // Choose "exr" for HDR renders.
             extension: "png".into(),
         },
-    });
+    ));
 }

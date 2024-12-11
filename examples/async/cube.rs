@@ -65,7 +65,7 @@ fn speed(
         world
             .entity(id)
             .component::<Rotatable>()
-            .set(move |r| r.speed = speed)?;
+            .get_mut(move |r| r.speed = speed)?;
         Ok(())
     }
 }

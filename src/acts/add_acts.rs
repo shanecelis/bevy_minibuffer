@@ -8,12 +8,14 @@ mod sealed {
     use crate::acts::{ActBuilder, Acts, ActsPlugin};
     use bevy::{
         app::App,
+        prelude::IntoSystem,
         ecs::world::{Command, World},
     };
     pub struct ActsPluginMarker;
     pub struct ActBuilderMarker;
     pub struct MutActBuilderMarker;
     pub struct ActsMarker;
+    pub struct SystemMarker;
     // pub struct IntoActsMarker;
     pub struct ActBuildersTupleMarker;
 
@@ -33,6 +35,12 @@ mod sealed {
     impl ActBuilders<ActBuilderMarker> for ActBuilder {
         fn add_to_world(self, world: &mut World) {
             self.apply(world);
+        }
+    }
+
+    impl<S: IntoSystem<(), (), P> + 'static, P> ActBuilders<(SystemMarker,P)> for S {
+        fn add_to_world(self, world: &mut World) {
+            ActBuilder::new(self).add_to_world(world);
         }
     }
 

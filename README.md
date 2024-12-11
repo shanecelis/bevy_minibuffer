@@ -181,7 +181,7 @@ fn plugin(app: &mut App) {
 }
 ```
 ``` sh
-cargo run --example tab-completion
+cargo run --example tab-completion vec
 ```
 
 ### Use a `Trie`
@@ -200,13 +200,44 @@ fn hello_name(mut minibuffer: Minibuffer) {
 }
 ```
 ``` sh
-cargo run --example tab-completion-trie
+cargo run --example tab-completion trie
+```
+
+### Use a `HashMap`
+One can provide a hash map that will provide completions and mapping to values.
+
+``` rust no_run
+#[derive(Debug, Clone)]
+enum Popular {
+    Common,
+    Uncommon,
+    Rare,
+}
+
+fn hello_name_hash_map(mut minibuffer: Minibuffer) {
+    let map = HashMap::from_iter([
+        ("John", Popular::Common),
+        ("Sean", Popular::Uncommon),
+        ("Shane", Popular::Rare),
+    ]);
+    minibuffer.prompt_map("What's your name? ", map).observe(
+        |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
+            let popular = trigger.event_mut().take_result().unwrap();
+            minibuffer.message(match popular {
+                Ok(popular) => format!("That's a {:?} name.", popular),
+                _ => "I don't know what kind of name that is.".to_string(),
+            });
+        },
+    );
+}
 ```
 
 ### Use a `map::Trie`
 <img align="right" src="https://github.com/user-attachments/assets/af7b33e0-135d-4d6c-b748-a489a1245000"/>
-Further one can provide a trie that maps to an arbitary value type `V` and
-receive the value `V` type in reponse in addition to the string.
+
+One can provide a trie that maps to an arbitary value type `V` and receive the
+value `V` type in response in addition to the string. This is more performant
+than a hash map.
 
 ``` rust no_run
 # use bevy::prelude::*;
@@ -238,7 +269,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
 }
 ```
 ``` sh
-cargo run --example tab-completion-trie-map
+cargo run --example tab-completion trie-map
 ```
 ## Easily exclude from build
 

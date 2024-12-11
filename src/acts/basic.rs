@@ -29,7 +29,15 @@ pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Last
     let acts: Trie<u8, Act> = builder.build();
     let prompt: Cow<'static, str> = last_act
         .hotkey()
-        .map(|hotkey| format!("{} ", hotkey).into())
+        .map(|hotkey| {
+            // We're hardcoding this little vim-ism. We feel slightly vandalous
+            // _and_ good about it.
+            if hotkey.alias.as_ref().map(|x| x == ":").unwrap_or(false) {
+                ":".into()
+            } else {
+                format!("{} ", hotkey).into()
+            }
+        })
         .unwrap_or("run_act".into());
     minibuffer
         .prompt_lookup(prompt, acts.clone())

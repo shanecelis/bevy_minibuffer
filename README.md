@@ -347,7 +347,7 @@ captured by closures.
 
 Although one can technically achieve the same behavior with `Minibuffer`, there
 are cases like those with many queries in succession where using
-`MinibufferAsync` is more expressive. 
+`MinibufferAsync` is more straightforward to write and read. 
 
 ``` rust no_run
 # use bevy::prelude::*;
@@ -371,11 +371,11 @@ fn plugin(app: &mut App) {
 ```
 The preceding async function `ask_name()` returns a future, technically a `impl Future<Output
 = Result<(), Error>>`. That has to go somewhere so that it will be evaluated.
-There are a series of functions in the `sink` module:
+There are a series of pipe-able systems in the `sink` module:
 
 - `future_sink` accepts any future and runs it.
 - `future_result_sink` accepts any future that returns a result and runs it but
-  on return if it delivered an error, it reports that error to the minibuffer.
+  on result is an error, it reports that error to the minibuffer.
 
 # Acts and Plugins
 
@@ -403,7 +403,7 @@ Hides and shows the minibuffer.
 
 But one can trim it down further if one likes by calling `take_acts()`,
 manipulating them, and submitting that to `add_acts()`. For instance to only add
-'run_act', one would do the following:
+'run_act', one could do the following:
 
 ``` rust no_run
 # use bevy::prelude::*;
@@ -436,6 +436,35 @@ One uses it like so, type `Ctrl-U 1 0` and this would place 10 into the
 
 ``` sh
 cargo run --example universal-arg
+```
+
+### How is a number universal?
+
+Although universal argument accepts a number, one can use it as an on or off
+flag too. 'Ctrl-U' ends up functioning like an adverb.
+
+Suppose we had an act called 'open-door' but it only worked the cloest door.
+What if we also wanted to open all doors? We could write another act to do that
+'open-all-doors' and find another key binding but let us consider what this
+might look like with universal argument.
+
+- Type 'Alt-X open-door' to open the closest door.
+- Type 'Ctrl-U Alt-X open-door' to open all the doors.
+
+Likewise this will work on key bindings, so if 'open-door' is bound to 'O D',
+then one could do this:
+
+- Type 'O D' to open the closest door.
+- Type 'Ctrl-U O D' to open all the doors.
+
+``` rust
+fn open_door(universal_arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
+    if universal_arg.is_none() {
+        minibuffer.message("Open one door.");
+    } else {
+        minibuffer.message("Open all the doors.");
+    }
+}
 ```
 
 # FAQ

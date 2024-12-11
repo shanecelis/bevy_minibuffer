@@ -129,7 +129,7 @@ pub fn display_universal_arg(arg: Res<UniversalArg>, mut minibuffer: Minibuffer)
 
 /// This resources stores the last given universal argument. It is cleared after
 /// any act---that is not specifically marked [ActFlags::Adverb]---runs.
-#[derive(Debug, Clone, Resource, Default, Reflect)]
+#[derive(Debug, Clone, Resource, Default, Reflect, Deref, DerefMut)]
 pub struct UniversalArg(pub Option<i32>);
 
 fn universal_arg(

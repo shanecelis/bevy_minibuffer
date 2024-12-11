@@ -58,6 +58,14 @@ fn make_cube(
     }
 }
 
+fn open_door(universal_arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
+    if universal_arg.is_none() {
+        minibuffer.message("Open one door.");
+    } else {
+        minibuffer.message("Open all the doors.");
+    }
+}
+
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins).add_acts((
         BasicActs::default(),
@@ -65,6 +73,7 @@ fn plugin(app: &mut App) {
             .use_async()
             .include_display_act(),
         Act::new(make_cube).bind(keyseq! { Space }),
+        Act::new(open_door).bind(keyseq! { O D }),
     ));
 }
 
@@ -89,7 +98,7 @@ fn main() {
         ))
         .add_systems(Startup, setup)
         .add_systems(Startup, |mut minibuffer: Minibuffer| {
-            minibuffer.message("Type 'Ctrl-U 1 0 Space' to make 10 cubes.");
+            minibuffer.message("Type 'Ctrl-U 1 0 Space' to make 10 cubes or 'O D' to open a door.");
             minibuffer.set_visible(true);
         })
         .run();

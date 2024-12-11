@@ -226,6 +226,9 @@ cargo run --example tab-completion trie
 One can provide a hash map that will provide completions and mapping to values.
 
 ``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
+# use std::collections::HashMap;
 #[derive(Debug, Clone)]
 enum Popular {
     Common,
@@ -457,7 +460,9 @@ then one could do this:
 - Type 'O D' to open the closest door.
 - Type 'Ctrl-U O D' to open all the doors.
 
-``` rust
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
 fn open_door(universal_arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
     if universal_arg.is_none() {
         minibuffer.message("Open one door.");

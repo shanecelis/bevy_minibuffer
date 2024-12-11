@@ -100,7 +100,7 @@ fn main() {
             plugin,
         ))
         .add_systems(Startup, |mut commands: Commands| {
-            commands.spawn(Camera2d::default());
+            commands.spawn(Camera2d);
         })
         .add_acts((
             // Add basic commands.

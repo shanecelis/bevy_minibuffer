@@ -110,7 +110,7 @@ fn main() -> ExitCode {
     ExitCode::SUCCESS
 }
 
-const OPTIONS: [(&'static str, &'static str); 4] = [
+const OPTIONS: [(&str, &str); 4] = [
     ("vec (simple)", "hello_name_vec"),
     ("hash-map (maps to a value V)", "hello_name_hash_map"),
     ("trie (performant)", "hello_name_trie"),

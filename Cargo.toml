@@ -35,10 +35,6 @@ async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_
 dev-capture = []
 dev-framepace = []
 
-[patch.crates-io]
-bevy-input-sequence = { path = "../bevy-input-sequence" }
-bevy_asky = { path = "../bevy_asky" }
-
 [dev-dependencies]
 bevy = "0.15.0"
 bevy-inspector-egui = "0.28"

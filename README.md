@@ -24,6 +24,7 @@ cargo run --example demo-async --features async
 - Easily bind key chord sequences to acts 
 - Easily solicit user for input 
 - Tab completion where possible
+- A la carte usage supported
 - Easily exclude from build
 
 # Antigoals
@@ -51,10 +52,14 @@ provides the following acts and key bindings:
 | ACT               | KEY BINDING |
 |-------------------|-------------|
 | describe_key      | Ctrl-H K    |
-| run_act           | :<br>Alt-X  |
+| run_act           | :           |
+|                   | Alt-X       |
 | list_acts         | Ctrl-H A    |
 | list_key_bindings | Ctrl-H B    |
 | toggle_visibility | `           |
+
+`BasicActs` is thought to constitute the bare minimum number of acts for a
+useable and discoverable console.
 
 ``` rust no_run
 # use bevy::prelude::*;
@@ -98,6 +103,7 @@ cargo run --example add-act
 
 ## Easily bind key chord sequences to acts 
 <img align="right" src="https://github.com/user-attachments/assets/336a79c1-f934-4d69-a3fe-6b55778663be"/>
+
 We can bind key chord `Ctrl-W` or even a key chord sequence `Ctrl-W Alt-O Super-R Shift-L D` to an act.
 
 ``` rust no_run
@@ -118,7 +124,9 @@ cargo run --example bind-hotkey
 ```
 ## Easily solicit user for input 
 <img align="right" src="https://github.com/user-attachments/assets/03cbb697-8263-41cb-b40f-583d1a25d429"/>
-Ask the user for information. 
+
+Ask the user for information. Notice that no acts are added. One can use
+`Minibuffer` from within any system without having to "buy-in" to the rest of it.
 
 ``` rust no_run
 # use bevy::prelude::*;
@@ -271,6 +279,40 @@ fn hello_name(mut minibuffer: Minibuffer) {
 ``` sh
 cargo run --example tab-completion trie-map
 ```
+## A la carte usage is supported
+
+Minibuffer is a collection of a few distinct pieces:
+
+- Acts, i.e., commands
+- Key bindings
+- A "mini-buffer" or buffer, i.e., the small panel at the bottom of the screen
+  to query and respond to the user.
+  
+One can use acts without key bindings.
+
+One can use acts without the buffer.
+
+One can use the buffer without acts. That is, one can use `Minibuffer` and
+`MinibufferAsync` system parameters from within any system; they are not
+reserved for usage only within `Act` systems.
+
+One can use the buffer without key bindings.
+
+One can use key bindings without the buffer.
+
+### What can one not use a la carte?
+
+One cannot use key bindings without acts in Minibuffer. If one desires key
+sequence bindings only, it may be better to use Minibuffer's key-binding
+dependency
+[bevy-input-sequence](https://github.com/not-elm/bevy-input-sequence).
+
+One cannot query the user without the buffer. If one desires that, consider
+looking at Minibuffer's custom MVC middleware that is 'View' agnostic:
+[bevy_asky](https://github.com/shanecelis/bevy_asky). It allows one to designate
+the view and the destination and in general expects the consumer to implement
+their own conventions and policy.
+
 ## Easily exclude from build
 
 I _believe_ a project with a "minibuffer" feature flag and rust conditional
@@ -416,6 +458,7 @@ what is required. It is a "pull" model of interaction versus a "push" model.
 # TODO
 - [ ] Make it possible to have vim-like prompt (no space after ":").
 - [ ] Use a "real" cursor/selection highlight.
+- [ ] Add case-insensitive tab-completion example.
 - [x] Add `HashMap<String,V>` completer.
 - [x] Make universal-arg work without async.
 - [x] Re-write [asky](https://github.com/axelvc/asky) to be [bevy native](https://github.com/shanecelis/bevy_asky).

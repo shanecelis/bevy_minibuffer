@@ -67,6 +67,6 @@ path = "examples/async/universal-arg.rs"
 required-features = [ "async" ]
 
 [[example]]
-name = "tab-completion-trie-map-async"
-path = "examples/async/tab-completion-trie-map.rs"
+name = "tab-completion-async"
+path = "examples/async/tab-completion.rs"
 required-features = [ "async" ]

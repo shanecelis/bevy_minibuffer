@@ -264,12 +264,12 @@ fn universal_arg_async(
                     let world = AsyncWorld::new();
                     let _ = world
                         .resource::<UniversalArg>()
-                        .set(move |r| r.0 = (!accumulated).then_some(multiplier).or(Some(accum)));
+                        .get_mut(move |r| r.0 = (!accumulated).then_some(multiplier).or(Some(accum)));
                     // This last chord isn't what we expected. Send it back for
                     // processing.
                     let _ = world
                         .resource::<KeyChordQueue>()
-                        .set(move |r| r.push_back(chord));
+                        .get_mut(move |r| r.push_back(chord));
                     return;
                 }
             };

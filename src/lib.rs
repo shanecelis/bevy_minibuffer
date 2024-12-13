@@ -36,7 +36,7 @@ pub mod input {
 pub mod prelude {
     pub use super::acts::basic::BasicActs;
     pub use super::acts::universal::*;
-    pub use super::acts::{self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, AddActs};
+    pub use super::acts::{self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, ActsPluginGroup, AddActs};
     pub use super::autocomplete::*;
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, Modifiers};

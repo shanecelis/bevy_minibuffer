@@ -21,7 +21,7 @@ pub(crate) fn plugin(app: &mut App) {
         .register_type::<GetKeyChord>();
 }
 
-/// Is the minibuffer visible?
+/// Is the minibuffer active?
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
 pub enum MinibufferState {
     /// Inactive
@@ -31,10 +31,9 @@ pub enum MinibufferState {
     Active,
 }
 
-/// Is the prompt active?
+/// Is the prompt visible?
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States, Reflect)]
-pub(crate) enum PromptState {
-    // Uninit,
+pub enum PromptState {
     /// Invisible
     #[default]
     Invisible,

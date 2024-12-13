@@ -5,13 +5,14 @@ pub trait ActBuilders<Marker>: sealed::ActBuilders<Marker> {}
 impl<Marker, T> ActBuilders<Marker> for T where T: sealed::ActBuilders<Marker> {}
 
 mod sealed {
-    use crate::acts::{ActBuilder, Acts, ActsPlugin};
+    use crate::acts::{ActBuilder, Acts, ActsPlugin, ActsPluginGroup};
     use bevy::{
         app::App,
         ecs::world::{Command, World},
         prelude::IntoSystem,
     };
     pub struct ActsPluginMarker;
+    pub struct ActsPluginGroupMarker;
     pub struct ActBuilderMarker;
     pub struct MutActBuilderMarker;
     pub struct ActsMarker;
@@ -54,6 +55,18 @@ mod sealed {
     // }
 
     impl<P: ActsPlugin> ActBuilders<ActsPluginMarker> for P {
+        fn add_to_app(mut self, app: &mut App) {
+            let acts: Acts = self.take_acts();
+            <Acts as ActBuilders<ActsMarker>>::add_to_world(acts, app.world_mut());
+            app.add_plugins(self);
+        }
+
+        fn add_to_world(self, _world: &mut World) {
+            panic!("This should not be called.");
+        }
+    }
+
+    impl<P: ActsPluginGroup> ActBuilders<ActsPluginGroupMarker> for P {
         fn add_to_app(mut self, app: &mut App) {
             let acts: Acts = self.take_acts();
             <Acts as ActBuilders<ActsMarker>>::add_to_world(acts, app.world_mut());

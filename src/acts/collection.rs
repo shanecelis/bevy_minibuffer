@@ -21,6 +21,16 @@ impl Acts {
         )
     }
 
+    /// Configure an act.
+    pub fn configure<F: Fn(&mut ActBuilder)>(&mut self, act_name: &str, f: F) -> bool {
+        if let Some(ref mut builder) = self.0.get_mut(act_name) {
+            f(builder);
+            true
+        } else {
+            false
+        }
+    }
+
     /// Take the acts replacing self with its default value.
     pub fn take(&mut self) -> Self {
         std::mem::take(self)

@@ -39,7 +39,7 @@ pub mod prelude {
     pub use super::acts::{self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, ActsPluginGroup, AddActs};
     pub use super::autocomplete::*;
     pub use super::event::RunActEvent;
-    pub use super::input::{key, keyseq, Modifiers};
+    pub use super::input::{key, keyseq, Modifiers, KeyChord};
     pub use super::prompt::*;
     #[cfg(feature = "async")]
     pub use super::sink::{future_result_sink, future_sink};

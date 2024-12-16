@@ -38,7 +38,7 @@ pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Last
                 format!("{} ", hotkey).into()
             }
         })
-        .unwrap_or("run_act".into());
+        .unwrap_or("run_act: ".into());
     minibuffer
         .prompt_lookup(prompt, acts.clone())
         .insert(RequireMatch)

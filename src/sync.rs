@@ -123,6 +123,25 @@ impl Minibuffer<'_, '_> {
         }
     }
 
+    /// Request an act be run.
+    ///
+    /// Returns true if act found and request sent. If given a name for no
+    /// corresponding act, it will return false.
+    pub fn run_act_with_input<I: Send + Sync + 'static>(&mut self, act: impl Into<ActArg>, input: I) {
+        match act.into() {
+            ActArg::Act(act) => {
+                self.commands.trigger(RunActEvent::new_with_input(act, input));
+                // self.commands.send_event(RunActEvent::new(act));
+                // self.run_act_event.send();
+            }
+            ActArg::Name(name) => {
+                self.commands.trigger(RunActByNameEvent::new_with_input(name, input));
+                // self.commands.send_event(RunActByNameEvent::new(name));
+                // self.lookup_and_run_act_event.send(RunActByNameEvent::new(name));
+            }
+        }
+    }
+
     /// Read input from user with autocomplete provided by a [Lookup].
     pub fn prompt_lookup<L>(
         &mut self,

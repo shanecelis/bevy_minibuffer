@@ -68,7 +68,8 @@ impl Default for ActFlags {
     }
 }
 
-enum RunActError {
+#[derive(Debug)]
+pub enum RunActError {
     CannotAcceptInput,
     RegisteredSystemError,
     CannotConvertInput,
@@ -76,9 +77,9 @@ enum RunActError {
 
 // pub trait ActInput: Any {}
 
-pub trait RunAct<W> {
-    fn run(&self, world: &mut W) -> Result<(), RunActError>;
-    fn run_with_input(&self, input: &dyn Any, world: &mut W) -> Result<(), RunActError>;
+pub trait RunAct {
+    fn run(&self, world: &mut Commands) -> Result<(), RunActError>;
+    fn run_with_input(&self, input: &dyn Any, world: &mut Commands) -> Result<(), RunActError>;
 }
 
 #[derive(Clone)]
@@ -93,38 +94,38 @@ pub struct ActSystem(SystemId);
 //     }
 // }
 
-// impl RunAct<Commands<'_,'_>> for ActSystem {
-//     fn run(&self, commands: &mut Commands) -> Result<(), RunActError> {
-//         commands.run_system(self.0);
-//         Ok(())
-//     }
-
-//     fn run_with_input(&self, input: &dyn Any, commands: &mut Commands) -> Result<(), RunActError> {
-//         Err(RunActError::CannotAcceptInput)
-//     }
-// }
-
-#[derive(Clone)]
-pub struct ActWithInputSystem<'a, I: Clone + 'static>(SystemId<InRef<'a, Option<I>>>);
-impl<'a, I> RunAct<World> for ActWithInputSystem<'a, I> where I: Default + Clone {
-    fn run(&self, world: &mut World) -> Result<(), RunActError> {
-        world.run_system_with_input(self.0, &None).map_err(|_| RunActError::RegisteredSystemError)
+impl RunAct for ActSystem {
+    fn run(&self, commands: &mut Commands) -> Result<(), RunActError> {
+        commands.run_system(self.0);
+        Ok(())
     }
 
-    fn run_with_input(&self, input: &dyn Any, world: &mut World) -> Result<(), RunActError> {
-        match input.downcast_ref::<I>() {
-            Some(input) => {
-                let input = input.clone();
-                world.run_system_with_input(self.0, &Some(input)).map_err(|_| RunActError::RegisteredSystemError)
-            }
-            None => Err(RunActError::CannotConvertInput),
-        }
+    fn run_with_input(&self, input: &dyn Any, commands: &mut Commands) -> Result<(), RunActError> {
+        Err(RunActError::CannotAcceptInput)
     }
 }
 
-impl<'a, I> RunAct<Commands<'_,'_>> for ActWithInputSystem<'a, I> where I: Default + Clone {
+#[derive(Clone)]
+pub struct ActWithInputSystem<I: Clone + 'static>(SystemId<In<Option<I>>>);
+// impl<'a, I> RunAct<World> for ActWithInputSystem<'a, I> where I: Default + Clone {
+//     fn run(&self, world: &mut World) -> Result<(), RunActError> {
+//         world.run_system_with_input(self.0, &None).map_err(|_| RunActError::RegisteredSystemError)
+//     }
+
+//     fn run_with_input(&self, input: &dyn Any, world: &mut World) -> Result<(), RunActError> {
+//         match input.downcast_ref::<I>() {
+//             Some(input) => {
+//                 let input = input.clone();
+//                 world.run_system_with_input(self.0, &Some(input)).map_err(|_| RunActError::RegisteredSystemError)
+//             }
+//             None => Err(RunActError::CannotConvertInput),
+//         }
+//     }
+// }
+
+impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Send + Sync {
     fn run(&self, commands: &mut Commands) -> Result<(), RunActError> {
-        commands.run_system_with_input(self.0, &None);
+        commands.run_system_with_input(self.0, None);
         Ok(())
     }
 
@@ -132,7 +133,7 @@ impl<'a, I> RunAct<Commands<'_,'_>> for ActWithInputSystem<'a, I> where I: Defau
         match input.downcast_ref::<I>() {
             Some(input) => {
                 let input = input.clone();
-                commands.run_system_with_input(self.0, &Some(input));
+                commands.run_system_with_input(self.0, Some(input));
                 Ok(())
             }
             None => Err(RunActError::CannotConvertInput),
@@ -141,10 +142,10 @@ impl<'a, I> RunAct<Commands<'_,'_>> for ActWithInputSystem<'a, I> where I: Defau
 }
 
 #[derive(Component, Deref)]
-pub struct ActRunner<'a>(Box<dyn RunAct<Commands<'a,'a>> + Send + Sync>);
+pub struct ActRunner(Box<dyn RunAct + Send + Sync>);
 
-impl<'a> ActRunner<'a> {
-    pub fn new<'b>(runner: impl RunAct<Commands<'a, 'a>> + Send + Sync + 'static) -> Self {
+impl ActRunner {
+    pub fn new(runner: impl RunAct + Send + Sync + 'static) -> Self {
         Self(Box::new(runner))
     }
 }
@@ -269,6 +270,13 @@ impl Act {
         S: IntoSystem<(), (), P> + 'static,
     {
         ActBuilder::new(system)
+    }
+
+    pub fn new_with_input<S, I, P>(system: S) -> ActBuilder
+        where S: IntoSystem<In<Option<I>>,(), P> + 'static,
+    I: 'static + Clone + Send + Sync
+    {
+        ActBuilder::new_with_input(system)
     }
 
     /// Return the name of this act.

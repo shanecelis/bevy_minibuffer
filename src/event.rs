@@ -11,7 +11,7 @@ use bevy::{
 use bevy_channel_trigger::ChannelTriggerApp;
 // #[cfg(feature = "async")]
 // use bevy_crossbeam_event::CrossbeamEventApp;
-use std::{borrow::Cow, fmt};
+use std::{borrow::Cow, fmt, any::Any, sync::Arc};
 
 pub(crate) fn plugin(app: &mut App) {
     // #[cfg(feature = "async")]
@@ -46,20 +46,46 @@ pub struct RunActEvent {
     pub act: Act,
     /// Which one if any of its hotkeys started it
     pub hotkey: Option<usize>,
+    input: Option<Arc<dyn Any + 'static + Send + Sync>>,
 }
+
+// impl Clone for RunActEvent {
+//     fn clone(&self) -> Self {
+//         Self {
+//             act: self.act.clone(),
+//             hotkey: self.hotkey.clone(),
+//             input: None,
+//         }
+//     }
+// }
 
 /// Requests an act by name to be run
 #[derive(Clone, Event, Debug)]
 pub struct RunActByNameEvent {
     /// Name of the act to run
     pub name: Cow<'static, str>,
+    input: Option<Arc<dyn Any + 'static + Send + Sync>>,
 }
+
+// impl Clone for RunActByNameEvent {
+//     fn clone(&self) -> Self {
+//         Self {
+//             name: self.name.clone(),
+//             input: None,
+//         }
+//     }
+// }
 
 impl RunActByNameEvent {
     /// Lookup and run act with given name.
     pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
-        Self { name: name.into() }
+        Self { name: name.into(), input: None }
     }
+
+    pub fn new_with_input<I: 'static + Send + Sync>(name: impl Into<Cow<'static, str>>, input: I) -> Self {
+        Self { name: name.into(), input: Some(Arc::new(input)) }
+    }
+
 }
 
 /// This holds the last act run.
@@ -79,7 +105,11 @@ impl LastRunAct {
 impl RunActEvent {
     /// Make a new run act event.
     pub fn new(act: Act) -> Self {
-        Self { act, hotkey: None }
+        Self { act, hotkey: None, input: None }
+    }
+
+    pub fn new_with_input<I: 'static + Send + Sync>(act: Act, input: I) -> Self {
+        Self { act, hotkey: None, input: Some(Arc::new(input)) }
     }
 
     // pub fn from_name(name: impl Into<Cow<'static, str>>) -> Self {
@@ -271,10 +301,15 @@ fn run_act_raw(e: &RunActEvent,
     }
     last_act.0 = Some(e.clone());
     if let Some(runner) = runner {
-        commands.queue(|world: &mut World|
-                       {
-                           runner.run(world);
-                       });
+        if let Some(ref input) = e.input {
+            if let Err(error) = runner.run_with_input(&input.clone(), commands) {
+                warn!("Error running act with input '{}': {:?}", e.act.name, error);
+            }
+        } else {
+            if let Err(error) = runner.run(commands) {
+                warn!("Error running act '{}': {:?}", e.act.name, error);
+            }
+        }
     } else {
         warn!("Could not find ActRunner.");
     }
@@ -346,7 +381,10 @@ pub(crate) fn run_acts_by_name(
 ) {
     for e in events.read() {
         if let Some(act) = acts.iter().find(|a| a.name == e.name) {
-            let e = RunActEvent::new(act.clone());
+            let e = match &e.input {
+                Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone()) },
+                None => RunActEvent::new(act.clone()),
+            };
 
             run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
             // if act.flags.contains(ActFlags::ShowMinibuffer) {
@@ -371,7 +409,10 @@ pub(crate) fn run_acts_by_name_trigger(
 ) {
     let e = trigger.event();
     if let Some(act) = acts.iter().find(|a| a.name == e.name) {
-        let e = RunActEvent::new(act.clone());
+        let e = match &e.input {
+            Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone()) },
+            None => RunActEvent::new(act.clone()),
+        };
 
         run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
         // if act.flags.contains(ActFlags::ShowMinibuffer) {
@@ -383,4 +424,39 @@ pub(crate) fn run_acts_by_name_trigger(
     } else {
         warn!("No act named '{}' found.", e.name);
     }
+}
+
+#[cfg(test)]
+mod test {
+    use std::{
+        any::{Any, TypeId},
+        sync::Arc,
+    };
+
+    #[test]
+    fn test_arc_typeid() {
+        let boxed: Arc<dyn Any> = Arc::new(2.0f32);
+
+        let actual_id = (&*boxed).type_id();
+        let boxed_id = boxed.type_id();
+
+        assert_eq!(actual_id, TypeId::of::<f32>());
+        assert_eq!(boxed_id, TypeId::of::<Arc<dyn Any>>());
+        // assert_eq!(actual_id, boxed_id);
+    }
+
+    #[test]
+    fn test_arc_downcast() {
+        let boxed: Arc<dyn Any> = Arc::new(2.0f32);
+
+        match boxed.downcast_ref::<f32>() {
+            Some(value) => {
+                assert_eq!(value, &2.0f32);
+            }
+            None => {
+                panic!("Could not downcast.");
+            }
+        }
+    }
+
 }

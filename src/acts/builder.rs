@@ -1,6 +1,6 @@
 //! Acts and their flags, builders, and collections
 use crate::{
-    acts::{Act, ActFlags, ActSystem, ActRunner},
+    acts::{Act, ActFlags, ActSystem, ActWithInputSystem, ActRunner},
     input::Hotkey,
 };
 use bevy::{
@@ -14,22 +14,36 @@ use bevy_input_sequence::KeyChord;
 use std::{
     borrow::Cow,
     fmt::{
+        self,
         Debug,
         // Write
     },
 };
 
 /// Builds an [Act]
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct ActBuilder {
-    pub(crate) name: Option<Cow<'static, str>>,
+    pub name: Cow<'static, str>,
     /// Hotkeys
     pub hotkeys: Vec<Hotkey>,
-    pub(crate) system: Option<BoxedSystem>,
+    make_act_runner: Box<dyn FnOnce(&mut World) -> Entity + 'static + Send + Sync>,
+    // pub(crate) system: Option<BoxedSystem>,
     /// Flags for this act
     pub flags: ActFlags,
     /// Shorten the name to just the first system.
     pub shorten_name: bool,
+}
+
+impl fmt::Debug for ActBuilder {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("ActBuilder")
+            .field("name", &self.name)
+            .field("hotkeys", &self.hotkeys)
+            .field("make_act_runner", &"Box<dyn FnOnce(&mut World) -> Entity { ... }")
+            .field("flags", &self.flags)
+            .field("shorten_name", &self.shorten_name)
+            .finish()
+    }
 }
 
 impl ActBuilder {
@@ -38,64 +52,105 @@ impl ActBuilder {
     where
         S: IntoSystem<(), (), P> + 'static,
     {
+        let system = IntoSystem::into_system(system);
+        let name = Self::name_for_system(&system, true);
+        let make_act_runner = Box::new(move |world: &mut World| {
+            let system_id = world.register_system(system);
+            let id = system_id.entity();
+            world.get_entity_mut(id).expect("entity for system_id")
+                                    .insert(ActRunner::new(ActSystem(system_id)));
+            id
+        });
         ActBuilder {
-            name: None,
+            name,
             hotkeys: Vec::new(),
-            system: Some(Box::new(IntoSystem::into_system(system))),
+            make_act_runner,
             flags: ActFlags::Active | ActFlags::RunAct,
             shorten_name: true,
         }
     }
 
+    pub fn new_with_input<S, I, P>(system: S) -> Self
+        where S: IntoSystem<In<Option<I>>,(), P> + 'static,
+    I: 'static + Clone + Send + Sync
+    {
+        let system = IntoSystem::into_system(system);
+        let name = Self::name_for_system(&system, true);
+        let make_act_runner = Box::new(move |world: &mut World| {
+            let system_id = world.register_system(system);
+            let id = system_id.entity();
+            world.get_entity_mut(id).expect("entity for system_id")
+                                    .insert(ActRunner::new(ActWithInputSystem(system_id)));
+            id
+        });
+        ActBuilder {
+            name,
+            hotkeys: Vec::new(),
+            make_act_runner,
+            flags: ActFlags::Active | ActFlags::RunAct,
+            shorten_name: true,
+        }
+    }
+
+    // pub fn new_with_input<S, I, P>(system: S) -> Self
+    //     where S: IntoSystem<In<Option<I>>,(), P> + 'static,
+    // I: 'static
+    //     {
+    //     ActBuilder {
+    //         name: None,
+    //         hotkeys: Vec::new(),
+    //         system: Some(Box::new(IntoSystem::into_system(system))),
+    //         flags: ActFlags::Active | ActFlags::RunAct,
+    //         shorten_name: true,
+    //     }
+    // }
+
+    fn name_for_system<S: System>(system: &S, shorten_name: bool) -> Cow<'static, str> {
+        let mut n = system.name();
+        // Take name out of pipe.
+        //
+        // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result_sink<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"
+        // -> "cube_async::speed"
+        n = n
+            .find('(')
+            .and_then(|start| {
+                n.find([',', ' ', ')'])
+                    .map(|end| n[start + 1..end].to_owned().into())
+            })
+            .unwrap_or(n);
+        if shorten_name {
+            n = n
+                .rfind(':')
+                .map(|start| n[start + 1..].to_owned().into())
+                .unwrap_or(n);
+        }
+        n
+    }
+
     /// Return the name of the act. Derived from system if not explicitly given.
     pub fn name(&self) -> Cow<'static, str> {
-        self.name.clone().unwrap_or_else(|| {
-            let mut n = self.system.as_ref().expect("system").name();
-            // Take name out of pipe.
-            //
-            // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result_sink<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"
-            // -> "cube_async::speed"
-            n = n
-                .find('(')
-                .and_then(|start| {
-                    n.find([',', ' ', ')'])
-                        .map(|end| n[start + 1..end].to_owned().into())
-                })
-                .unwrap_or(n);
-            if self.shorten_name {
-                n = n
-                    .rfind(':')
-                    .map(|start| n[start + 1..].to_owned().into())
-                    .unwrap_or(n);
-            }
-            n
-        })
+        self.name.clone()
     }
 
     /// Build [Act].
     pub fn build(mut self, world: &mut World) -> Act {
-        let system_id = world.register_boxed_system(self.system.take().expect("system"));
-        let id = system_id.entity();
-        world.get_entity_mut(id).expect("entity for system_id")
-            .insert(ActRunner::new(ActSystem(system_id)));
-        // {
-        //     let mut commands = world.commands();
-        //     commands.entity(id)
-        //         .insert(
-        // }
+        let name = self.name;
+        let id = (self.make_act_runner)(world);
+        // let system_id = world.register_boxed_system(self.system.take().expect("system"));
+        // let id = system_id.entity();
+        // world.get_entity_mut(id).expect("entity for system_id")
+        //     .insert(ActRunner::new(ActSystem(system_id)));
         Act {
-            name: self.name(),
+            name,
             hotkeys: self.hotkeys,
             flags: self.flags,
             system_id: id,
-            // run_act: Box::new(),
-            // system_id:
         }
     }
 
     /// Name the act.
     pub fn named(&mut self, name: impl Into<Cow<'static, str>>) -> &mut Self {
-        self.name = Some(name.into());
+        self.name = name.into();
         self
     }
 
@@ -148,8 +203,9 @@ impl ActBuilder {
 impl From<&mut ActBuilder> for ActBuilder {
     fn from(builder: &mut ActBuilder) -> Self {
         Self {
-            name: builder.name.take(),
-            system: builder.system.take(),
+            name: std::mem::replace(&mut builder.name, "*TAKEN*".into()),
+            make_act_runner: std::mem::replace(&mut builder.make_act_runner, Box::new(|world: &mut World| { Entity::PLACEHOLDER })),
+            // system: builder.system.take(),
             hotkeys: std::mem::take(&mut builder.hotkeys),
             flags: builder.flags,
             shorten_name: builder.shorten_name,

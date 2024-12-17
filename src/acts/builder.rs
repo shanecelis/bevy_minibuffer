@@ -1,6 +1,6 @@
 //! Acts and their flags, builders, and collections
 use crate::{
-    acts::{Act, ActFlags},
+    acts::{Act, ActFlags, ActSystem, ActRunner},
     input::Hotkey,
 };
 use bevy::{
@@ -73,12 +73,23 @@ impl ActBuilder {
     }
 
     /// Build [Act].
-    pub fn build(self, world: &mut World) -> Act {
+    pub fn build(mut self, world: &mut World) -> Act {
+        let system_id = world.register_boxed_system(self.system.take().expect("system"));
+        let id = system_id.entity();
+        world.get_entity_mut(id).expect("entity for system_id")
+            .insert(ActRunner::new(ActSystem(system_id)));
+        // {
+        //     let mut commands = world.commands();
+        //     commands.entity(id)
+        //         .insert(
+        // }
         Act {
             name: self.name(),
             hotkeys: self.hotkeys,
             flags: self.flags,
-            system_id: world.register_boxed_system(self.system.expect("system")),
+            system_id: id,
+            // run_act: Box::new(),
+            // system_id:
         }
     }
 
@@ -148,10 +159,10 @@ impl From<&mut ActBuilder> for ActBuilder {
 
 impl Command for ActBuilder {
     fn apply(self, world: &mut World) {
-        let act = self.build(world);
+        let act  = self.build(world);
         let keyseqs = act.build_keyseqs(world);
         let name = Name::new(act.name.clone());
-        let system_entity = act.system_id.entity();
+        let system_entity = act.system_id;
 
         let id = world.spawn(act).insert(name).id();
         for keyseq_id in keyseqs {

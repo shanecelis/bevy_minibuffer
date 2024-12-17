@@ -1,5 +1,5 @@
 //! Events
-use crate::{acts::Act, acts::ActFlags, input::Hotkey, prompt::PromptState, Minibuffer};
+use crate::{acts::Act, acts::{ActFlags, ActRunner}, input::Hotkey, prompt::PromptState, Minibuffer};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -261,19 +261,50 @@ pub(crate) fn dispatch_trigger(
     }
 }
 
+fn run_act_raw(e: &RunActEvent,
+               runner: Option<&ActRunner>,
+               mut next_prompt_state: &mut NextState<PromptState>,
+               mut last_act: &mut LastRunAct,
+               commands: &mut Commands) {
+    if e.act.flags.contains(ActFlags::ShowMinibuffer) {
+        next_prompt_state.set(PromptState::Visible);
+    }
+    last_act.0 = Some(e.clone());
+    if let Some(runner) = runner {
+        commands.queue(|world: &mut World|
+                       {
+                           runner.run(world);
+                       });
+    } else {
+        warn!("Could not find ActRunner.");
+    }
+}
+
 /// Run act for any [RunActEvent].
 pub(crate) fn run_acts(
     mut events: EventReader<RunActEvent>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
+    runner: Query<&ActRunner>,
 ) {
     for e in events.read() {
-        if e.act.flags.contains(ActFlags::ShowMinibuffer) {
-            next_prompt_state.set(PromptState::Visible);
-        }
-        last_act.0 = Some(e.clone());
-        commands.run_system(e.act.system_id);
+        // if e.act.flags.contains(ActFlags::ShowMinibuffer) {
+        //     next_prompt_state.set(PromptState::Visible);
+        // }
+        // last_act.0 = Some(e.clone());
+
+        run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
+        // if let Ok(runner) = runner.get(e.act.system_id) {
+
+        //     commands.queue(|world: &mut World|
+        //                    {
+        //                    runner.run(world);
+        //                    });
+        // } else {
+        //     warn!("Could not find ActRunner.");
+        // }
+        // commands.run_system(e.act.system_id);
     }
 }
 
@@ -283,13 +314,25 @@ pub(crate) fn run_acts_trigger(
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
+    runner: Query<&ActRunner>,
 ) {
     let e = trigger.event();
-    if e.act.flags.contains(ActFlags::ShowMinibuffer) {
-        next_prompt_state.set(PromptState::Visible);
-    }
-    last_act.0 = Some(e.clone());
-    commands.run_system_with_input(e.act.system_id, ());
+
+    run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
+    // if e.act.flags.contains(ActFlags::ShowMinibuffer) {
+    //     next_prompt_state.set(PromptState::Visible);
+    // }
+    // last_act.0 = Some(e.clone());
+
+    // if let Ok(runner) = runner.get(e.act.system_id) {
+    //     commands.queue(|world: &mut World|
+    //                     {
+    //                     runner.run(world);
+    //                     });
+    // } else {
+    //     warn!("Could not find ActRunner.");
+    // }
+    // commands.run_system_with_input(e.act.system_id, ());
 }
 
 /// Lookup and run act for any [RunActByNameEvent].
@@ -298,16 +341,20 @@ pub(crate) fn run_acts_by_name(
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
+    runner: Query<&ActRunner>,
     acts: Query<&Act>,
 ) {
     for e in events.read() {
         if let Some(act) = acts.iter().find(|a| a.name == e.name) {
-            if act.flags.contains(ActFlags::ShowMinibuffer) {
-                next_prompt_state.set(PromptState::Visible);
-            }
-            let system_id = act.system_id;
-            last_act.0 = Some(RunActEvent::new(act.clone()));
-            commands.run_system(system_id);
+            let e = RunActEvent::new(act.clone());
+
+            run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
+            // if act.flags.contains(ActFlags::ShowMinibuffer) {
+            //     next_prompt_state.set(PromptState::Visible);
+            // }
+            // let system_id = act.system_id;
+            // last_act.0 = Some(e);
+            // commands.run_system(system_id);
         } else {
             warn!("No act named '{}' found.", e.name);
         }
@@ -319,16 +366,20 @@ pub(crate) fn run_acts_by_name_trigger(
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
+    runner: Query<&ActRunner>,
     acts: Query<&Act>,
 ) {
     let e = trigger.event();
     if let Some(act) = acts.iter().find(|a| a.name == e.name) {
-        if act.flags.contains(ActFlags::ShowMinibuffer) {
-            next_prompt_state.set(PromptState::Visible);
-        }
-        let system_id = act.system_id;
-        last_act.0 = Some(RunActEvent::new(act.clone()));
-        commands.run_system(system_id);
+        let e = RunActEvent::new(act.clone());
+
+        run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
+        // if act.flags.contains(ActFlags::ShowMinibuffer) {
+        //     next_prompt_state.set(PromptState::Visible);
+        // }
+        // let system_id = act.system_id;
+        // last_act.0 = Some(RunActEvent::new(act.clone()));
+        // commands.run_system(system_id);
     } else {
         warn!("No act named '{}' found.", e.name);
     }

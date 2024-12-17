@@ -71,8 +71,8 @@ impl ActBuilder {
     }
 
     pub fn new_with_input<S, I, P>(system: S) -> Self
-        where S: IntoSystem<In<Option<I>>,(), P> + 'static,
-    I: 'static + Clone + Send + Sync
+        where S: IntoSystem<In<I>,(), P> + 'static,
+    I: 'static + Default + Clone + Send + Sync
     {
         let system = IntoSystem::into_system(system);
         let name = Self::name_for_system(&system, true);

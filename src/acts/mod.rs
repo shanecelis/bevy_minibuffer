@@ -14,7 +14,8 @@ use std::{
         Display,
         // Write
     },
-    any::Any,
+    any::{Any, TypeId},
+    sync::Arc,
 };
 
 
@@ -106,7 +107,7 @@ impl RunAct for ActSystem {
 }
 
 #[derive(Clone)]
-pub struct ActWithInputSystem<I: Clone + 'static>(SystemId<In<Option<I>>>);
+pub struct ActWithInputSystem<I: Clone + 'static>(SystemId<In<I>>);
 // impl<'a, I> RunAct<World> for ActWithInputSystem<'a, I> where I: Default + Clone {
 //     fn run(&self, world: &mut World) -> Result<(), RunActError> {
 //         world.run_system_with_input(self.0, &None).map_err(|_| RunActError::RegisteredSystemError)
@@ -123,17 +124,24 @@ pub struct ActWithInputSystem<I: Clone + 'static>(SystemId<In<Option<I>>>);
 //     }
 // }
 
-impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Send + Sync {
+impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Default + Send + Sync {
     fn run(&self, commands: &mut Commands) -> Result<(), RunActError> {
-        commands.run_system_with_input(self.0, None);
+        commands.run_system_with_input(self.0, I::default());
         Ok(())
     }
 
     fn run_with_input(&self, input: &dyn Any, commands: &mut Commands) -> Result<(), RunActError> {
+        info!("input typeid {:?}", input.type_id());
+        info!("Arc typeid {:?}", TypeId::of::<Arc<dyn Any>>());
+        info!("Arc 2typeid {:?}", TypeId::of::<Arc<dyn Any + 'static + Send + Sync>>());
+        info!("Option<f32> typeid {:?}", TypeId::of::<Option<f32>>());
+        info!("&Option<f32> typeid {:?}", TypeId::of::<&Option<f32>>());
+        info!("f32 typeid {:?}", TypeId::of::<f32>());
+        info!("&f32 typeid {:?}", TypeId::of::<&f32>());
         match input.downcast_ref::<I>() {
             Some(input) => {
                 let input = input.clone();
-                commands.run_system_with_input(self.0, Some(input));
+                commands.run_system_with_input(self.0, input);
                 Ok(())
             }
             None => Err(RunActError::CannotConvertInput),
@@ -273,8 +281,8 @@ impl Act {
     }
 
     pub fn new_with_input<S, I, P>(system: S) -> ActBuilder
-        where S: IntoSystem<In<Option<I>>,(), P> + 'static,
-    I: 'static + Clone + Send + Sync
+        where S: IntoSystem<In<I>,(), P> + 'static,
+    I: 'static + Default + Clone + Send + Sync
     {
         ActBuilder::new_with_input(system)
     }

@@ -82,7 +82,7 @@ fn speed_scriptable(In(number_maybe): In<Option<f32>>, mut minibuffer: Minibuffe
 }
 
 fn call_speed_scriptable(mut minibuffer: Minibuffer) {
-    minibuffer.run_act_with_input("speed_scriptable", 2.0f32);
+    minibuffer.run_act_with_input("speed_scriptable", Some(2.0f32));
 }
 
 fn setup(

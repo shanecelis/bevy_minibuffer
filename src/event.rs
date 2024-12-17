@@ -302,7 +302,8 @@ fn run_act_raw(e: &RunActEvent,
     last_act.0 = Some(e.clone());
     if let Some(runner) = runner {
         if let Some(ref input) = e.input {
-            if let Err(error) = runner.run_with_input(&input.clone(), commands) {
+            let input = input.clone();
+            if let Err(error) = runner.run_with_input(&*input, commands) {
                 warn!("Error running act with input '{}': {:?}", e.act.name, error);
             }
         } else {

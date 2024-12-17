@@ -289,7 +289,7 @@ pub(crate) fn run_acts_trigger(
         next_prompt_state.set(PromptState::Visible);
     }
     last_act.0 = Some(e.clone());
-    commands.run_system(e.act.system_id);
+    commands.run_system_with_input(e.act.system_id, ());
 }
 
 /// Lookup and run act for any [RunActByNameEvent].

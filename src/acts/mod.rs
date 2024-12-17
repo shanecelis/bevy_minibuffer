@@ -1,7 +1,7 @@
 //! Acts and their flags, builders, and collections
 use crate::{event::RunActEvent, input::Hotkey};
 use bevy::{
-    ecs::{world::CommandQueue, system::{EntityCommand, SystemId}},
+    ecs::{system::{EntityCommand, RegisteredSystemError, SystemId}, world::CommandQueue},
     prelude::*,
 };
 use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
@@ -64,6 +64,47 @@ impl Default for ActFlags {
     fn default() -> Self {
         ActFlags::Active | ActFlags::RunAct
     }
+}
+
+struct ActInput(Box<dyn Any>);
+
+pub trait ActRunner {
+    type Input<'i>: Default;
+    fn run(&self, world: &mut World) -> Result<(), RegisteredSystemError>;
+    fn run_with_input(&self, input: Self::Input<'_>, world: &mut World) -> Result<(), RegisteredSystemError>;
+    // fn default_input(&self) -> Self::Input<'i>;
+}
+
+struct ActSystem(SystemId);
+impl ActRunner for ActSystem {
+    type Input<'i> = ();
+    fn run(&self, world: &mut World) -> Result<(), RegisteredSystemError> {
+        world.run_system(self.0)
+    }
+
+    fn run_with_input(&self, input: Self::Input<'_>, world: &mut World) -> Result<(), RegisteredSystemError> {
+        world.run_system_with_input(self.0, input)
+    }
+
+    // fn default_input(&self) -> Self::Input<'i> {
+    //     ()
+    // }
+}
+
+struct ActWithInputSystem<I: SystemInput + Default>(SystemId<I>);
+impl<I> ActRunner for ActWithInputSystem<I> where I: SystemInput + Default {
+    type Input<'i> = <I as SystemInput>::Inner<'i>;
+    fn run(&self, world: &mut World) -> Result<(), RegisteredSystemError> {
+        world.run_system_with_input(self.0, Self::Input::default())
+    }
+
+    fn run_with_input(&self, input: Self::Input<'_>, world: &mut World) -> Result<(), RegisteredSystemError> {
+        world.run_system_with_input(self.0, input)
+    }
+
+    // fn default_input(&self) -> Self::Input {
+    //     default()
+    // }
 }
 
 /// A Minibuffer command
@@ -201,6 +242,7 @@ impl Act {
                 let id = world.spawn(name).id();
                 EntityCommand::apply(
                     KeySequence::new(
+                        // XXX: Should this be trigger?
                         action::send_event(RunActEvent::new(self.clone()).with_hotkey(i)),
                         hotkey.chords.clone(),
                     ),

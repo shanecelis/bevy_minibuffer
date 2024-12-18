@@ -31,6 +31,8 @@ mod builder;
 pub use builder::*;
 mod cache;
 pub use cache::*;
+mod run_act;
+pub use run_act::*;
 
 pub mod basic;
 #[cfg(feature = "async")]
@@ -68,95 +70,6 @@ bitflags! {
 impl Default for ActFlags {
     fn default() -> Self {
         ActFlags::Active | ActFlags::RunAct | ActFlags::Record
-    }
-}
-
-#[derive(Debug)]
-pub enum RunActError {
-    CannotAcceptInput,
-    RegisteredSystemError,
-    CannotConvertInput,
-}
-
-// pub trait ActInput: Any {}
-
-pub trait RunAct {
-    fn run(&self, world: &mut Commands) -> Result<(), RunActError>;
-    fn run_with_input(&self, input: &dyn Any, world: &mut Commands) -> Result<(), RunActError>;
-}
-
-#[derive(Clone)]
-pub struct ActSystem(SystemId);
-// impl RunAct<World> for ActSystem {
-//     fn run(&self, world: &mut World) -> Result<(), RunActError> {
-//         world.run_system(self.0).map_err(|_| RunActError::RegisteredSystemError)
-//     }
-
-//     fn run_with_input(&self, input: &dyn Any, world: &mut World) -> Result<(), RunActError> {
-//         Err(RunActError::CannotAcceptInput)
-//     }
-// }
-
-impl RunAct for ActSystem {
-    fn run(&self, commands: &mut Commands) -> Result<(), RunActError> {
-        commands.run_system(self.0);
-        Ok(())
-    }
-
-    fn run_with_input(&self, input: &dyn Any, commands: &mut Commands) -> Result<(), RunActError> {
-        Err(RunActError::CannotAcceptInput)
-    }
-}
-
-#[derive(Clone)]
-pub struct ActWithInputSystem<I: Clone + 'static>(SystemId<In<I>>);
-// impl<'a, I> RunAct<World> for ActWithInputSystem<'a, I> where I: Default + Clone {
-//     fn run(&self, world: &mut World) -> Result<(), RunActError> {
-//         world.run_system_with_input(self.0, &None).map_err(|_| RunActError::RegisteredSystemError)
-//     }
-
-//     fn run_with_input(&self, input: &dyn Any, world: &mut World) -> Result<(), RunActError> {
-//         match input.downcast_ref::<I>() {
-//             Some(input) => {
-//                 let input = input.clone();
-//                 world.run_system_with_input(self.0, &Some(input)).map_err(|_| RunActError::RegisteredSystemError)
-//             }
-//             None => Err(RunActError::CannotConvertInput),
-//         }
-//     }
-// }
-
-impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Default + Send + Sync {
-    fn run(&self, commands: &mut Commands) -> Result<(), RunActError> {
-        commands.run_system_with_input(self.0, I::default());
-        Ok(())
-    }
-
-    fn run_with_input(&self, input: &dyn Any, commands: &mut Commands) -> Result<(), RunActError> {
-        info!("input typeid {:?}", input.type_id());
-        info!("Arc typeid {:?}", TypeId::of::<Arc<dyn Any>>());
-        info!("Arc 2typeid {:?}", TypeId::of::<Arc<dyn Any + 'static + Send + Sync>>());
-        info!("Option<f32> typeid {:?}", TypeId::of::<Option<f32>>());
-        info!("&Option<f32> typeid {:?}", TypeId::of::<&Option<f32>>());
-        info!("f32 typeid {:?}", TypeId::of::<f32>());
-        info!("&f32 typeid {:?}", TypeId::of::<&f32>());
-        match input.downcast_ref::<I>() {
-            Some(input) => {
-                let input = input.clone();
-                commands.run_system_with_input(self.0, input);
-                Ok(())
-            }
-            None => Err(RunActError::CannotConvertInput),
-        }
-    }
-}
-
-#[derive(Component, Deref)]
-pub struct ActRunner(Box<dyn RunAct + Send + Sync>);
-
-impl ActRunner {
-    pub fn new(runner: impl RunAct + Send + Sync + 'static) -> Self {
-        Self(Box::new(runner))
     }
 }
 

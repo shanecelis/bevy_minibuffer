@@ -108,9 +108,6 @@ impl Minibuffer<'_, '_> {
     }
 
     /// Request an act be run.
-    ///
-    /// Returns true if act found and request sent. If given a name for no
-    /// corresponding act, it will return false.
     pub fn run_act(&mut self, act: impl Into<ActArg>) {
         match act.into() {
             ActArg::Act(act) => {
@@ -127,10 +124,7 @@ impl Minibuffer<'_, '_> {
     }
 
     /// Request an act be run.
-    ///
-    /// Returns true if act found and request sent. If given a name for no
-    /// corresponding act, it will return false.
-    pub fn run_act_with_input<I: Send + Sync + 'static>(&mut self, act: impl Into<ActArg>, input: I) {
+    pub fn run_act_with_input<I: Send + Sync + Debug + 'static>(&mut self, act: impl Into<ActArg>, input: I) {
         match act.into() {
             ActArg::Act(act) => {
                 self.commands.trigger(RunActEvent::new_with_input(act, input));
@@ -145,7 +139,7 @@ impl Minibuffer<'_, '_> {
         }
     }
 
-    pub fn log_input<I: Clone + Send + Sync + 'static>(&mut self, input: &I) {
+    pub fn log_input<I: Debug + Clone + Send + Sync + 'static>(&mut self, input: &I) {
         match *self.tape {
             Tape::Record(ref mut script) => {
                 script.ammend_input(input.clone());
@@ -187,18 +181,20 @@ impl Minibuffer<'_, '_> {
         let mut ecommands = autocomplete.construct(commands, prompt);
         ecommands
             .insert(RequireMatch)
-            // TODO: We should probably return something other than submit.
+            // TODO: We should probably return the input string in either case.
             .observe(
                 move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
-                    let r: Result<L::Item, Error> = trigger
+                    let mut input = None;
+                    let result: Result<L::Item, Error> = trigger
                         .event_mut()
                         .take_result()
                         .map_err(Error::from)
                         .and_then(|s| {
-                            // r.map(|x| (x, s))
-                            lookup.resolve_res(&s).map_err(Error::from)
+                            let r = lookup.resolve_res(&s).map_err(Error::from);
+                            input = Some(s);
+                            r
                         });
-                    commands.trigger_targets(Completed::Unhandled(r), trigger.entity());
+                    commands.trigger_targets(Completed::Unhandled { result, input }, trigger.entity());
                 },
             );
         ecommands

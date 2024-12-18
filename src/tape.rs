@@ -5,8 +5,10 @@ use crate::{
     event::RunActEvent,
     Minibuffer,
 };
-use std::sync::Arc;
+use std::{fmt::{self, Debug}, sync::Arc};
 use bevy::prelude::*;
+#[cfg(feature = "clipboard")]
+use copypasta::{ClipboardContext, ClipboardProvider};
 
 pub(crate) fn plugin(app: &mut App) {
     app
@@ -15,6 +17,7 @@ pub(crate) fn plugin(app: &mut App) {
         .add_acts((
             Act::new(record_macro).bind(keyseq! { Q }).sub_flags(ActFlags::Record),
             Act::new(play_macro).bind(keyseq! { Shift-2 }).sub_flags(ActFlags::Record),
+            Act::new(copy_macro),
             ))
         ;
 }
@@ -64,6 +67,34 @@ fn play_macro(world: &mut World) {
     }
 }
 
+#[cfg(feature = "clipboard")]
+fn copy_macro(mut minibuffer: Minibuffer, mut tapes: Res<Tapes>) {
+    match ClipboardContext::new() {
+        Ok(mut ctx) => {
+            if let Some(ref tapes) = tapes.last() {
+                info!("{}", tapes);
+                ctx.set_contents(tapes.to_string()).expect("copy script to clipboard");
+                minibuffer.message("Copied script to clipboard.");
+            } else {
+                minibuffer.message("No tapes available.");
+            }
+        }
+        Err(e) => {
+            minibuffer.message("Could not initialize clipboard: {e:?}");
+        }
+    }
+}
+
+#[cfg(not(feature = "clipboard"))]
+fn copy_macro(mut minibuffer: Minibuffer, mut tapes: Res<Tapes>) {
+    if let Some(ref tapes) = tapes.last() {
+        info!("{}", tapes);
+        minibuffer.message("Print script on stdout.");
+    } else {
+        minibuffer.message("No tapes available.");
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct Script {
     pub content: Vec<RunActEvent>,
@@ -74,14 +105,32 @@ impl Script {
         self.content.push(act);
     }
 
-    pub fn ammend_input<I: Clone + 'static + Send + Sync>(&mut self, input: I) {
+    pub fn ammend_input<I: Clone + 'static + Send + Sync + Debug>(&mut self, input: I) {
         if let Some(ref mut entry) = self.content.last_mut() {
             if entry.input.is_some() {
                 warn!("Overwriting script input for act {}", &entry.act.name);
             }
+            entry.input_debug = Some(format!("{:?}", &input));
             entry.input = Some(Arc::new(input));
         } else {
             warn!("Cannot append input; no act has been run.");
         }
+    }
+}
+
+impl fmt::Display for Script {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "fn script(mut minibuffer: Minibuffer) {{")?;
+        for event in &self.content {
+            match event.input {
+                Some(ref input) => {
+                    writeln!(f, "    minibuffer.run_act_with_input({:?}, {})", &event.act.name, event.input_debug.as_deref().unwrap_or_else(|| "???"))?;
+                }
+                None => {
+                    writeln!(f, "    minibuffer.run_act({:?})", &event.act.name)?;
+                }
+            }
+        }
+        write!(f, "}}")
     }
 }

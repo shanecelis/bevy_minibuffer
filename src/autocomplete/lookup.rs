@@ -65,15 +65,15 @@ pub trait LookupMap: Lookup {
 #[derive(Event, Debug)]
 pub enum Completed<T> {
     /// A completion event with its associated input if available
-    Unhandled(Result<T, Error>),
+    Unhandled { result: Result<T, Error>, input: Option<String> },
     /// This completion event has been handled.
     Handled,
 }
 
 impl<T> Completed<T> {
     /// Create a new completed event.
-    pub fn new(value: Result<T, Error>) -> Self {
-        Self::Unhandled(value)
+    pub fn new(result: Result<T, Error>, input: Option<String>) -> Self {
+        Self::Unhandled { result, input }
     }
 
     /// Take this completed and leave `Completed::Handled`.
@@ -87,7 +87,7 @@ impl<T> Completed<T> {
     /// and input.
     pub fn take_result(&mut self) -> Option<Result<T, Error>> {
         match std::mem::replace(self, Completed::Handled) {
-            Completed::Unhandled(r) => Some(r),
+            Completed::Unhandled { result, .. } => Some(result),
             Completed::Handled => None,
         }
     }

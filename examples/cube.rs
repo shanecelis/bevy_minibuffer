@@ -57,8 +57,9 @@ fn stop(mut query: Query<&mut Rotatable>, mut minibuffer: Minibuffer) {
 fn speed(mut minibuffer: Minibuffer) {
     minibuffer.prompt::<Number<f32>>("speed: ").observe(
         |mut trigger: Trigger<Submit<f32>>, mut query: Query<&mut Rotatable>| {
+            let speed = trigger.event_mut().take_result().expect("speed");
             for mut r in &mut query {
-                r.speed = trigger.event_mut().take_result().expect("speed");
+                r.speed = speed;
             }
         },
     );
@@ -72,9 +73,11 @@ fn speed_scriptable(In(number_maybe): In<Option<f32>>, mut minibuffer: Minibuffe
         }
     } else {
         minibuffer.prompt::<Number<f32>>("speed: ").observe(
-            |mut trigger: Trigger<Submit<f32>>, mut query: Query<&mut Rotatable>| {
+            |mut trigger: Trigger<Submit<f32>>, mut query: Query<&mut Rotatable>, mut minibuffer: Minibuffer| {
+                let speed = trigger.event_mut().take_result().expect("speed");
+                minibuffer.log_input(&Some(speed));
                 for mut r in &mut query {
-                    r.speed = trigger.event_mut().take_result().expect("speed");
+                    r.speed = speed;
                 }
             },
         );

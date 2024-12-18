@@ -65,7 +65,7 @@ impl ActBuilder {
             name,
             hotkeys: Vec::new(),
             make_act_runner,
-            flags: ActFlags::Active | ActFlags::RunAct,
+            flags: ActFlags::default(),
             shorten_name: true,
         }
     }
@@ -87,7 +87,7 @@ impl ActBuilder {
             name,
             hotkeys: Vec::new(),
             make_act_runner,
-            flags: ActFlags::Active | ActFlags::RunAct,
+            flags: ActFlags::default(),
             shorten_name: true,
         }
     }

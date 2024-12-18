@@ -1,5 +1,5 @@
 //! Events
-use crate::{acts::Act, acts::{ActFlags, ActRunner}, input::Hotkey, prompt::PromptState, Minibuffer};
+use crate::{acts::Act, acts::{ActFlags, ActRunner}, tape::{Tape, Script}, input::Hotkey, prompt::PromptState, Minibuffer};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -38,6 +38,8 @@ pub(crate) fn plugin(app: &mut App) {
 //         });
 // }
 
+pub type Input = Arc<dyn Any + 'static + Send + Sync>;
+
 /// Requests an act to be run
 #[derive(Clone, Event, Debug, Deref)]
 pub struct RunActEvent {
@@ -46,7 +48,7 @@ pub struct RunActEvent {
     pub act: Act,
     /// Which one if any of its hotkeys started it
     pub hotkey: Option<usize>,
-    input: Option<Arc<dyn Any + 'static + Send + Sync>>,
+    pub(crate) input: Option<Input>,
 }
 
 // impl Clone for RunActEvent {
@@ -64,7 +66,7 @@ pub struct RunActEvent {
 pub struct RunActByNameEvent {
     /// Name of the act to run
     pub name: Cow<'static, str>,
-    input: Option<Arc<dyn Any + 'static + Send + Sync>>,
+    input: Option<Input>,
 }
 
 // impl Clone for RunActByNameEvent {
@@ -295,7 +297,9 @@ fn run_act_raw(e: &RunActEvent,
                runner: Option<&ActRunner>,
                mut next_prompt_state: &mut NextState<PromptState>,
                mut last_act: &mut LastRunAct,
-               commands: &mut Commands) {
+               commands: &mut Commands,
+               tape: Option<&mut Tape>,
+) {
     if e.act.flags.contains(ActFlags::ShowMinibuffer) {
         next_prompt_state.set(PromptState::Visible);
     }
@@ -311,10 +315,21 @@ fn run_act_raw(e: &RunActEvent,
                 warn!("Error running act '{}': {:?}", e.act.name, error);
             }
         }
+        if e.act.flags.contains(ActFlags::Record) {
+            if let Some(tape) = tape {
+                match tape {
+                    Tape::Record(ref mut script) => {
+                        script.append_run(e.clone());
+                    }
+                    _ => ()
+                }
+            }
+        }
     } else {
         warn!("Could not find ActRunner.");
     }
 }
+
 
 /// Run act for any [RunActEvent].
 pub(crate) fn run_acts(
@@ -322,25 +337,11 @@ pub(crate) fn run_acts(
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
+    mut tape: ResMut<Tape>,
     runner: Query<&ActRunner>,
 ) {
     for e in events.read() {
-        // if e.act.flags.contains(ActFlags::ShowMinibuffer) {
-        //     next_prompt_state.set(PromptState::Visible);
-        // }
-        // last_act.0 = Some(e.clone());
-
-        run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
-        // if let Ok(runner) = runner.get(e.act.system_id) {
-
-        //     commands.queue(|world: &mut World|
-        //                    {
-        //                    runner.run(world);
-        //                    });
-        // } else {
-        //     warn!("Could not find ActRunner.");
-        // }
-        // commands.run_system(e.act.system_id);
+        run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
     }
 }
 
@@ -351,24 +352,10 @@ pub(crate) fn run_acts_trigger(
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
     runner: Query<&ActRunner>,
+    mut tape: ResMut<Tape>,
 ) {
     let e = trigger.event();
-
-    run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
-    // if e.act.flags.contains(ActFlags::ShowMinibuffer) {
-    //     next_prompt_state.set(PromptState::Visible);
-    // }
-    // last_act.0 = Some(e.clone());
-
-    // if let Ok(runner) = runner.get(e.act.system_id) {
-    //     commands.queue(|world: &mut World|
-    //                     {
-    //                     runner.run(world);
-    //                     });
-    // } else {
-    //     warn!("Could not find ActRunner.");
-    // }
-    // commands.run_system_with_input(e.act.system_id, ());
+    run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
 }
 
 /// Lookup and run act for any [RunActByNameEvent].
@@ -379,6 +366,7 @@ pub(crate) fn run_acts_by_name(
     mut last_act: ResMut<LastRunAct>,
     runner: Query<&ActRunner>,
     acts: Query<&Act>,
+    mut tape: ResMut<Tape>,
 ) {
     for e in events.read() {
         if let Some(act) = acts.iter().find(|a| a.name == e.name) {
@@ -386,14 +374,7 @@ pub(crate) fn run_acts_by_name(
                 Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone()) },
                 None => RunActEvent::new(act.clone()),
             };
-
-            run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
-            // if act.flags.contains(ActFlags::ShowMinibuffer) {
-            //     next_prompt_state.set(PromptState::Visible);
-            // }
-            // let system_id = act.system_id;
-            // last_act.0 = Some(e);
-            // commands.run_system(system_id);
+            run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
         } else {
             warn!("No act named '{}' found.", e.name);
         }
@@ -407,6 +388,7 @@ pub(crate) fn run_acts_by_name_trigger(
     mut last_act: ResMut<LastRunAct>,
     runner: Query<&ActRunner>,
     acts: Query<&Act>,
+    mut tape: ResMut<Tape>,
 ) {
     let e = trigger.event();
     if let Some(act) = acts.iter().find(|a| a.name == e.name) {
@@ -414,18 +396,22 @@ pub(crate) fn run_acts_by_name_trigger(
             Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone()) },
             None => RunActEvent::new(act.clone()),
         };
-
-        run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands);
-        // if act.flags.contains(ActFlags::ShowMinibuffer) {
-        //     next_prompt_state.set(PromptState::Visible);
-        // }
-        // let system_id = act.system_id;
-        // last_act.0 = Some(RunActEvent::new(act.clone()));
-        // commands.run_system(system_id);
+        run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
     } else {
         warn!("No act named '{}' found.", e.name);
     }
 }
+
+pub(crate) fn run_script(InRef(script): InRef<Script>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
+    mut commands: Commands,
+    mut last_act: ResMut<LastRunAct>,
+    runner: Query<&ActRunner>) {
+    for e in &script.content {
+        run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, None);
+    }
+}
+
 
 #[cfg(test)]
 mod test {

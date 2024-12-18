@@ -110,6 +110,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_plugins(crate::prompt::plugin)
             .add_plugins(crate::autocomplete::plugin)
             .add_plugins(crate::view::plugin)
+            .add_plugins(crate::tape::plugin)
             .add_plugins(AskyPlugin)
             .add_plugins(InputSequencePlugin::empty().run_in_set(Update, InputSequenceSet))
             .init_state::<MinibufferState>()

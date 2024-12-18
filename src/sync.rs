@@ -8,6 +8,7 @@ use crate::{
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
+    tape::Tape,
     Error,
 };
 use bevy::{
@@ -44,6 +45,8 @@ pub struct Minibuffer<'w, 's> {
     prompt_state: Res<'w, State<PromptState>>,
     /// next prompt state
     next_prompt_state: ResMut<'w, NextState<PromptState>>,
+    /// macro state
+    pub(crate) tape: ResMut<'w, Tape>,
 }
 
 /// An [EntityCommands] extension trait
@@ -139,6 +142,15 @@ impl Minibuffer<'_, '_> {
                 // self.commands.send_event(RunActByNameEvent::new(name));
                 // self.lookup_and_run_act_event.send(RunActByNameEvent::new(name));
             }
+        }
+    }
+
+    pub fn log_input<I: Clone + Send + Sync + 'static>(&mut self, input: &I) {
+        match *self.tape {
+            Tape::Record(ref mut script) => {
+                script.ammend_input(input.clone());
+            }
+            _ => ()
         }
     }
 

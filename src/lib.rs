@@ -21,6 +21,7 @@ pub mod view;
 pub use future::MinibufferAsync;
 pub use sync::Minibuffer;
 mod hotkey;
+pub mod tape;
 
 /// Input, mainly re-exports from [keyseq]
 pub mod input {

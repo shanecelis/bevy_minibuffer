@@ -122,7 +122,7 @@ pub(crate) fn is_modifier(key: KeyCode) -> bool {
 }
 
 pub(crate) fn get_key_chords(
-    mut query: Query<Entity, With<GetKeyChord>>,
+    mut query: Query<(Entity, Ref<GetKeyChord>)>,
     keys: Res<ButtonInput<KeyCode>>,
     mut buffer: Local<VecDeque<KeyChord>>,
     mut commands: Commands,
@@ -135,8 +135,10 @@ pub(crate) fn get_key_chords(
         .collect();
 
     if let Some(chord) = buffer.pop_front().or_else(|| chords.pop_front()) {
-        for id in query.iter_mut() {
-            commands.trigger_targets(KeyChordEvent::new(chord.clone()), id);
+        for (id, get_key_chord) in query.iter_mut() {
+            if ! get_key_chord.is_added() {
+                commands.trigger_targets(KeyChordEvent::new(chord.clone()), id);
+            }
             // NOTE: Don't remove this here. Let the consumer decide when they're done.
             //
             // commands.entity(id).remove::<GetKeyChord>();

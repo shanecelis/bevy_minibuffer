@@ -3,8 +3,8 @@
 //! Can be queried by other commands using the [UniversalArg] resource.
 use crate::{
     acts::{Act, ActFlags, Acts, ActsPlugin},
-    event::{LastRunAct, RunActEvent},
-    prelude::{keyseq, KeyChordEvent},
+    event::{LastRunAct, RunActEvent, KeyChordEvent},
+    prelude::{keyseq},
     Minibuffer,
 };
 #[cfg(feature = "async")]

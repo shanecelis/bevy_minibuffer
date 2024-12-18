@@ -1,5 +1,12 @@
 //! Events
-use crate::{acts::Act, acts::{ActFlags, ActRunner}, tape::{TapeRecorder, Script}, input::Hotkey, prompt::PromptState, Minibuffer};
+use crate::{
+    acts::Act,
+    acts::{ActFlags, ActRunner},
+    tape::{TapeRecorder, Tape},
+    input::{KeyChord, Hotkey},
+    prompt::PromptState,
+    Minibuffer
+};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -295,6 +302,26 @@ pub(crate) fn dispatch_trigger(
     }
 }
 
+#[derive(Event, Debug, Reflect)]
+pub enum KeyChordEvent {
+    Unhandled(KeyChord),
+    Handled,
+}
+
+impl KeyChordEvent {
+    pub fn new(chord: KeyChord) -> Self {
+        Self::Unhandled(chord)
+    }
+
+    pub fn take(&mut self) -> Option<KeyChord> {
+        match std::mem::replace(self, KeyChordEvent::Handled) {
+            KeyChordEvent::Unhandled(chord) => Some(chord),
+            KeyChordEvent::Handled => None,
+        }
+    }
+}
+
+
 pub fn run_act_raw(e: &RunActEvent,
                    runner: Option<&ActRunner>,
                    mut next_prompt_state: &mut NextState<PromptState>,
@@ -320,8 +347,8 @@ pub fn run_act_raw(e: &RunActEvent,
         if e.act.flags.contains(ActFlags::Record) {
             if let Some(tape) = tape {
                 match tape {
-                    TapeRecorder::Record(ref mut script) => {
-                        script.append_run(e.clone());
+                    TapeRecorder::Record { ref mut tape, .. } => {
+                        tape.append_run(e.clone());
                     }
                     _ => ()
                 }

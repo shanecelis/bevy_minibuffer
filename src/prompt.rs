@@ -1,7 +1,7 @@
 //! Kinds of queries for user: Toggle, TextField, etc.
 
 use crate::{
-    event::LookupEvent,
+    event::{KeyChordEvent, LookupEvent},
     ui::{completion_item, ScrollingList},
     Config,
 };
@@ -59,34 +59,9 @@ pub(crate) struct HideTime {
     pub timer: Timer,
 }
 
-// /// Get a key chord.
+/// Get a key chord.
 #[derive(Component, Debug, Reflect)]
-pub(crate) struct GetKeyChord;
-
-#[derive(Event, Debug, Reflect)]
-pub(crate) enum KeyChordEvent {
-    Unhandled(KeyChord),
-    Handled,
-}
-
-impl KeyChordEvent {
-    pub(crate) fn new(chord: KeyChord) -> Self {
-        Self::Unhandled(chord)
-    }
-
-    pub(crate) fn take(&mut self) -> Option<KeyChord> {
-        match std::mem::replace(self, KeyChordEvent::Handled) {
-            KeyChordEvent::Unhandled(chord) => Some(chord),
-            KeyChordEvent::Handled => None,
-        }
-    }
-}
-
-// impl GetKeyChord {
-//     pub(crate) fn new(promise: Sender<Result<KeyChord, Error>>) -> Self {
-//         GetKeyChord(Some(promise))
-//     }
-// }
+pub struct GetKeyChord;
 
 /// Make component visible.
 pub(crate) fn show<T: Component>(

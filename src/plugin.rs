@@ -1,10 +1,10 @@
 use crate::{
     acts,
     autocomplete::LookupError,
-    event::{dispatch_events, run_acts, run_acts_by_name, LookupEvent},
+    event::{dispatch_events, run_acts, run_acts_by_name, KeyChordEvent, LookupEvent},
     prompt::{
         self, get_key_chords, hide, hide_delayed, hide_prompt_maybe, listen_prompt_active,
-        lookup_events, show, CompletionState, KeyChordEvent, MinibufferState, PromptState,
+        lookup_events, show, CompletionState, MinibufferState, PromptState,
     },
     ui,
 };

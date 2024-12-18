@@ -19,7 +19,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Text, Trigger},
+    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Text, Trigger, TextLayout, LineBreak, default},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
 use std::fmt::Debug;
@@ -103,7 +103,12 @@ impl Minibuffer<'_, '_> {
         let msg = msg.into();
         let dest = self.dest.single();
         if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut self.commands) {
-            commands.insert(Text::new(msg));
+            commands
+                .insert(Text::new(msg))
+                .insert(TextLayout {
+                    linebreak: LineBreak::WordOrCharacter,
+                    ..default()
+                });
         }
     }
 
@@ -141,8 +146,8 @@ impl Minibuffer<'_, '_> {
 
     pub fn log_input<I: Debug + Clone + Send + Sync + 'static>(&mut self, input: &I) {
         match *self.tape_recorder {
-            TapeRecorder::Record(ref mut script) => {
-                script.ammend_input(input.clone());
+            TapeRecorder::Record { ref mut tape, .. } => {
+                tape.ammend_input(input.clone());
             }
             _ => ()
         }

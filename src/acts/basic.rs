@@ -12,7 +12,7 @@ use crate::{
 
 use std::{borrow::Cow, fmt::Debug};
 
-use crate::{autocomplete::RequireMatch, prompt::KeyChordEvent};
+use crate::{autocomplete::RequireMatch, event::KeyChordEvent};
 use bevy::{prelude::*, window::RequestRedraw};
 use tabular::{Row, Table};
 use trie_rs::inc_search::IncSearch;

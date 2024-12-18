@@ -1,6 +1,5 @@
 use crate::{
     acts::{Act, AddActs, ActFlags},
-    event::run_script,
     input::keyseq,
     event::RunActEvent,
     Minibuffer,
@@ -12,7 +11,7 @@ use copypasta::{ClipboardContext, ClipboardProvider};
 
 pub(crate) fn plugin(app: &mut App) {
     app
-        .init_resource::<Tape>()
+        .init_resource::<TapeRecorder>()
         .init_resource::<Tapes>()
         .add_acts((
             Act::new(record_macro).bind(keyseq! { Q }).sub_flags(ActFlags::Record),
@@ -23,7 +22,7 @@ pub(crate) fn plugin(app: &mut App) {
 }
 
 #[derive(Resource, Debug, Default)]
-pub enum Tape {
+pub enum TapeRecorder {
     #[default]
     Off,
     Record(Script),
@@ -34,8 +33,8 @@ pub enum Tape {
 pub struct Tapes(Vec<Script>);
 
 fn record_macro(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
-    use Tape::*;
-    let new_value = match *minibuffer.tape {
+    use TapeRecorder::*;
+    let new_value = match *minibuffer.tape_recorder {
         Off => {
             minibuffer.message("Recording new macro");
             Record(Script::default())
@@ -50,7 +49,7 @@ fn record_macro(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
             Play
         }
     };
-    *minibuffer.tape = new_value;
+    *minibuffer.tape_recorder = new_value;
 }
 
 fn play_macro(world: &mut World) {
@@ -132,5 +131,15 @@ impl fmt::Display for Script {
             }
         }
         write!(f, "}}")
+    }
+}
+
+pub fn run_script(InRef(script): InRef<Script>,
+    mut next_prompt_state: ResMut<NextState<crate::prompt::PromptState>>,
+    mut commands: Commands,
+    mut last_act: ResMut<crate::event::LastRunAct>,
+    runner: Query<&crate::acts::ActRunner>) {
+    for e in &script.content {
+        crate::event::run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, None);
     }
 }

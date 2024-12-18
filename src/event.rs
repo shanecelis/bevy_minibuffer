@@ -1,5 +1,5 @@
 //! Events
-use crate::{acts::Act, acts::{ActFlags, ActRunner}, tape::{Tape, Script}, input::Hotkey, prompt::PromptState, Minibuffer};
+use crate::{acts::Act, acts::{ActFlags, ActRunner}, tape::{TapeRecorder, Script}, input::Hotkey, prompt::PromptState, Minibuffer};
 use bevy::{
     ecs::{
         event::{Event, EventReader},
@@ -295,12 +295,12 @@ pub(crate) fn dispatch_trigger(
     }
 }
 
-fn run_act_raw(e: &RunActEvent,
-               runner: Option<&ActRunner>,
-               mut next_prompt_state: &mut NextState<PromptState>,
-               mut last_act: &mut LastRunAct,
-               commands: &mut Commands,
-               tape: Option<&mut Tape>,
+pub fn run_act_raw(e: &RunActEvent,
+                   runner: Option<&ActRunner>,
+                   mut next_prompt_state: &mut NextState<PromptState>,
+                   mut last_act: &mut LastRunAct,
+                   commands: &mut Commands,
+                   tape: Option<&mut TapeRecorder>,
 ) {
     if e.act.flags.contains(ActFlags::ShowMinibuffer) {
         next_prompt_state.set(PromptState::Visible);
@@ -320,7 +320,7 @@ fn run_act_raw(e: &RunActEvent,
         if e.act.flags.contains(ActFlags::Record) {
             if let Some(tape) = tape {
                 match tape {
-                    Tape::Record(ref mut script) => {
+                    TapeRecorder::Record(ref mut script) => {
                         script.append_run(e.clone());
                     }
                     _ => ()
@@ -339,7 +339,7 @@ pub(crate) fn run_acts(
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
-    mut tape: ResMut<Tape>,
+    mut tape: ResMut<TapeRecorder>,
     runner: Query<&ActRunner>,
 ) {
     for e in events.read() {
@@ -354,7 +354,7 @@ pub(crate) fn run_acts_trigger(
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
     runner: Query<&ActRunner>,
-    mut tape: ResMut<Tape>,
+    mut tape: ResMut<TapeRecorder>,
 ) {
     let e = trigger.event();
     run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
@@ -368,7 +368,7 @@ pub(crate) fn run_acts_by_name(
     mut last_act: ResMut<LastRunAct>,
     runner: Query<&ActRunner>,
     acts: Query<&Act>,
-    mut tape: ResMut<Tape>,
+    mut tape: ResMut<TapeRecorder>,
 ) {
     for e in events.read() {
         if let Some(act) = acts.iter().find(|a| a.name == e.name) {
@@ -390,7 +390,7 @@ pub(crate) fn run_acts_by_name_trigger(
     mut last_act: ResMut<LastRunAct>,
     runner: Query<&ActRunner>,
     acts: Query<&Act>,
-    mut tape: ResMut<Tape>,
+    mut tape: ResMut<TapeRecorder>,
 ) {
     let e = trigger.event();
     if let Some(act) = acts.iter().find(|a| a.name == e.name) {
@@ -401,16 +401,6 @@ pub(crate) fn run_acts_by_name_trigger(
         run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
     } else {
         warn!("No act named '{}' found.", e.name);
-    }
-}
-
-pub(crate) fn run_script(InRef(script): InRef<Script>,
-    mut next_prompt_state: ResMut<NextState<PromptState>>,
-    mut commands: Commands,
-    mut last_act: ResMut<LastRunAct>,
-    runner: Query<&ActRunner>) {
-    for e in &script.content {
-        run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, None);
     }
 }
 

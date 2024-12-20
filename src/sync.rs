@@ -8,7 +8,7 @@ use crate::{
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
-    tape::TapeRecorder,
+    tape::{DebugMap, TapeRecorder},
     Error,
 };
 use bevy::{
@@ -47,6 +47,7 @@ pub struct Minibuffer<'w, 's> {
     next_prompt_state: ResMut<'w, NextState<PromptState>>,
     /// macro state
     pub(crate) tape_recorder: ResMut<'w, TapeRecorder>,
+    pub(crate) debug_map: ResMut<'w, DebugMap>,
 }
 
 /// An [EntityCommands] extension trait
@@ -147,7 +148,7 @@ impl Minibuffer<'_, '_> {
     pub fn log_input<I: Debug + Clone + Send + Sync + 'static>(&mut self, input: &I) {
         match *self.tape_recorder {
             TapeRecorder::Record { ref mut tape, .. } => {
-                tape.ammend_input(input.clone());
+                tape.ammend_input(input.clone(), &mut *self.debug_map);
             }
             _ => ()
         }

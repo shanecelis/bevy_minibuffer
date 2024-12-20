@@ -112,7 +112,11 @@ pub(crate) fn get_key_chords(
     if let Some(chord) = buffer.pop_front().or_else(|| chords.pop_front()) {
         for (id, get_key_chord) in query.iter_mut() {
             if ! get_key_chord.is_added() {
-                commands.trigger_targets(KeyChordEvent::new(chord.clone()), id);
+                if chord.1 == KeyCode::Escape && chord.0.is_empty() {
+                    commands.trigger_targets(KeyChordEvent::Canceled, id);
+                } else {
+                    commands.trigger_targets(KeyChordEvent::new(chord.clone()), id);
+                }
             }
             // NOTE: Don't remove this here. Let the consumer decide when they're done.
             //

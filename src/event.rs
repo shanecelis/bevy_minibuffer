@@ -1,5 +1,6 @@
 //! Events
 use crate::{
+    Error,
     acts::Act,
     acts::{ActFlags, ActRunner},
     tape::{TapeRecorder, Tape},
@@ -56,7 +57,6 @@ pub struct RunActEvent {
     /// Which one if any of its hotkeys started it
     pub hotkey: Option<usize>,
     pub(crate) input: Option<Input>,
-    pub(crate) input_debug: Option<String>
 }
 
 // impl Clone for RunActEvent {
@@ -116,11 +116,11 @@ impl LastRunAct {
 impl RunActEvent {
     /// Make a new run act event.
     pub fn new(act: Act) -> Self {
-        Self { act, hotkey: None, input: None, input_debug: None }
+        Self { act, hotkey: None, input: None}
     }
 
     pub fn new_with_input<I: 'static + Send + Sync + Debug>(act: Act, input: I) -> Self {
-        Self { act, hotkey: None, input_debug: Some(format!("{:?}", &input)) , input: Some(Arc::new(input))}
+        Self { act, hotkey: None, input: Some(Arc::new(input))}
     }
 
     // pub fn from_name(name: impl Into<Cow<'static, str>>) -> Self {
@@ -305,6 +305,7 @@ pub(crate) fn dispatch_trigger(
 #[derive(Event, Debug, Reflect)]
 pub enum KeyChordEvent {
     Unhandled(KeyChord),
+    Canceled,
     Handled,
 }
 
@@ -313,10 +314,11 @@ impl KeyChordEvent {
         Self::Unhandled(chord)
     }
 
-    pub fn take(&mut self) -> Option<KeyChord> {
+    pub fn take(&mut self) -> Result<KeyChord, Error> {
         match std::mem::replace(self, KeyChordEvent::Handled) {
-            KeyChordEvent::Unhandled(chord) => Some(chord),
-            KeyChordEvent::Handled => None,
+            KeyChordEvent::Unhandled(chord) => Ok(chord),
+            KeyChordEvent::Handled => Err(Error::Message("Event already handled".into())),
+            KeyChordEvent::Canceled => Err(bevy_asky::Error::Cancel.into()),
         }
     }
 }
@@ -400,7 +402,7 @@ pub(crate) fn run_acts_by_name(
     for e in events.read() {
         if let Some(act) = acts.iter().find(|a| a.name == e.name) {
             let e = match &e.input {
-                Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone()), input_debug: e.input_debug.clone() },
+                Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone())},
                 None => RunActEvent::new(act.clone()),
             };
             run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
@@ -422,7 +424,7 @@ pub(crate) fn run_acts_by_name_trigger(
     let e = trigger.event();
     if let Some(act) = acts.iter().find(|a| a.name == e.name) {
         let e = match &e.input {
-            Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone()), input_debug: e.input_debug.clone() },
+            Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone())},
             None => RunActEvent::new(act.clone()),
         };
         run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));

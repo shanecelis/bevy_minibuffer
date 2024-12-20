@@ -22,7 +22,7 @@ fn plugin(app: &mut App) {
             Act::new(start).bind(keyseq! { D }),
             Act::new_with_input(speed_scriptable).bind(keyseq! { F }),
             Act::new(call_speed_scriptable).bind(keyseq! { G }),
-            Act::new(script)
+            Act::new(tape)
         ))
         .add_systems(Startup, |mut minibuffer: Minibuffer| {
             minibuffer.message("Hit A, S, or D to change cube speed. Hit 'Ctrl-H B' for keys.");
@@ -66,8 +66,12 @@ fn speed(mut minibuffer: Minibuffer) {
     );
 }
 
-fn script(mut minibuffer: Minibuffer) {
-    minibuffer.run_act_with_input("speed_scriptable", Some(3.0f32))
+mod cube {
+    pub(crate) use super::*;
+}
+
+fn tape(mut commands: Commands) {
+    commands.run_system_cached_with(cube::speed_scriptable, Some(33.0))
 }
 
 /// Set the speed of the spinning cube with input.

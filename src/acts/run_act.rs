@@ -28,11 +28,12 @@ pub enum RunActError {
 pub trait RunAct {
     fn run(&self, world: &mut Commands) -> Result<(), RunActError>;
     fn run_with_input(&self, input: &dyn Any, world: &mut Commands) -> Result<(), RunActError>;
+    fn system_name(&self) -> Cow<'static, str>;
 }
 
 #[derive(Clone, Debug)]
-pub struct ActSystem(pub SystemId);
-/// An alternative implementation that works directly on the world. It isn't currently used.
+pub struct ActSystem(pub SystemId, pub Cow<'static, str>);
+/// An alternative implementation that works directly on the world. It's not currently used.
 mod world {
     use super::*;
     pub trait RunAct {
@@ -75,10 +76,14 @@ impl RunAct for ActSystem {
     fn run_with_input(&self, input: &dyn Any, commands: &mut Commands) -> Result<(), RunActError> {
         Err(RunActError::CannotAcceptInput)
     }
+
+    fn system_name(&self) -> Cow<'static, str> {
+        self.1.clone()
+    }
 }
 
 #[derive(Clone, Debug)]
-pub struct ActWithInputSystem<I: 'static>(pub SystemId<In<I>>);
+pub struct ActWithInputSystem<I: 'static>(pub SystemId<In<I>>, pub Cow<'static, str>);
 
 impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Default + Send + Sync {
     fn run(&self, commands: &mut Commands) -> Result<(), RunActError> {
@@ -102,6 +107,10 @@ impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Default + Send + Sync 
             }
             None => Err(RunActError::CannotConvertInput),
         }
+    }
+
+    fn system_name(&self) -> Cow<'static, str> {
+        self.1.clone()
     }
 }
 

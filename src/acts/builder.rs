@@ -53,12 +53,13 @@ impl ActBuilder {
         S: IntoSystem<(), (), P> + 'static,
     {
         let system = IntoSystem::into_system(system);
+        let sys_name = system.name();
         let name = Self::name_for_system(&system, true);
         let make_act_runner = Box::new(move |world: &mut World| {
             let system_id = world.register_system(system);
             let id = system_id.entity();
             world.get_entity_mut(id).expect("entity for system_id")
-                                    .insert(ActRunner::new(ActSystem(system_id)));
+                                    .insert(ActRunner::new(ActSystem(system_id, sys_name)));
             id
         });
         ActBuilder {
@@ -75,12 +76,13 @@ impl ActBuilder {
     I: 'static + Default + Clone + Send + Sync
     {
         let system = IntoSystem::into_system(system);
+        let sys_name = system.name();
         let name = Self::name_for_system(&system, true);
         let make_act_runner = Box::new(move |world: &mut World| {
             let system_id = world.register_system(system);
             let id = system_id.entity();
             world.get_entity_mut(id).expect("entity for system_id")
-                                    .insert(ActRunner::new(ActWithInputSystem(system_id)));
+                                    .insert(ActRunner::new(ActWithInputSystem(system_id, sys_name)));
             id
         });
         ActBuilder {

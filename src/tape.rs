@@ -1,11 +1,11 @@
 use crate::{
 
-    acts::{Act, AddActs, ActFlags},
+    acts::{Act, AddActs, ActFlags, ActRunner},
     input::{KeyChord, keyseq},
     event::{RunActEvent, KeyChordEvent},
     Minibuffer,
 };
-use std::{fmt::{self, Debug}, sync::Arc, collections::HashMap};
+use std::{fmt::{self, Debug, Write}, sync::Arc, collections::HashMap, any::{Any, TypeId}, borrow::Cow};
 use bevy::prelude::*;
 #[cfg(feature = "clipboard")]
 use copypasta::{ClipboardContext, ClipboardProvider};
@@ -14,6 +14,7 @@ pub(crate) fn plugin(app: &mut App) {
     app
         .init_resource::<TapeRecorder>()
         .init_resource::<Tapes>()
+        .init_resource::<DebugMap>()
         .add_acts((
             Act::new(record_tape).bind(keyseq! { Q }).sub_flags(ActFlags::Record),
             Act::new(play_tape).bind(keyseq! { Shift-2 }).sub_flags(ActFlags::Record),
@@ -33,6 +34,10 @@ pub enum TapeRecorder {
 #[derive(Resource, Debug, Default, Deref, DerefMut)]
 pub struct Tapes(HashMap<KeyChord, Tape>);
 
+type DebugMapInner = HashMap<TypeId, Box<dyn Fn(&dyn Any) -> Option<String> + 'static + Send + Sync>>;
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct DebugMap(DebugMapInner);
+
 fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
 
     use TapeRecorder::*;
@@ -42,12 +47,12 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
             minibuffer.get_chord()
                 .observe(|mut trigger: Trigger<KeyChordEvent>, mut commands: Commands, mut minibuffer: Minibuffer| {
                     match trigger.event_mut().take() {
-                        Some(chord) => {
+                        Ok(chord) => {
                             minibuffer.message(format!("Recording new tape for {}", &chord));
                             *minibuffer.tape_recorder = Record { tape: Tape::default(), chord: chord };
                         }
-                        None => {
-                            minibuffer.message("Could not get key.");
+                        Err(e) => {
+                            minibuffer.message(format!("{e}"));
                         }
                     }
                     commands.entity(trigger.entity()).despawn_recursive();
@@ -72,7 +77,7 @@ fn play_tape(mut minibuffer: Minibuffer) {
         .observe(|mut trigger: Trigger<KeyChordEvent>, mut commands: Commands,
                     tapes: Res<Tapes>, mut minibuffer: Minibuffer| {
             match trigger.event_mut().take() {
-                Some(chord) => {
+                Ok(chord) => {
                     if let Some(tape) = tapes.get(&chord) {
                         let tape = tape.clone();
                         commands.queue(move |world: &mut World| {
@@ -85,8 +90,8 @@ fn play_tape(mut minibuffer: Minibuffer) {
                         minibuffer.message(format!("No tape for {}", &chord));
                     }
                 }
-                None => {
-                    minibuffer.message("Could not get key.");
+                Err(e) => {
+                    minibuffer.message(format!("{e}"));
                 }
             }
             commands.entity(trigger.entity()).despawn_recursive();
@@ -98,35 +103,43 @@ fn copy_tape(mut minibuffer: Minibuffer) {
     minibuffer
         .get_chord()
         .observe(|mut trigger: Trigger<KeyChordEvent>, mut commands: Commands,
-                 tapes: Res<Tapes>, mut minibuffer: Minibuffer|
+                 tapes: Res<Tapes>, mut minibuffer: Minibuffer, query: Query<&ActRunner>|
                  {
                      match trigger.event_mut().take() {
-                         Some(chord) => {
+                         Ok(chord) => 'press: {
                              if let Some(tape) = tapes.get(&chord) {
-                                 info!("{}", tape);
+
+                                 let script = match tape.to_fn(&query, &minibuffer.debug_map) {
+                                     Ok(s) => s,
+                                     Err(e) => {
+                                         minibuffer.message(format!("Could not generate script: {e}"));
+                                         break 'press;
+                                     }
+                                 };
+                                 info!("{}", script);
                                  #[cfg(feature = "clipboard")]
                                  {
                                      match ClipboardContext::new() {
                                          Ok(mut ctx) => {
-                                             if let Err(e) = ctx.set_contents(tape.to_string()) {
+                                             if let Err(e) = ctx.set_contents(script.clone()) {
                                                  warn!("Could not set clipboard: {e}");
                                              }
-                                             minibuffer.message(format!("Copy tape {} to clipboard and log:\n\n{}.", &chord, tape));
+                                             minibuffer.message(format!("Copy tape {} to clipboard and log:\n\n{}.", &chord, &script));
                                          }
                                          Err(e) => {
-                                             minibuffer.message(format!("Log tape {}:\n\n{}", &chord, tape));
+                                             minibuffer.message(format!("Log tape {}:\n\n{}", &chord, &script));
                                              warn!("Could not initialize clipboard: {e}");
                                          }
                                      }
                                  }
                                  #[cfg(not(feature = "clipboard"))]
-                                 minibuffer.message(format!("Log tape {}:\n\n{}", &chord, tape));
+                                 minibuffer.message(format!("Log tape {}:\n\n{}", &chord, &script));
                              } else {
                                  minibuffer.message(format!("No tape for {}", &chord));
                              }
                          }
-                         None => {
-                             minibuffer.message("Could not get key.");
+                         Err(e) => {
+                             minibuffer.message(format!("{e}"));
                          }
                      }
                      commands.entity(trigger.entity()).despawn_recursive();
@@ -143,35 +156,73 @@ impl Tape {
         self.content.push(act);
     }
 
-    pub fn ammend_input<I: Clone + 'static + Send + Sync + Debug>(&mut self, input: I) {
+    pub fn ammend_input<I: Clone + 'static + Send + Sync + Debug>(&mut self, input: I, debug_map: &mut DebugMap) {
         if let Some(ref mut entry) = self.content.last_mut() {
             if entry.input.is_some() {
                 warn!("Overwriting tape input for act {}", &entry.act.name);
             }
-            entry.input_debug = Some(format!("{:?}", &input));
+            let type_id = TypeId::of::<I>();
+            info!("put type_id in {type_id:?}");
+            debug_map.entry(type_id).or_insert_with(|| Box::new(|boxed_input: &dyn Any| {
+
+                info!("debug_fn type_id in {:?}", boxed_input.type_id());
+                boxed_input.downcast_ref::<I>().map(|input: &I| format!("{:?}", input))
+            }));
             entry.input = Some(Arc::new(input));
         } else {
             warn!("Cannot append input; no act has been run.");
         }
     }
-}
 
-impl fmt::Display for Tape {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "fn tape(mut minibuffer: Minibuffer) {{")?;
+    fn to_fn(&self, query: &Query<&ActRunner>, debug_map: &DebugMap) -> Result<String, fmt::Error> {
+        let mut f = String::new();
+        writeln!(f, "fn tape(mut commands: Commands) {{")?;
         for event in &self.content {
+            let Ok(act_runner) = query.get(event.act.system_id) else {
+                writeln!(f, "    // Skipping {:?}; no act runner.", &event.act.name)?;
+                continue;
+            };
             match event.input {
                 Some(ref input) => {
-                    writeln!(f, "    minibuffer.run_act_with_input({:?}, {})", &event.act.name, event.input_debug.as_deref().unwrap_or_else(|| "???"))?;
+                    let type_id = (&**input).type_id();
+                    info!("try to get type_id out {type_id:?}");
+                    let input_string: Cow<'static, str> = match debug_map.get(&type_id) {
+                        Some(debug_fn) => {
+                            debug_fn(&**input).map(Cow::from).unwrap_or_else(|| "???".into())
+                        }
+                        None => {
+                            "!!!".into()
+                        }
+                    };
+                    writeln!(f, "    commands.run_system_cached_with({}, {})", &act_runner.system_name(),
+                                input_string)?;
                 }
                 None => {
-                    writeln!(f, "    minibuffer.run_act({:?})", &event.act.name)?;
+                    writeln!(f, "    commands.run_system_cached({})", &act_runner.system_name())?;
                 }
             }
         }
-        write!(f, "}}")
+        write!(f, "}}")?;
+        Ok(f)
     }
 }
+
+// impl fmt::Display for Tape {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         writeln!(f, "fn tape(mut commands: Minibuffer) {{")?;
+//         for event in &self.content {
+//             match event.input {
+//                 Some(ref input) => {
+//                     writeln!(f, "    minibuffer.run_act_with_input({:?}, {})", &event.act.name, event.input_debug.as_deref().unwrap_or_else(|| "???"))?;
+//                 }
+//                 None => {
+//                     writeln!(f, "    minibuffer.run_act({:?})", &event.act.name)?;
+//                 }
+//             }
+//         }
+//         write!(f, "}}")
+//     }
+// }
 
 pub fn play_tape_sys(InRef(tape): InRef<Tape>,
                      mut next_prompt_state: ResMut<NextState<crate::prompt::PromptState>>,

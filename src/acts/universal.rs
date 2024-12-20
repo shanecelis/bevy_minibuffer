@@ -159,7 +159,7 @@ fn universal_arg(
               mut chord_queue: ResMut<KeyChordQueue>,
               mut minibuffer: Minibuffer,
               mut commands: Commands| {
-            let Some(chord @ KeyChord(_mods, key)) = trigger.event_mut().take() else {
+            let Ok(chord @ KeyChord(_mods, key)) = trigger.event_mut().take() else {
                 commands.entity(trigger.entity()).despawn();
                 return;
             };

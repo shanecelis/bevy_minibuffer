@@ -22,14 +22,17 @@
 use std::f32::consts::PI;
 
 use bevy::{color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*};
+use bevy_minibuffer::prelude::*;
 
 fn main() {
     App::new()
         // MeshPickingPlugin is not a default plugin
-        .add_plugins((DefaultPlugins, MeshPickingPlugin))
+        .add_plugins((DefaultPlugins, MeshPickingPlugin, MinibufferPlugins))
         .init_resource::<Selected>()
         .add_systems(Startup, setup_scene)
-        .add_systems(Update, (draw_mesh_intersections, rotate))
+        .add_systems(Update, (draw_mesh_intersections, rotate, update_color))
+        .add_acts((BasicActs::default(),
+        set_color))
         .run();
 }
 
@@ -44,8 +47,20 @@ const Z_EXTENT: f32 = 5.0;
 #[derive(Resource, Default)]
 struct Selected(Option<Entity>);
 
-#[derive(Component)]
-struct C(Color);
+#[derive(Component, Clone, Copy)]
+struct Paint {
+    base: Color,
+    tone: Option<(Color, f32)>
+}
+
+impl Default for Paint {
+    fn default() -> Self {
+        Self {
+            base: Color::WHITE,
+            tone: None,
+        }
+    }
+}
 
 fn setup_scene(
     mut commands: Commands,
@@ -54,9 +69,9 @@ fn setup_scene(
 ) {
     // Set up the materials.
     let white_matl = Color::WHITE;
-    let ground_matl = Color::from(GRAY_300);
-    let hover_matl = Color::from(CYAN_300);
-    let pressed_matl = Color::from(YELLOW_300);
+    let ground_color = Color::from(GRAY_300);
+    let hover_color = Some(Color::from(CYAN_300));
+    let pressed_color = Some(Color::from(YELLOW_300));
 
     let shapes = [
         meshes.add(Cuboid::default()),
@@ -87,7 +102,7 @@ fn setup_scene(
         commands
             .spawn((
                 Mesh3d(shape),
-                MeshMaterial3d(materials.add(white_matl)),
+                MeshMaterial3d(materials.add(Color::WHITE)),
                 Transform::from_xyz(
                     -SHAPES_X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * SHAPES_X_EXTENT,
                     2.0,
@@ -95,11 +110,12 @@ fn setup_scene(
                 )
                 .with_rotation(Quat::from_rotation_x(-PI / 4.)),
                 Shape,
+                Paint::default(),
             ))
-            .observe(update_color_on::<Pointer<Over>>(hover_matl.clone()))
-            .observe(update_color_on::<Pointer<Out>>(white_matl.clone()))
-            .observe(update_color_on::<Pointer<Down>>(pressed_matl.clone()))
-            .observe(update_color_on::<Pointer<Up>>(hover_matl.clone()))
+            .observe(update_color_on::<Pointer<Over>>(hover_color.clone()))
+            .observe(update_color_on::<Pointer<Out>>(None))
+            .observe(update_color_on::<Pointer<Down>>(pressed_color.clone()))
+            .observe(update_color_on::<Pointer<Up>>(hover_color.clone()))
             .observe(select)
             .observe(rotate_on_drag);
     }
@@ -110,7 +126,7 @@ fn setup_scene(
         commands
             .spawn((
                 Mesh3d(shape),
-                MeshMaterial3d(materials.add(white_matl)),
+                MeshMaterial3d(materials.add(Color::WHITE)),
                 Transform::from_xyz(
                     -EXTRUSION_X_EXTENT / 2.
                         + i as f32 / (num_extrusions - 1) as f32 * EXTRUSION_X_EXTENT,
@@ -119,11 +135,12 @@ fn setup_scene(
                 )
                 .with_rotation(Quat::from_rotation_x(-PI / 4.)),
                 Shape,
+                Paint::default(),
             ))
-            .observe(update_color_on::<Pointer<Over>>(hover_matl.clone()))
-            .observe(update_color_on::<Pointer<Out>>(white_matl.clone()))
-            .observe(update_color_on::<Pointer<Down>>(pressed_matl.clone()))
-            .observe(update_color_on::<Pointer<Up>>(hover_matl.clone()))
+            .observe(update_color_on::<Pointer<Over>>(hover_color.clone()))
+            .observe(update_color_on::<Pointer<Out>>(None))
+            .observe(update_color_on::<Pointer<Down>>(pressed_color.clone()))
+            .observe(update_color_on::<Pointer<Up>>(hover_color.clone()))
             // .observe(update_color_on::<Pointer<Click>>(click_matl.clone()))
             .observe(select)
             .observe(rotate_on_drag);
@@ -132,7 +149,7 @@ fn setup_scene(
     // Ground
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
-        MeshMaterial3d(materials.add(ground_matl)),
+        MeshMaterial3d(materials.add(ground_color)),
         PickingBehavior::IGNORE, // Disable picking for the ground plane.
     ));
 
@@ -166,19 +183,52 @@ fn setup_scene(
     ));
 }
 
+fn set_color(mut minibuffer: Minibuffer, selected: Res<Selected>) {
+    if selected.0.is_none() {
+        minibuffer.message("Select a shape first.");
+        return;
+    } else {
+        let selection = selected.0.unwrap();
+        minibuffer.prompt_map("Hex color: ", bevy_minibuffer::autocomplete::HexColorLookup)
+            .observe(move |mut trigger: Trigger<Completed<Color>>,
+                     mut selected: ResMut<Selected>,
+                     mut paints: Query<&mut Paint>,
+                     mut commands: Commands, mut minibuffer: Minibuffer| {
+                if let Completed::Unhandled { result, input } = trigger.event_mut().take() {
+                    match result {
+                        Ok(color) => {
+                            if let Ok(mut paint) = paints.get_mut(selection) {
+                                selected.0 = None;
+                                minibuffer.message(format!("Set color to {:?}", &color));
+                                paint.base = color;
+                                paint.tone = None;
+                            }
+                            commands.entity(trigger.entity()).despawn_recursive();
+                        }
+                        Err(e) => {
+                        }
+                    }
+                } else {
+                    commands.entity(trigger.entity()).despawn_recursive();
+                }
+            });
+    }
+}
+
 fn select(trigger: Trigger<Pointer<Click>>,
           mut selected: ResMut<Selected>,
-          mut query: Query<&mut MeshMaterial3d<StandardMaterial>>,
-          mut materials: ResMut<Assets<StandardMaterial>>,
+          mut paints: Query<&mut Paint>,
 ) {
     info!("click on {:?}", trigger.entity());
     match std::mem::replace(&mut *selected, Selected(Some(trigger.entity()))) {
         Selected(Some(id)) => {
-            change_color(query.get_mut(id).unwrap().0.clone_weak(), &mut materials, Color::WHITE);
+            /// Reset the selection of previous.
+            if let Ok(mut paint) = paints.get_mut(id) {
+                paint.tone = None;
+            }
         }
         Selected(None) => ()
     }
-    // *selected = Selected(Some(trigger.entity()));
 }
 
 fn change_color(mut handle: Handle<StandardMaterial>, materials: &mut Assets<StandardMaterial>, color: Color) {
@@ -187,28 +237,34 @@ fn change_color(mut handle: Handle<StandardMaterial>, materials: &mut Assets<Sta
     }
 }
 
+fn update_color(
+    mut query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Paint), Changed<Paint>>,
+    mut materials: ResMut<Assets<StandardMaterial>>) {
+    for (mut mesh_material, paint) in &mut query {
+        if let Some(mut material) = materials.get_mut(&mut mesh_material.0) {
+            material.base_color = match paint.tone {
+                Some((tone, k)) => paint.base.mix(&tone, k),
+                None => paint.base
+            };
+        }
+    }
+}
+
 /// Returns an observer that updates the entity's material to the one specified.
 fn update_color_on<E>(
-    color: Color,
-    // new_material: Handle<StandardMaterial>,
+    color: Option<Color>,
 ) -> impl Fn(Trigger<E>,
-             Query<&mut MeshMaterial3d<StandardMaterial>>,
-             ResMut<Assets<StandardMaterial>>,
-             Res<Selected>,
-) {
+             Query<&mut Paint>,
+             Res<Selected>) {
     let selected_color = Color::from(RED_800);
-    // An observer closure that captures `new_material`. We do this to avoid needing to write four
-    // versions of this observer, each triggered by a different event and with a different hardcoded
-    // material. Instead, the event type is a generic, and the material is passed in.
-    move |trigger, mut query, mut materials, selected| {
-
-        if let Ok(mut mesh_material) = query.get_mut(trigger.entity()) {
-            change_color(mesh_material.0.clone_weak(), &mut materials,
-                         if selected.0.map(|x| x == trigger.entity()).unwrap_or(false) {
-                             color.mix(&selected_color, 0.8)
-                         } else {
-                             color
-                         });
+    move |trigger, mut query, selected| {
+        if let Ok(mut paint) = query.get_mut(trigger.entity()) {
+            if selected.0.map(|x| x == trigger.entity()).unwrap_or(false) {
+                // We're selected.
+                paint.tone = Some((selected_color, 0.8));
+            } else {
+                paint.tone = color.map(|c| (c, 0.9));
+            }
         }
     }
 }

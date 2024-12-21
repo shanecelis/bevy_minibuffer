@@ -61,6 +61,29 @@ pub trait LookupMap: Lookup {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct HexColorLookup;
+
+impl Lookup for HexColorLookup {
+    fn lookup(&self, input: &str) -> Result<(), LookupError> {
+        Srgba::hex(input).map(|_| ()).map_err(|e| LookupError::Message(format!("{e}").into()))
+    }
+    fn longest_prefix(&self, input: &str) -> Option<String> {
+        None
+    }
+    fn all_lookups(&self, input: &str) -> Vec<String> {
+        Vec::new()
+    }
+}
+
+impl LookupMap for HexColorLookup {
+    type Item = Color;
+
+    fn resolve(&self, input: &str) -> Option<Self::Item> {
+        Srgba::hex(input).ok().map(Color::from)
+    }
+}
+
 /// Triggered from `.resolve()` with value `T` and input string
 #[derive(Event, Debug)]
 pub enum Completed<T> {

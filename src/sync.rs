@@ -130,6 +130,12 @@ impl Minibuffer<'_, '_> {
     }
 
     /// Request an act be run.
+    ///
+    /// The input type cannot be determined at compile-time, so _you_ must
+    /// ensure it is correct. Consider using type suffixes for numerical
+    /// literals. For instance `Some(2.0)` is an `Option<f64>` without any
+    /// further indication not an `Option<f32>`; use `Some(2.0f32)` if you want
+    /// the latter.
     pub fn run_act_with_input<I: Send + Sync + Debug + 'static>(&mut self, act: impl Into<ActArg>, input: I) {
         match act.into() {
             ActArg::Act(act) => {

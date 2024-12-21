@@ -1,8 +1,7 @@
 use crate::{
-
     acts::{Act, AddActs, ActFlags, ActRunner},
     input::{KeyChord, keyseq},
-    event::{RunActEvent, KeyChordEvent},
+    event::{RunActEvent, KeyChordEvent, LastRunAct},
     Minibuffer,
 };
 use std::{fmt::{self, Debug, Write}, sync::Arc, collections::HashMap, any::{Any, TypeId}, borrow::Cow};
@@ -15,6 +14,7 @@ pub(crate) fn plugin(app: &mut App) {
         .init_resource::<TapeRecorder>()
         .init_resource::<Tapes>()
         .init_resource::<DebugMap>()
+        .init_resource::<LastPlayed>()
         .add_acts((
             Act::new(record_tape).bind(keyseq! { Q }).sub_flags(ActFlags::Record),
             Act::new(play_tape).bind(keyseq! { Shift-2 }).sub_flags(ActFlags::Record),
@@ -34,12 +34,13 @@ pub enum TapeRecorder {
 #[derive(Resource, Debug, Default, Deref, DerefMut)]
 pub struct Tapes(HashMap<KeyChord, Tape>);
 
-type DebugMapInner = HashMap<TypeId, Box<dyn Fn(&dyn Any) -> Option<String> + 'static + Send + Sync>>;
 #[derive(Resource, Default, Deref, DerefMut)]
-pub struct DebugMap(DebugMapInner);
+pub struct DebugMap(HashMap<TypeId, Box<dyn Fn(&dyn Any) -> Option<String> + 'static + Send + Sync>>);
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct LastPlayed(Option<KeyChord>);
 
 fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
-
     use TapeRecorder::*;
     match *minibuffer.tape_recorder {
         Off => {
@@ -71,13 +72,25 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
     }
 }
 
-fn play_tape(mut minibuffer: Minibuffer) {
+
+
+fn play_tape(mut minibuffer: Minibuffer, last_act: Res<LastRunAct>) {
+    let this_keychord = last_act.hotkey().cloned();
     minibuffer.message("Play tape for key: ");
     minibuffer.get_chord()
-        .observe(|mut trigger: Trigger<KeyChordEvent>, mut commands: Commands,
-                    tapes: Res<Tapes>, mut minibuffer: Minibuffer| {
+        .observe(move |mut trigger: Trigger<KeyChordEvent>, mut commands: Commands,
+                 tapes: Res<Tapes>, mut minibuffer: Minibuffer, mut last_played: ResMut<LastPlayed>| {
             match trigger.event_mut().take() {
-                Ok(chord) => {
+                Ok(mut chord) => 'body: {
+                    if this_keychord.as_ref().map(|x| x.chords.len() == 1 && x.chords[0] == chord).unwrap_or(false) {
+                        // We want to play the same chord as last time.
+                        if let Some(ref last_played) = **last_played {
+                            chord.clone_from(last_played);
+                        } else {
+                            minibuffer.message("Tried to play last tape but no tape has been played.");
+                            break 'body;
+                        }
+                    }
                     if let Some(tape) = tapes.get(&chord) {
                         let tape = tape.clone();
                         commands.queue(move |world: &mut World| {
@@ -86,6 +99,7 @@ fn play_tape(mut minibuffer: Minibuffer) {
                                 warn!("Error playing tape: {e:?}");
                             }
                         });
+                        **last_played = Some(chord);
                     } else {
                         minibuffer.message(format!("No tape for {}", &chord));
                     }
@@ -162,10 +176,10 @@ impl Tape {
                 warn!("Overwriting tape input for act {}", &entry.act.name);
             }
             let type_id = TypeId::of::<I>();
-            info!("put type_id in {type_id:?}");
+            // info!("put type_id in {type_id:?}");
             debug_map.entry(type_id).or_insert_with(|| Box::new(|boxed_input: &dyn Any| {
 
-                info!("debug_fn type_id in {:?}", boxed_input.type_id());
+                // info!("debug_str_fn type_id in {:?}", boxed_input.type_id());
                 boxed_input.downcast_ref::<I>().map(|input: &I| format!("{:?}", input))
             }));
             entry.input = Some(Arc::new(input));
@@ -179,18 +193,26 @@ impl Tape {
         writeln!(f, "fn tape(mut commands: Commands) {{")?;
         for event in &self.content {
             let Ok(act_runner) = query.get(event.act.system_id) else {
+                warn!("Cannot add act {:?} to script: no act runner.", &event.act.name);
                 writeln!(f, "    // Skipping {:?}; no act runner.", &event.act.name)?;
                 continue;
             };
             match event.input {
                 Some(ref input) => {
                     let type_id = (&**input).type_id();
-                    info!("try to get type_id out {type_id:?}");
+                    // info!("try to get type_id out {type_id:?}");
                     let input_string: Cow<'static, str> = match debug_map.get(&type_id) {
-                        Some(debug_fn) => {
-                            debug_fn(&**input).map(Cow::from).unwrap_or_else(|| "???".into())
+                        Some(debug_str_fn) => {
+                            match debug_str_fn(&**input) {
+                                Some(s) => s.into(),
+                                None => {
+                                    warn!("Debug string function failed for act {:?}", &event.act.name);
+                                    "???".into()
+                                }
+                            }
                         }
                         None => {
+                            warn!("No debug string function for act {:?}", &event.act.name);
                             "!!!".into()
                         }
                     };

@@ -59,16 +59,6 @@ pub struct RunActEvent {
     pub(crate) input: Option<Input>,
 }
 
-// impl Clone for RunActEvent {
-//     fn clone(&self) -> Self {
-//         Self {
-//             act: self.act.clone(),
-//             hotkey: self.hotkey.clone(),
-//             input: None,
-//         }
-//     }
-// }
-
 /// Requests an act by name to be run
 #[derive(Clone, Event, Debug)]
 pub struct RunActByNameEvent {
@@ -77,15 +67,6 @@ pub struct RunActByNameEvent {
     input: Option<Input>,
     input_debug: Option<String>
 }
-
-// impl Clone for RunActByNameEvent {
-//     fn clone(&self) -> Self {
-//         Self {
-//             name: self.name.clone(),
-//             input: None,
-//         }
-//     }
-// }
 
 impl RunActByNameEvent {
     /// Lookup and run act with given name.
@@ -168,41 +149,6 @@ pub(crate) enum LookupEvent {
     /// Show completions
     Completions(Vec<String>),
 }
-
-// #[derive(Debug, Clone)]
-// pub enum MsgDest<T> {
-//     Replace(T),
-//     Append(T)
-// }
-
-// impl<T> MsgDest<T> {
-//     pub fn map<F: Fn(T) -> X, X>(self, f: F) -> MsgDest<X> {
-//         use MsgDest::*;
-//         match self {
-//             Replace(x) => Replace(f(x)),
-//             Append(x) => Append(f(x)),
-//         }
-//     }
-// }
-
-// impl<T> From<T> for MsgDest<T> {
-//     fn from(x: T) -> Self {
-//         MsgDest::Replace(x)
-//     }
-// }
-
-// impl<T, X:Into<T>> From<X> for MsgDest<T> {
-//     fn from(x: X) -> Self {
-//         MsgDest::Replace(x.into())
-//     }
-// }
-//
-
-// impl<X: Into<String>> From<X> for MsgDest<String> {
-//     fn from(x: X) -> Self {
-//         MsgDest::Replace(x.into())
-//     }
-// }
 
 /// Dispatch an event
 ///
@@ -360,7 +306,6 @@ pub fn run_act_raw(e: &RunActEvent,
         warn!("Could not find ActRunner.");
     }
 }
-
 
 /// Run act for any [RunActEvent].
 pub(crate) fn run_acts(

@@ -1,5 +1,5 @@
 use crate::{
-    acts::{Act, AddActs, ActFlags, ActRunner},
+    acts::{Act, Acts, ActsPlugin, AddActs, ActFlags, ActRunner, universal::UniversalArg},
     input::{KeyChord, keyseq},
     event::{RunActEvent, KeyChordEvent, LastRunAct},
     Minibuffer,
@@ -12,15 +12,42 @@ use copypasta::{ClipboardContext, ClipboardProvider};
 pub(crate) fn plugin(app: &mut App) {
     app
         .init_resource::<TapeRecorder>()
-        .init_resource::<Tapes>()
-        .init_resource::<DebugMap>()
-        .init_resource::<LastPlayed>()
-        .add_acts((
-            Act::new(record_tape).bind(keyseq! { Q }).sub_flags(ActFlags::Record),
-            Act::new(play_tape).bind(keyseq! { Shift-2 }).sub_flags(ActFlags::Record),
-            Act::new(copy_tape),
-            ))
-        ;
+        .init_resource::<DebugMap>();
+}
+
+pub struct TapeActs {
+    acts: Acts,
+}
+
+impl Default for TapeActs {
+    fn default() -> Self {
+        Self {
+            acts: Acts::new([
+                Act::new(record_tape).bind(keyseq! { Q }).sub_flags(ActFlags::Record),
+                Act::new(play_tape).bind(keyseq! { Shift-2 }).sub_flags(ActFlags::Record),
+                &mut Act::new(copy_tape),
+                ]),
+        }
+    }
+}
+
+impl Plugin for TapeActs {
+    fn build(&self, app: &mut App) {
+        app
+            .init_resource::<Tapes>()
+            .init_resource::<LastPlayed>();
+
+        self.warn_on_unused_acts();
+    }
+}
+
+impl ActsPlugin for TapeActs {
+    fn acts(&self) -> &Acts {
+        &self.acts
+    }
+    fn acts_mut(&mut self) -> &mut Acts {
+        &mut self.acts
+    }
 }
 
 #[derive(Resource, Debug, Default)]
@@ -74,8 +101,9 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
 
 
 
-fn play_tape(mut minibuffer: Minibuffer, last_act: Res<LastRunAct>) {
+fn play_tape(mut minibuffer: Minibuffer, last_act: Res<LastRunAct>, universal_arg: Res<UniversalArg>) {
     let this_keychord = last_act.hotkey().cloned();
+    let count = universal_arg.unwrap_or(1);
     minibuffer.message("Play tape for key: ");
     minibuffer.get_chord()
         .observe(move |mut trigger: Trigger<KeyChordEvent>, mut commands: Commands,
@@ -95,8 +123,10 @@ fn play_tape(mut minibuffer: Minibuffer, last_act: Res<LastRunAct>) {
                         let tape = tape.clone();
                         commands.queue(move |world: &mut World| {
                             info!("Running system.");
-                            if let Err(e) = world.run_system_cached_with(play_tape_sys, &tape) {
-                                warn!("Error playing tape: {e:?}");
+                            for _ in 0..count {
+                                if let Err(e) = world.run_system_cached_with(play_tape_sys, &tape) {
+                                    warn!("Error playing tape: {e:?}");
+                                }
                             }
                         });
                         **last_played = Some(chord);

@@ -61,10 +61,16 @@ pub trait LookupMap: Lookup {
     }
 }
 
+/// This parses [Srgba] as hexadecimal color input in either three digits or six
+/// digits.
+///
+/// It does not provide completion as such. In a different language I might pull
+/// this out as something named `Parse`, but I don't want to create yet another
+/// `prompt_parse()` if [Lookup] is sufficient for the job and it is.
 #[derive(Debug, Clone, Copy)]
-pub struct HexColorLookup;
+pub struct SrgbaHexLookup;
 
-impl Lookup for HexColorLookup {
+impl Lookup for SrgbaHexLookup {
     fn lookup(&self, input: &str) -> Result<(), LookupError> {
         Srgba::hex(input).map(|_| ()).map_err(|e| LookupError::Message(format!("{e}").into()))
     }
@@ -76,11 +82,11 @@ impl Lookup for HexColorLookup {
     }
 }
 
-impl LookupMap for HexColorLookup {
-    type Item = Color;
+impl LookupMap for SrgbaHexLookup {
+    type Item = Srgba;
 
     fn resolve(&self, input: &str) -> Option<Self::Item> {
-        Srgba::hex(input).ok().map(Color::from)
+        Srgba::hex(input).ok()
     }
 }
 
@@ -156,19 +162,8 @@ impl<V: Send + Sync + Clone> Lookup for map::Trie<u8, V> {
     }
 }
 
-// // Why have this?
-// impl LookupMap for trie_rs::Trie<u8> {
-//     type Item = ();
-
-//     fn resolve(&self, input: &str) -> Result<Self::Item, LookupError> {
-//         self.0.lookup(input)
-//     }
-// }
-
 impl Lookup for trie_rs::Trie<u8> {
     fn lookup(&self, input: &str) -> Result<(), LookupError> {
-        // self.exact_match(input).cloned()
-        // self.0.resolve(input)
         if self.exact_match(input) {
             return Ok(());
         }
@@ -222,27 +217,12 @@ impl<T: AsRef<str>> LookupMap for Vec<T> {
 impl<T: AsRef<str>> LookupMap for [T] {
     type Item = String;
     fn resolve(&self, input: &str) -> Option<Self::Item> {
-        // Collecting and matching is nice expressively. But manually iterating
-        // avoids that allocation.
-
-        // let matches: Vec<&str> = self
-        //     .iter()
-        //     .map(|word| word.as_ref())
-        //     .filter(|word| word.starts_with(input))
-        //     .collect();
-        // match matches[..] {
-        //     [a] => Ok(a.to_string()),
-        //     [_a, _b, ..] => Err(LookupError::Incomplete(
-        //         matches.into_iter().map(|s| s.to_string()).collect(),
-        //     )),
-        //     [] => Err(LookupError::Message(" no matches".into())),
-        // }
-
         let mut matches = self
             .iter()
             .map(|word| word.as_ref())
             .filter(|word| word.starts_with(input));
-
+        // Collecting and matching is nice expressively. But manually iterating
+        // avoids that allocation.
         if let Some(first) = matches.next() {
             if matches.next().is_none() {
                 return Some(first.to_string());

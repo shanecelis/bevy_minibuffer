@@ -264,7 +264,7 @@ impl Default for BasicActs {
                     .bind_aliased(keyseq! { Shift-; }, ":")
                     .bind(keyseq! { Alt-X })
                     .add_flags(ActFlags::Adverb)
-                    .sub_flags(ActFlags::RunAct),
+                    .sub_flags(ActFlags::RunAct | ActFlags::Record),
                 ActBuilder::new(describe_key)
                     .named("describe_key")
                     .bind(keyseq! { Ctrl-H K }),

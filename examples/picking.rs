@@ -1,24 +1,12 @@
-//! A simple 3D scene to demonstrate mesh picking.
+//! Demonstrate tapes, i.e., macros
 //!
-//! [`bevy::picking::backend`] provides an API for adding picking hit tests to any entity. To get
-//! started with picking 3d meshes, the [`MeshPickingPlugin`] is provided as a simple starting
-//! point, especially useful for debugging. For your game, you may want to use a 3d picking backend
-//! provided by your physics engine, or a picking shader, depending on your specific use case.
+//! ## Acknowledgments
 //!
-//! [`bevy::picking`] allows you to compose backends together to make any entity on screen pickable
-//! with pointers, regardless of how that entity is rendered. For example, `bevy_ui` and
-//! `bevy_sprite` provide their own picking backends that can be enabled at the same time as this
-//! mesh picking backend. This makes it painless to deal with cases like the UI or sprites blocking
-//! meshes underneath them, or vice versa.
+//! This example was based off of
+//! [mesh_picking.rs](https://bevyengine.org/examples/picking/mesh-picking/)
+//! originally written by [Joona Aalto](https://github.com/Jondolf) of
+//! [Avian](https://github.com/Jondolf/avian) fame.
 //!
-//! If you want to build more complex interactions than afforded by the provided pointer events, you
-//! may want to use [`MeshRayCast`] or a full physics engine with raycasting capabilities.
-//!
-//! By default, the mesh picking plugin will raycast against all entities, which is especially
-//! useful for debugging. If you want mesh picking to be opt-in, you can set
-//! [`MeshPickingSettings::require_markers`] to `true` and add a [`RayCastPickable`] component to
-//! the desired camera and target entities.
-
 use std::f32::consts::PI;
 
 use bevy::{color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*};
@@ -26,13 +14,15 @@ use bevy_minibuffer::prelude::*;
 
 fn main() {
     App::new()
-        // MeshPickingPlugin is not a default plugin
         .add_plugins((DefaultPlugins, MeshPickingPlugin, MinibufferPlugins))
         .init_resource::<Selected>()
+        .init_resource::<Selectables>()
         .add_systems(Startup, setup_scene)
-        .add_systems(Update, (draw_mesh_intersections, rotate, update_color))
+        .add_systems(Update, (rotate, (update_selected, update_color).chain()))
         .add_acts((BasicActs::default(),
-        set_color))
+                   UniversalArgActs::default(),
+                   set_color,
+                   Act::new_with_input(set_color_scriptable)))
         .run();
 }
 
@@ -45,7 +35,20 @@ const EXTRUSION_X_EXTENT: f32 = 16.0;
 const Z_EXTENT: f32 = 5.0;
 
 #[derive(Resource, Default)]
-struct Selected(Option<Entity>);
+struct Selected {
+    curr: Option<Entity>,
+    last: Option<Entity>,
+}
+
+impl Selected {
+    fn set(&mut self, value: Option<Entity>) {
+        self.last = self.curr;
+        self.curr = value;
+    }
+}
+
+#[derive(Resource, Default)]
+struct Selectables(Vec<Entity>);
 
 #[derive(Component, Clone, Copy)]
 struct Paint {
@@ -66,6 +69,7 @@ fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut minibuffer: Minibuffer,
 ) {
     // Set up the materials.
     let white_matl = Color::WHITE;
@@ -97,8 +101,11 @@ fn setup_scene(
 
     let num_shapes = shapes.len();
 
+    let mut selectables = vec![];
+
     // Spawn the shapes. The meshes will be pickable by default.
     for (i, shape) in shapes.into_iter().enumerate() {
+        selectables.push(
         commands
             .spawn((
                 Mesh3d(shape),
@@ -117,12 +124,14 @@ fn setup_scene(
             .observe(update_color_on::<Pointer<Down>>(pressed_color.clone()))
             .observe(update_color_on::<Pointer<Up>>(hover_color.clone()))
             .observe(select)
-            .observe(rotate_on_drag);
+            .observe(rotate_on_drag)
+                .id());
     }
 
     let num_extrusions = extrusions.len();
 
     for (i, shape) in extrusions.into_iter().enumerate() {
+        selectables.push(
         commands
             .spawn((
                 Mesh3d(shape),
@@ -143,8 +152,10 @@ fn setup_scene(
             .observe(update_color_on::<Pointer<Up>>(hover_color.clone()))
             // .observe(update_color_on::<Pointer<Click>>(click_matl.clone()))
             .observe(select)
-            .observe(rotate_on_drag);
+            .observe(rotate_on_drag)
+                .id());
     }
+    commands.insert_resource(Selectables(selectables));
 
     // Ground
     commands.spawn((
@@ -171,41 +182,35 @@ fn setup_scene(
         Transform::from_xyz(0.0, 7., 14.0).looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
     ));
 
-    // Instructions
-    commands.spawn((
-        Text::new("Hover over the shapes to pick them\nDrag to rotate"),
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(12.0),
-            left: Val::Px(12.0),
-            ..default()
-        },
-    ));
+    minibuffer.message("Click a shape. Type :set_color.");
+    minibuffer.set_visible(true);
 }
 
 fn set_color(mut minibuffer: Minibuffer, selected: Res<Selected>) {
-    if selected.0.is_none() {
+    if selected.curr.is_none() {
         minibuffer.message("Select a shape first.");
         return;
     } else {
-        let selection = selected.0.unwrap();
-        minibuffer.prompt_map("Hex color: ", bevy_minibuffer::autocomplete::HexColorLookup)
-            .observe(move |mut trigger: Trigger<Completed<Color>>,
+        let selection = selected.curr.unwrap();
+        minibuffer.prompt_map("Hex color: ", bevy_minibuffer::autocomplete::SrgbaHexLookup)
+            .observe(move |mut trigger: Trigger<Completed<Srgba>>,
                      mut selected: ResMut<Selected>,
                      mut paints: Query<&mut Paint>,
-                     mut commands: Commands, mut minibuffer: Minibuffer| {
+                     mut commands: Commands, mut minibuffer: Minibuffer,
+                     selectables: Res<Selectables>| {
                 if let Completed::Unhandled { result, input } = trigger.event_mut().take() {
                     match result {
                         Ok(color) => {
+                            goto_next_selectable(selection, &*selectables, &mut *selected);
                             if let Ok(mut paint) = paints.get_mut(selection) {
-                                selected.0 = None;
                                 minibuffer.message(format!("Set color to {:?}", &color));
-                                paint.base = color;
+                                paint.base = color.into();
                                 paint.tone = None;
                             }
                             commands.entity(trigger.entity()).despawn_recursive();
                         }
                         Err(e) => {
+                            warn!("set_color error: {e}");
                         }
                     }
                 } else {
@@ -215,31 +220,94 @@ fn set_color(mut minibuffer: Minibuffer, selected: Res<Selected>) {
     }
 }
 
+fn goto_next_selectable(selection: Entity,
+                        selectables: &Selectables,
+                        mut selected: &mut Selected,
+) {
+    selected.curr = selectables.0.iter()
+                                .position(|x| *x == selection)
+        .and_then(|index| selectables.0.get(index + 1))
+        .or(selectables.0.first()).copied();
+}
+
+
+fn set_color_scriptable(In(input): In<Option<Srgba>>,
+                        mut minibuffer: Minibuffer,
+                        mut paints: Query<&mut Paint>,
+                        mut selected: ResMut<Selected>,
+                        selectables: Res<Selectables>) {
+    if selected.curr.is_none() {
+        minibuffer.message("Select a shape first.");
+        return;
+    } else {
+        let selection = selected.curr.unwrap();
+        if let Some(color) = input {
+            goto_next_selectable(selection, &*selectables, &mut *selected);
+            if let Ok(mut paint) = paints.get_mut(selection) {
+                minibuffer.message(format!("Set color to {:?}", &color));
+                paint.base = color.into();
+                paint.tone = None;
+            }
+        } else {
+        minibuffer.prompt_map("Hex color: ", bevy_minibuffer::autocomplete::SrgbaHexLookup)
+            .observe(move |mut trigger: Trigger<Completed<Srgba>>,
+                     mut selected: ResMut<Selected>,
+                     mut paints: Query<&mut Paint>,
+                     mut commands: Commands,
+                     mut minibuffer: Minibuffer,
+                     selectables: Res<Selectables>| {
+                if let Completed::Unhandled { result, input } = trigger.event_mut().take() {
+                    match result {
+                        Ok(color) => {
+                            minibuffer.log_input(&Some(color));
+                            goto_next_selectable(selection, &*selectables, &mut *selected);
+                            if let Ok(mut paint) = paints.get_mut(selection) {
+                                minibuffer.message(format!("Set color to {:?}", &color));
+                                paint.base = color.into();
+                                paint.tone = None;
+                            }
+                            commands.entity(trigger.entity()).despawn_recursive();
+                        }
+                        Err(e) => {
+                            warn!("set_color error: {e}");
+                        }
+                    }
+                } else {
+                    commands.entity(trigger.entity()).despawn_recursive();
+                }
+            });
+        }
+    }
+}
+
 fn select(trigger: Trigger<Pointer<Click>>,
           mut selected: ResMut<Selected>,
           mut paints: Query<&mut Paint>,
 ) {
-    info!("click on {:?}", trigger.entity());
-    match std::mem::replace(&mut *selected, Selected(Some(trigger.entity()))) {
-        Selected(Some(id)) => {
-            /// Reset the selection of previous.
+    selected.set(Some(trigger.entity()));
+}
+
+fn update_selected(selected: Res<Selected>, mut paints: Query<&mut Paint>) {
+    let selected_color = Color::from(RED_800);
+    if selected.is_changed() {
+        if let Some(id) = selected.curr {
+            if let Ok(mut paint) = paints.get_mut(id) {
+                paint.tone = Some((selected_color, 0.8));
+            }
+        }
+        if let Some(id) = selected.last {
             if let Ok(mut paint) = paints.get_mut(id) {
                 paint.tone = None;
             }
         }
-        Selected(None) => ()
-    }
-}
-
-fn change_color(mut handle: Handle<StandardMaterial>, materials: &mut Assets<StandardMaterial>, color: Color) {
-    if let Some(mut material) = materials.get_mut(&mut handle) {
-        material.base_color = color;
     }
 }
 
 fn update_color(
     mut query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Paint), Changed<Paint>>,
-    mut materials: ResMut<Assets<StandardMaterial>>) {
+    mut materials: ResMut<Assets<StandardMaterial>>,
+
+) {
     for (mut mesh_material, paint) in &mut query {
         if let Some(mut material) = materials.get_mut(&mut mesh_material.0) {
             material.base_color = match paint.tone {
@@ -253,31 +321,14 @@ fn update_color(
 /// Returns an observer that updates the entity's material to the one specified.
 fn update_color_on<E>(
     color: Option<Color>,
-) -> impl Fn(Trigger<E>,
-             Query<&mut Paint>,
-             Res<Selected>) {
-    let selected_color = Color::from(RED_800);
+) -> impl Fn(Trigger<E>, Query<&mut Paint>, Res<Selected>) {
     move |trigger, mut query, selected| {
-        if let Ok(mut paint) = query.get_mut(trigger.entity()) {
-            if selected.0.map(|x| x == trigger.entity()).unwrap_or(false) {
-                // We're selected.
-                paint.tone = Some((selected_color, 0.8));
-            } else {
-                paint.tone = color.map(|c| (c, 0.9));
-            }
+        if selected.curr.map(|x| x == trigger.entity()).unwrap_or(false) {
+            return;
         }
-    }
-}
-
-/// A system that draws hit indicators for every pointer.
-fn draw_mesh_intersections(pointers: Query<&PointerInteraction>, mut gizmos: Gizmos) {
-    for (point, normal) in pointers
-        .iter()
-        .filter_map(|interaction| interaction.get_nearest_hit())
-        .filter_map(|(_entity, hit)| hit.position.zip(hit.normal))
-    {
-        gizmos.sphere(point, 0.05, RED_500);
-        gizmos.arrow(point, point + normal.normalize() * 0.5, PINK_100);
+        if let Ok(mut paint) = query.get_mut(trigger.entity()) {
+            paint.tone = color.map(|c| (c, 0.7));
+        }
     }
 }
 

@@ -17,6 +17,10 @@ use bevy_input_sequence::{KeyChord, KeyChordQueue};
 use std::future::Future;
 use std::{borrow::Cow, fmt::Debug};
 
+pub(crate) fn plugin(app: &mut App) {
+    app.init_resource::<UniversalArg>();
+}
+
 /// Universal argument plugin and acts
 ///
 /// Adds "universal_arg" act and resources: [UniversalArg] and [UniversalArgMultiplier].
@@ -87,7 +91,8 @@ impl Plugin for UniversalArgActs {
         app.register_type::<Multiplier>()
             .register_type::<UniversalArg>()
             .init_resource::<Multiplier>()
-            .init_resource::<UniversalArg>()
+            // You can always rely on UniversalArg to be there.
+            // .init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
         self.warn_on_unused_acts();
     }
@@ -129,6 +134,10 @@ pub fn display_universal_arg(arg: Res<UniversalArg>, mut minibuffer: Minibuffer)
 
 /// This resources stores the last given universal argument. It is cleared after
 /// any act---that is not specifically marked [ActFlags::Adverb]---runs.
+///
+/// NOTE: the [UniversalArg] resource is always present even if the
+/// [UniversalArgActs] plugin has not been added. This is to enable users to
+/// opt-in to universal argument acts while allowing act writers to support universal arguments if available.
 #[derive(Debug, Clone, Resource, Default, Reflect, Deref, DerefMut)]
 pub struct UniversalArg(pub Option<i32>);
 
@@ -159,7 +168,7 @@ fn universal_arg(
               mut chord_queue: ResMut<KeyChordQueue>,
               mut minibuffer: Minibuffer,
               mut commands: Commands| {
-            let Ok(chord @ KeyChord(_mods, key)) = trigger.event_mut().take() else {
+            let Ok(chord @ KeyChord(mods, key)) = trigger.event_mut().take() else {
                 commands.entity(trigger.entity()).despawn();
                 return;
             };
@@ -175,6 +184,13 @@ fn universal_arg(
                     return;
                 }
             }
+            if !mods.is_empty() {
+                universal_arg.0 = (!accumulated).then_some(multiplier).or(Some(accum));
+                chord_queue.push_back(chord);
+                commands.entity(trigger.entity()).despawn();
+                return;
+            }
+
             let digit = match key {
                 Digit0 => 0,
                 Digit1 => 1,

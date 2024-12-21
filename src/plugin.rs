@@ -83,6 +83,7 @@ pub enum Error {
     Futures(#[from] futures::channel::oneshot::Canceled),
 }
 
+
 /// Minibuffer generally runs in the Update schedule of sets in this order where
 /// necessary: Input, Process, Output.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
@@ -111,6 +112,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_plugins(crate::autocomplete::plugin)
             .add_plugins(crate::view::plugin)
             .add_plugins(crate::tape::plugin)
+            .add_plugins(crate::acts::universal::plugin)
             .add_plugins(AskyPlugin)
             .add_plugins(InputSequencePlugin::empty().run_in_set(Update, InputSequenceSet))
             .init_state::<MinibufferState>()

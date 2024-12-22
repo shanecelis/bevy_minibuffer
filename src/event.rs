@@ -55,6 +55,7 @@ pub struct RunActEvent {
     /// Which if any of its hotkeys started it
     pub hotkey: Option<usize>,
     pub(crate) input: Option<Input>,
+    // pub(crate) universal_arg: Option<i32>,
 }
 
 /// Requests an act by name to be run
@@ -272,7 +273,7 @@ pub fn run_act_raw(e: &RunActEvent,
                    mut next_prompt_state: &mut NextState<PromptState>,
                    mut last_act: &mut LastRunAct,
                    commands: &mut Commands,
-                   tape: Option<&mut TapeRecorder>,
+                   tape_recorder: Option<&mut TapeRecorder>,
 ) {
     if e.act.flags.contains(ActFlags::ShowMinibuffer) {
         next_prompt_state.set(PromptState::Visible);
@@ -289,15 +290,8 @@ pub fn run_act_raw(e: &RunActEvent,
                 warn!("Error running act '{}': {:?}", e.act.name, error);
             }
         }
-        if e.act.flags.contains(ActFlags::Record) {
-            if let Some(tape) = tape {
-                match tape {
-                    TapeRecorder::Record { ref mut tape, .. } => {
-                        tape.append_run(e.clone());
-                    }
-                    _ => ()
-                }
-            }
+        if let Some(tape_recorder) = tape_recorder {
+            tape_recorder.process_event(e);
         }
     } else {
         warn!("Could not find ActRunner.");

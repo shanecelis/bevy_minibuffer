@@ -262,7 +262,7 @@ pub(crate) fn set_color(In(input): In<Option<Srgba>>,
         if let Some(color) = input {
             goto_next_selectable(selection, &*selectables, &mut *selected);
             if let Ok(mut paint) = paints.get_mut(selection) {
-                minibuffer.message(format!("Set color to {:?}", &color));
+                minibuffer.message(format!("{:?}", &color));
                 paint.base = color.into();
                 paint.tone = None;
             }

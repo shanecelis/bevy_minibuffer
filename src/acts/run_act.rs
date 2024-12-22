@@ -92,13 +92,14 @@ impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Default + Send + Sync 
     }
 
     fn run_with_input(&self, input: &dyn Any, commands: &mut Commands) -> Result<(), RunActError> {
-        info!("input typeid {:?}", input.type_id());
-        info!("Arc typeid {:?}", TypeId::of::<Arc<dyn Any>>());
-        info!("Arc 2typeid {:?}", TypeId::of::<Arc<dyn Any + 'static + Send + Sync>>());
-        info!("Option<f32> typeid {:?}", TypeId::of::<Option<f32>>());
-        info!("&Option<f32> typeid {:?}", TypeId::of::<&Option<f32>>());
-        info!("f32 typeid {:?}", TypeId::of::<f32>());
-        info!("&f32 typeid {:?}", TypeId::of::<&f32>());
+        // The debugging with Any was _rough_.
+        // info!("input typeid {:?}", input.type_id());
+        // info!("Arc typeid {:?}", TypeId::of::<Arc<dyn Any>>());
+        // info!("Arc 2typeid {:?}", TypeId::of::<Arc<dyn Any + 'static + Send + Sync>>());
+        // info!("Option<f32> typeid {:?}", TypeId::of::<Option<f32>>());
+        // info!("&Option<f32> typeid {:?}", TypeId::of::<&Option<f32>>());
+        // info!("f32 typeid {:?}", TypeId::of::<f32>());
+        // info!("&f32 typeid {:?}", TypeId::of::<&f32>());
         match input.downcast_ref::<I>() {
             Some(input) => {
                 let input = input.clone();

@@ -18,7 +18,6 @@ use std::{
     sync::Arc,
 };
 
-
 mod collection;
 pub use collection::*;
 mod add_acts;
@@ -39,6 +38,7 @@ pub mod basic_async;
 
 pub mod universal;
 pub mod tape;
+
 // impl<'w, 's> AddActs for Commands<'w, 's> {
 //     fn add_acts(&mut self, acts: impl Into<Acts>) -> &mut Self {
 //         let builders = acts.into();
@@ -129,7 +129,8 @@ impl Act {
                 EntityCommand::apply(
                     KeySequence::new(
                         // XXX: Should this be trigger?
-                        action::send_event(RunActEvent::new(self.clone()).with_hotkey(i)),
+                        // action::send_event(RunActEvent::new(self.clone()).with_hotkey(i)),
+                        action::trigger(RunActEvent::new(self.clone()).with_hotkey(i)),
                         hotkey.chords.clone(),
                     ),
                     id,

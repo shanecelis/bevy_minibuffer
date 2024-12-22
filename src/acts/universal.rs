@@ -18,6 +18,7 @@ use std::future::Future;
 use std::{borrow::Cow, fmt::Debug};
 
 pub(crate) fn plugin(app: &mut App) {
+    // You can always rely on UniversalArg to be there.
     app.init_resource::<UniversalArg>();
 }
 
@@ -52,7 +53,7 @@ impl Default for UniversalArgActs {
                 Act::new(universal_arg)
                     .named("universal_arg")
                     .bind(keyseq! { Ctrl-U })
-                    .sub_flags(ActFlags::RunAct),
+                    .sub_flags(ActFlags::RunAct | ActFlags::Record),
             ]),
         }
     }
@@ -91,8 +92,6 @@ impl Plugin for UniversalArgActs {
         app.register_type::<Multiplier>()
             .register_type::<UniversalArg>()
             .init_resource::<Multiplier>()
-            // You can always rely on UniversalArg to be there.
-            // .init_resource::<UniversalArg>()
             .add_systems(bevy::app::Last, clear_arg);
         self.warn_on_unused_acts();
     }
@@ -164,65 +163,74 @@ fn universal_arg(
     minibuffer.message(prompt.clone());
     minibuffer.get_chord().observe(
         move |mut trigger: Trigger<KeyChordEvent>,
-              mut universal_arg: ResMut<UniversalArg>,
-              mut chord_queue: ResMut<KeyChordQueue>,
-              mut minibuffer: Minibuffer,
-              mut commands: Commands| {
-            let Ok(chord @ KeyChord(mods, key)) = trigger.event_mut().take() else {
-                commands.entity(trigger.entity()).despawn();
-                return;
-            };
-            if let Some(ref bindkey) = bindkey {
-                if chord == *bindkey {
-                    if accum == 0 {
-                        accum = multiplier * multiplier;
-                    } else {
-                        accum *= multiplier;
+        mut universal_arg: ResMut<UniversalArg>,
+        mut chord_queue: ResMut<KeyChordQueue>,
+        mut minibuffer: Minibuffer,
+        mut commands: Commands| {
+            let abort: bool = 'body: {
+                let Ok(chord @ KeyChord(mods, key)) = trigger.event_mut().take() else {
+                    break 'body true;
+                };
+                if let Some(ref bindkey) = bindkey {
+                    if chord == *bindkey {
+                        if accum == 0 {
+                            accum = multiplier * multiplier;
+                        } else {
+                            accum *= multiplier;
+                        }
+                        accumulated = true;
+                        minibuffer.message(format!("{prompt} {accum}"));
+                        break 'body false;
                     }
-                    accumulated = true;
-                    minibuffer.message(format!("{prompt} {accum}"));
-                    return;
                 }
-            }
-            if !mods.is_empty() {
-                universal_arg.0 = (!accumulated).then_some(multiplier).or(Some(accum));
-                chord_queue.push_back(chord);
-                commands.entity(trigger.entity()).despawn();
-                return;
-            }
-
-            let digit = match key {
-                Digit0 => 0,
-                Digit1 => 1,
-                Digit2 => 2,
-                Digit3 => 3,
-                Digit4 => 4,
-                Digit5 => 5,
-                Digit6 => 6,
-                Digit7 => 7,
-                Digit8 => 8,
-                Digit9 => 9,
-                Minus => -1,
-                _ => {
+                if !mods.is_empty() {
                     universal_arg.0 = (!accumulated).then_some(multiplier).or(Some(accum));
                     chord_queue.push_back(chord);
-                    commands.entity(trigger.entity()).despawn();
-                    return;
+                    break 'body true;
                 }
+
+                let digit = match key {
+                    Digit0 => Some(0),
+                    Digit1 => Some(1),
+                    Digit2 => Some(2),
+                    Digit3 => Some(3),
+                    Digit4 => Some(4),
+                    Digit5 => Some(5),
+                    Digit6 => Some(6),
+                    Digit7 => Some(7),
+                    Digit8 => Some(8),
+                    Digit9 => Some(9),
+                    Minus => Some(-1),
+                    Backspace => {
+                        accum /= 10;
+                        None
+                    }
+                    _ => {
+                        universal_arg.0 = (!accumulated).then_some(multiplier).or(Some(accum));
+                        chord_queue.push_back(chord);
+                        break 'body true;
+                    }
+                };
+                if let Some(digit) = digit {
+                    if digit >= 0 {
+                        if accum >= 0 {
+                            accum = accum * 10 + digit;
+                        } else {
+                            accum = accum * 10 - digit;
+                        }
+                    } else {
+                        accum *= digit;
+                    }
+                }
+                accumulated = true;
+                minibuffer.message(format!("{prompt} {accum}"));
+                false
             };
-            if digit >= 0 {
-                if accum >= 0 {
-                    accum = accum * 10 + digit;
-                } else {
-                    accum = accum * 10 - digit;
-                }
-            } else {
-                accum *= digit;
+            if abort {
+                minibuffer.clear();
+                commands.entity(trigger.entity()).despawn();
             }
-            accumulated = true;
-            minibuffer.message(format!("{prompt} {accum}"));
-        },
-    );
+        });
 }
 
 #[cfg(feature = "async")]

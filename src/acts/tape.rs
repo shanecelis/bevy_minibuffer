@@ -24,7 +24,8 @@ impl Default for TapeActs {
         Self {
             acts: Acts::new([
                 Act::new(record_tape).bind(keyseq! { Q }).sub_flags(ActFlags::Record),
-                Act::new(play_tape).bind(keyseq! { Shift-2 }).sub_flags(ActFlags::Record),
+                Act::new(play_tape).bind_aliased(keyseq! { Shift-2 }, "@").sub_flags(ActFlags::Record),
+                Act::new(repeat).bind(keyseq! { Period }).sub_flags(ActFlags::Record | ActFlags::RunAct),
                 &mut Act::new(copy_tape),
                 ]),
         }
@@ -50,12 +51,44 @@ impl ActsPlugin for TapeActs {
     }
 }
 
-#[derive(Resource, Debug, Default)]
+#[derive(Resource, Debug)]
 pub enum TapeRecorder {
-    #[default]
-    Off,
+    /// Record only the last act that was run.
+    Off { one_off: Tape },
     Record { tape: Tape, chord: KeyChord },
     Play,
+}
+
+impl Default for TapeRecorder {
+    fn default() -> Self {
+        TapeRecorder::Off { one_off: Tape::default() }
+    }
+}
+
+impl TapeRecorder {
+    pub fn process_event(&mut self, event: &RunActEvent) {
+        if event.act.flags.contains(ActFlags::Record) {
+            match self {
+                TapeRecorder::Off { one_off: ref mut tape } => {
+                    tape.content.clear();
+                    tape.append_run(event.clone());
+                }
+                TapeRecorder::Record { ref mut tape, .. } => {
+                    tape.append_run(event.clone());
+                }
+                _ => ()
+            }
+        }
+    }
+
+    pub fn process_input<I: Debug + Clone + Send + Sync + 'static>(&mut self, input: &I, debug_map: &mut DebugMap) {
+        match self {
+            TapeRecorder::Record { ref mut tape, .. } | TapeRecorder::Off { one_off: ref mut tape } => {
+                tape.ammend_input(input.clone(), debug_map);
+            }
+            _ => ()
+        }
+    }
 }
 
 #[derive(Resource, Debug, Default, Deref, DerefMut)]
@@ -68,16 +101,15 @@ pub struct DebugMap(HashMap<TypeId, Box<dyn Fn(&dyn Any) -> Option<String> + 'st
 pub struct LastPlayed(Option<KeyChord>);
 
 fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
-    use TapeRecorder::*;
-    match *minibuffer.tape_recorder {
-        Off => {
+    match &*minibuffer.tape_recorder {
+        TapeRecorder::Off { one_off }=> {
             minibuffer.message("Record tape for key: ");
             minibuffer.get_chord()
                 .observe(|mut trigger: Trigger<KeyChordEvent>, mut commands: Commands, mut minibuffer: Minibuffer| {
                     match trigger.event_mut().take() {
                         Ok(chord) => {
                             minibuffer.message(format!("Recording new tape for {}", &chord));
-                            *minibuffer.tape_recorder = Record { tape: Tape::default(), chord: chord };
+                            *minibuffer.tape_recorder = TapeRecorder::Record { tape: Tape::default(), chord: chord };
                         }
                         Err(e) => {
                             minibuffer.message(format!("{e}"));
@@ -86,20 +118,18 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
                     commands.entity(trigger.entity()).despawn_recursive();
                 });
         }
-        Record { ..  } => {
-            let Record { tape, chord } = std::mem::take(&mut *minibuffer.tape_recorder) else {
+        TapeRecorder::Record { .. } => {
+            let TapeRecorder::Record { tape, chord } = std::mem::take(&mut *minibuffer.tape_recorder) else {
                 unreachable!();
             };
             minibuffer.message(format!("Defined tape {}", &chord));
             tapes.insert(chord, tape);
         }
-        Play => {
+        TapeRecorder::Play => {
             warn!("Got record tape during Play.");
         }
     }
 }
-
-
 
 fn play_tape(mut minibuffer: Minibuffer, last_act: Res<LastRunAct>, universal_arg: Res<UniversalArg>) {
     let this_keychord = last_act.hotkey().cloned();
@@ -122,7 +152,6 @@ fn play_tape(mut minibuffer: Minibuffer, last_act: Res<LastRunAct>, universal_ar
                     if let Some(tape) = tapes.get(&chord) {
                         let tape = tape.clone();
                         commands.queue(move |world: &mut World| {
-                            info!("Running system.");
                             for _ in 0..count {
                                 if let Err(e) = world.run_system_cached_with(play_tape_sys, &tape) {
                                     warn!("Error playing tape: {e:?}");
@@ -188,6 +217,23 @@ fn copy_tape(mut minibuffer: Minibuffer) {
                      }
                      commands.entity(trigger.entity()).despawn_recursive();
                  });
+}
+
+fn repeat(tape_recorder: Res<TapeRecorder>, universal_arg: Res<UniversalArg>, mut commands: Commands) {
+    let count = universal_arg.unwrap_or(1);
+    match *tape_recorder {
+        TapeRecorder::Off { ref one_off } => {
+            let tape = one_off.clone();
+            commands.queue(move |world: &mut World| {
+                for _ in 0..count {
+                    if let Err(e) = world.run_system_cached_with(play_tape_sys, &tape) {
+                        warn!("Error playing tape: {e:?}");
+                    }
+                }
+            });
+        }
+        _ => ()
+    }
 }
 
 #[derive(Debug, Default, Clone)]

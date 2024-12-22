@@ -151,6 +151,7 @@ impl Minibuffer<'_, '_> {
     }
 
     pub fn log_input<I: Debug + Clone + Send + Sync + 'static>(&mut self, input: &I) {
+        self.tape_recorder.process_input(input, &mut *self.debug_map);
         match *self.tape_recorder {
             TapeRecorder::Record { ref mut tape, .. } => {
                 tape.ammend_input(input.clone(), &mut *self.debug_map);

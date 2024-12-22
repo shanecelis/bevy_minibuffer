@@ -48,19 +48,19 @@ impl NameActCache {
 /// acts with hotkeys are added or removed.
 #[derive(Resource, Default)]
 pub struct HotkeyActCache {
-    trie: Option<Trie<KeyChord, Act>>,
+    trie: Option<Trie<KeyChord, ActRef>>,
 }
 
 impl HotkeyActCache {
     /// Retrieve the cached trie without iterating through `acts`. Or if
     /// the cache has been invalidated, build and cache a new trie using the
     /// `acts` iterator.
-    pub fn trie<'a>(&mut self, acts: impl Iterator<Item = &'a Act>) -> &Trie<KeyChord, Act> {
+    pub fn trie<'a>(&mut self, acts: impl Iterator<Item = (Entity, &'a Act)>) -> &Trie<KeyChord, ActRef> {
         self.trie.get_or_insert_with(|| {
-            let mut builder: TrieBuilder<KeyChord, Act> = TrieBuilder::new();
-            for act in acts {
+            let mut builder: TrieBuilder<KeyChord, ActRef> = TrieBuilder::new();
+            for (id, act) in acts {
                 for hotkey in &act.hotkeys {
-                    builder.insert(hotkey.chords.clone(), act.clone());
+                    builder.insert(hotkey.chords.clone(), ActRef::from_act(act, id));
                 }
             }
             builder.build()

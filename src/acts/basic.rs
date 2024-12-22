@@ -175,7 +175,7 @@ pub fn toggle_visibility(
 /// Reveal act for inputted key chord sequence.
 ///
 /// Allow the user to input a key chord sequence. Reveal the bindings it has.
-pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<HotkeyActCache>, mut minibuffer: Minibuffer) {
+pub fn describe_key(acts: Query<(Entity, &Act)>, mut cache: ResMut<HotkeyActCache>, mut minibuffer: Minibuffer) {
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
     let mut position = trie.inc_search().into();
     // search
@@ -184,7 +184,8 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<HotkeyActCache>, mut mi
     minibuffer.get_chord().observe(
         move |mut trigger: Trigger<KeyChordEvent>,
               mut commands: Commands,
-              mut minibuffer: Minibuffer| {
+              mut minibuffer: Minibuffer,
+              acts: Query<&Act>| {
             use trie_rs::inc_search::Answer;
             let mut search = IncSearch::resume(&trie, position);
             let chord: KeyChord = trigger.event_mut().take().expect("key chord");
@@ -195,13 +196,15 @@ pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<HotkeyActCache>, mut mi
                     let v = search.value();
                     let msg = match x {
                         Answer::Match => {
-                            let act = v.expect("act");
+                            let act_ref = v.expect("act_ref");
+                            let act = acts.get(act_ref.id).expect("act");
                             // Use the hotkey's alias if available.
                             let binding = act.find_hotkey(&accum.chords).unwrap_or(&accum);
                             format!("{} is bound to {}", binding, act.name)
                         }
                         Answer::PrefixAndMatch => {
-                            let act = v.expect("act");
+                            let act_ref = v.expect("act_ref");
+                            let act = acts.get(act_ref.id).expect("act");
                             // Use the hotkey's alias if available.
                             let binding = act.find_hotkey(&accum.chords).unwrap_or(&accum);
                             format!("{} is bound to {} and more", binding, act.name)

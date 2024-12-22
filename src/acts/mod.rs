@@ -102,7 +102,7 @@ impl ActRef {
 }
 
 /// A Minibuffer command
-#[derive(Debug, Clone, Component, Reflect)]
+#[derive(Debug, Component, Reflect)]
 #[reflect(from_reflect = false)]
 pub struct Act {
     /// An act's name

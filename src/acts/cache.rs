@@ -1,5 +1,5 @@
 //! Acts and their flags, builders, and collections
-use crate::acts::{Act, ActFlags};
+use crate::acts::{Act, ActRef, ActFlags};
 use bevy::prelude::*;
 use bevy_input_sequence::KeyChord;
 use trie_rs::map::{Trie, TrieBuilder};
@@ -13,19 +13,19 @@ pub(crate) fn plugin(app: &mut App) {
 
 #[derive(Resource, Default)]
 pub struct NameActCache {
-    trie: HashMap<ActFlags, Trie<u8, Act>>,
+    trie: HashMap<ActFlags, Trie<u8, ActRef>>,
 }
 
 impl NameActCache {
     /// Retrieve the cached trie without iterating through `acts`. Or if the
     /// cache has been invalidated, build and cache a new trie using the
     /// `acts` iterator.
-    pub fn trie<'a>(&mut self, acts: impl Iterator<Item = &'a Act>, flags: ActFlags) -> &Trie<u8, Act> {
+    pub fn trie<'a>(&mut self, acts: impl Iterator<Item = (Entity, &'a Act)>, flags: ActFlags) -> &Trie<u8, ActRef> {
         self.trie.entry(flags).or_insert_with(|| {
-            let mut builder: TrieBuilder<u8, Act> = TrieBuilder::new();
-            for act in acts {
+            let mut builder: TrieBuilder<u8, ActRef> = TrieBuilder::new();
+            for (id, act) in acts {
                 if act.flags.contains(flags) {
-                    builder.push(act.name.as_ref(), act.clone());
+                    builder.push(act.name.as_ref(), ActRef::from_act(act, id));
                 }
             }
             builder.build()

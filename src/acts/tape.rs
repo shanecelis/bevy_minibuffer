@@ -131,8 +131,8 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
     }
 }
 
-fn play_tape(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<LastRunAct>, universal_arg: Res<UniversalArg>) {
-    let this_keychord = last_act.hotkey(&acts);
+fn play_tape(mut minibuffer: Minibuffer, mut acts: Query<&Act>, last_act: Res<LastRunAct>, universal_arg: Res<UniversalArg>) {
+    let this_keychord = last_act.hotkey(&mut acts.as_query_lens());
     let count = universal_arg.unwrap_or(1);
     minibuffer.message("Play tape for key: ");
     minibuffer.get_chord()

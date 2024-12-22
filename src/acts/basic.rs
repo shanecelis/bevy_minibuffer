@@ -1,6 +1,6 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    acts::{cache::{HotkeyActCache, NameActCache}, ActFlags, ActsPlugin},
+    acts::{ActRef, cache::{HotkeyActCache, NameActCache}, ActFlags, ActsPlugin},
     autocomplete::LookupMap,
     event::LastRunAct,
     input::{Hotkey, KeyChord},
@@ -21,10 +21,10 @@ use trie_rs::map::{Trie, TrieBuilder};
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 pub fn run_act(mut minibuffer: Minibuffer,
                mut act_cache: ResMut<NameActCache>,
-               acts: Query<&Act>,
+               mut acts: Query<(Entity, &Act)>,
                last_act: Res<LastRunAct>) {
     let prompt: Cow<'static, str> = last_act
-        .hotkey(&acts)
+        .hotkey(&mut acts.transmute_lens::<&Act>())
         .map(|hotkey| {
             // We're hardcoding this little vim-ism. We feel slightly vandalous
             // _and_ good about it.
@@ -40,7 +40,7 @@ pub fn run_act(mut minibuffer: Minibuffer,
     minibuffer
         .prompt_map(prompt, acts.clone())
         .observe(
-            move |mut trigger: Trigger<Completed<Act>>, mut minibuffer: Minibuffer|
+            move |mut trigger: Trigger<Completed<ActRef>>, mut minibuffer: Minibuffer|
             match trigger
                 .event_mut()
                 .take()

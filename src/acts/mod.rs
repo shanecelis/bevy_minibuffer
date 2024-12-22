@@ -89,7 +89,11 @@ pub struct ActRef {
 }
 
 impl ActRef {
-    pub fn new(act: &Act, act_id: Entity) -> Self {
+    pub fn new(id: Entity, flags: ActFlags) -> Self {
+        ActRef { id, flags }
+    }
+
+    pub fn from_act(act: &Act, act_id: Entity) -> Self {
         ActRef {
             id: act_id,
             flags: act.flags.clone(),
@@ -149,7 +153,7 @@ impl Act {
                     KeySequence::new(
                         // XXX: Should this be trigger?
                         // action::send_event(RunActEvent::new(self.clone()).with_hotkey(i)),
-                        action::trigger(RunActEvent::new(ActRef::new(self, act_id)).with_hotkey(i)),
+                        action::trigger(RunActEvent::from_act(self, act_id).with_hotkey(i)),
                         hotkey.chords.clone(),
                     ),
                     id,

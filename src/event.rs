@@ -9,7 +9,7 @@ use crate::{
 use bevy::{
     ecs::{
         event::{Event, EventReader},
-        system::Commands,
+        system::{QueryLens, Commands},
     },
     prelude::*,
 };
@@ -86,7 +86,7 @@ pub struct LastRunAct(Option<RunActEvent>);
 
 impl LastRunAct {
     /// Return the hotkey associated with this run.
-    pub fn hotkey(&self, acts: &Query<&Act>) -> Option<Hotkey> {
+    pub fn hotkey(&self, acts: &mut QueryLens<&Act>) -> Option<Hotkey> {
         self.0.as_ref().and_then(|run_act| run_act.hotkey(acts))
     }
 }
@@ -120,8 +120,8 @@ impl RunActEvent {
     }
 
     /// Return the hotkey associated with this run.
-    pub fn hotkey(&self, acts: &Query<&Act>) -> Option<Hotkey> {
-        acts.get(self.act.id).ok().and_then(|act|
+    pub fn hotkey(&self, acts: &mut QueryLens<&Act>) -> Option<Hotkey> {
+        acts.query().get(self.act.id).ok().and_then(|act|
                                         self.hotkey.map(|index| act.hotkeys[index].clone()))
     }
 }
@@ -363,7 +363,7 @@ pub(crate) fn run_acts_by_name(
     for e in events.read() {
         if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
             let e = match &e.input {
-                Some(input) => RunActEvent { act: ActRef::new(act, id), hotkey: None, input: Some(input.clone())},
+                Some(input) => RunActEvent { act: ActRef::from_act(act, id), hotkey: None, input: Some(input.clone())},
                 None => RunActEvent::from_act(act, id),
             };
             let runner = runner.get(act.system_id).ok();
@@ -386,7 +386,7 @@ pub(crate) fn run_acts_by_name_trigger(
     let e = trigger.event();
     if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
         let e = match &e.input {
-            Some(input) => RunActEvent { act: ActRef::new(act, id), hotkey: None, input: Some(input.clone())},
+            Some(input) => RunActEvent { act: ActRef::from_act(act, id), hotkey: None, input: Some(input.clone())},
             None => RunActEvent::from_act(act, id),
         };
         let runner = runner.get(act.system_id).ok();

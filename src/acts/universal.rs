@@ -145,7 +145,7 @@ fn universal_arg(
     mut minibuffer: Minibuffer,
     multiplier: Res<Multiplier>,
     last_act: Res<LastRunAct>,
-    acts: Query<&Act>,
+    mut acts: Query<&Act>,
 ) {
     use bevy::prelude::KeyCode::*;
 
@@ -154,7 +154,7 @@ fn universal_arg(
     let mut accum = 0;
     let mut accumulated = false;
     let prompt: Cow<'static, str> = last_act
-        .hotkey(&acts)
+        .hotkey(&mut acts.as_query_lens())
         .map(|hotkey| {
             if hotkey.chords.len() == 1 {
                 bindkey = Some(hotkey.chords[0].clone());

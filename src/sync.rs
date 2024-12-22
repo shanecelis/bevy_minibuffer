@@ -118,12 +118,6 @@ impl Minibuffer<'_, '_> {
             ActArg::ActRef(act) => {
                 self.commands.trigger(RunActEvent::new(act));
             }
-            ActArg::Act(act) => {
-                todo!();
-                // self.commands.trigger(RunActEvent::new(act));
-                // self.commands.send_event(RunActEvent::new(act));
-                // self.run_act_event.send();
-            }
             ActArg::Name(name) => {
                 self.commands.trigger(RunActByNameEvent::new(name));
                 // self.commands.send_event(RunActByNameEvent::new(name));
@@ -143,12 +137,6 @@ impl Minibuffer<'_, '_> {
         match act.into() {
             ActArg::ActRef(act) => {
                 self.commands.trigger(RunActEvent::new_with_input(act, input));
-            }
-            ActArg::Act(act) => {
-                todo!();
-                // self.commands.trigger(RunActEvent::new_with_input(act, input));
-                // self.commands.send_event(RunActEvent::new(act));
-                // self.run_act_event.send();
             }
             ActArg::Name(name) => {
                 self.commands.trigger(RunActByNameEvent::new_with_input(name, input));

@@ -1,6 +1,6 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    acts::{basic::BasicActs, ActCache, ActFlags, ActsPlugin},
+    acts::{basic::BasicActs, HotkeyActCache, ActFlags, ActsPlugin},
     autocomplete::LookupMap,
     event::LastRunAct,
     prelude::*,
@@ -59,7 +59,7 @@ pub fn run_act(
 /// Input a key sequence. This will tell you what it does.
 pub fn describe_key(
     acts: Query<&Act>,
-    mut cache: ResMut<ActCache>,
+    mut cache: ResMut<HotkeyActCache>,
     mut minibuffer: MinibufferAsync,
 ) -> impl Future<Output = Result<(), crate::Error>> {
     use trie_rs::inc_search::Answer;

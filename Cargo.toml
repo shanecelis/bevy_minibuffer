@@ -34,13 +34,12 @@ copypasta = { version = "0.10.1", optional = true }
 [features]
 async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_trigger" ]
 dev-capture = []
-dev-framepace = []
 clipboard = ["dep:copypasta"]
 
 [dev-dependencies]
 bevy = "0.15.0"
 bevy-inspector-egui = "0.28"
-# bevy_framepace = "0.17.1"
+bevy_framepace = "0.18.0"
 bevy_image_export = "0.12.0"
 rand = "0.8.5"
 version-sync = "0.9.5"

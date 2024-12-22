@@ -21,7 +21,6 @@ pub mod view;
 pub use future::MinibufferAsync;
 pub use sync::Minibuffer;
 mod hotkey;
-pub mod tape;
 
 /// Input, mainly re-exports from [keyseq]
 pub mod input {
@@ -37,6 +36,7 @@ pub mod input {
 pub mod prelude {
     pub use super::acts::basic::BasicActs;
     pub use super::acts::universal::*;
+    pub use super::acts::tape::TapeActs;
     pub use super::acts::{self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, ActsPluginGroup, AddActs};
     pub use super::autocomplete::*;
     pub use super::event::RunActEvent;

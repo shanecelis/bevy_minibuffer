@@ -29,8 +29,7 @@ mod arg;
 pub use arg::*;
 mod builder;
 pub use builder::*;
-mod cache;
-pub use cache::*;
+pub mod cache;
 mod run_act;
 pub use run_act::*;
 
@@ -39,6 +38,7 @@ pub mod basic;
 pub mod basic_async;
 
 pub mod universal;
+pub mod tape;
 // impl<'w, 's> AddActs for Commands<'w, 's> {
 //     fn add_acts(&mut self, acts: impl Into<Acts>) -> &mut Self {
 //         let builders = acts.into();

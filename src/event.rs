@@ -1,9 +1,7 @@
 //! Events
 use crate::{
     Error,
-    acts::Act,
-    acts::{ActFlags, ActRunner},
-    tape::{TapeRecorder, Tape},
+    acts::{Act, ActFlags, ActRunner, tape::{TapeRecorder, Tape}},
     input::{KeyChord, Hotkey},
     prompt::PromptState,
     Minibuffer
@@ -54,7 +52,7 @@ pub struct RunActEvent {
     #[deref]
     /// The act to run
     pub act: Act,
-    /// Which one if any of its hotkeys started it
+    /// Which if any of its hotkeys started it
     pub hotkey: Option<usize>,
     pub(crate) input: Option<Input>,
 }
@@ -65,17 +63,16 @@ pub struct RunActByNameEvent {
     /// Name of the act to run
     pub name: Cow<'static, str>,
     input: Option<Input>,
-    input_debug: Option<String>
 }
 
 impl RunActByNameEvent {
     /// Lookup and run act with given name.
     pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
-        Self { name: name.into(), input: None, input_debug: None }
+        Self { name: name.into(), input: None}
     }
 
     pub fn new_with_input<I: 'static + Send + Sync + Debug>(name: impl Into<Cow<'static, str>>, input: I) -> Self {
-        Self { name: name.into(), input_debug: Some(format!("{:?}", &input)), input: Some(Arc::new(input))}
+        Self { name: name.into(), input: Some(Arc::new(input))}
     }
 
 }

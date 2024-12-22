@@ -60,8 +60,7 @@ impl Plugin for VideoCapturePlugin {
                         export_threads.finish();
                     }
                 });
-            // TODO: Add framepace back in when it's updated for bevy 0.15.
-            #[cfg(feature = "dev-framepace")]
+            // #[cfg(feature = "dev-framepace")]
             {
                 let fps = 12.0;
                 app.add_plugins(bevy_framepace::FramepacePlugin)
@@ -110,10 +109,16 @@ impl VideoCapturePlugin {
 
     pub fn window_plugin(&self) -> WindowPlugin {
         WindowPlugin {
-            primary_window: Some(Window {
-                resolution: [self.resolution.x, self.resolution.y].into(),
-                title: self.title.clone(),
-                ..Default::default()
+            primary_window: Some({
+                let mut window = Window {
+                    title: self.title.clone(),
+                    ..Default::default()
+                };
+                let res = self.resolution;
+                // if let Some(res) = self.resolution {
+                    window.resolution = [res.x, res.y].into();
+                // }
+                window
             }),
             ..Default::default()
         }

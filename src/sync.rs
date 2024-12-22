@@ -2,13 +2,12 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
-    acts::ActArg,
+    acts::{ActArg, tape::{DebugMap, TapeRecorder}},
     autocomplete::{AutoComplete, Completed, Lookup, LookupMap, RequireMatch},
     event::{RunActByNameEvent, RunActEvent},
     prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
-    tape::{DebugMap, TapeRecorder},
     Error,
 };
 use bevy::{

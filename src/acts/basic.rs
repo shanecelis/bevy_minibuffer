@@ -1,6 +1,6 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    acts::{ActCache, ActFlags, ActsPlugin},
+    acts::{cache::{HotkeyActCache, NameActCache}, ActFlags, ActsPlugin},
     autocomplete::LookupMap,
     event::LastRunAct,
     input::{Hotkey, KeyChord},
@@ -19,20 +19,18 @@ use trie_rs::inc_search::IncSearch;
 use trie_rs::map::{Trie, TrieBuilder};
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
-pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<LastRunAct>) {
-    let mut builder = TrieBuilder::new();
-    for act in acts.iter() {
-        if act.flags.contains(ActFlags::RunAct | ActFlags::Active) {
-            builder.push(act.name(), act.clone());
-        }
-    }
-    let acts: Trie<u8, Act> = builder.build();
+pub fn run_act(mut minibuffer: Minibuffer,
+               mut act_cache: ResMut<NameActCache>,
+               acts: Query<&Act>,
+               last_act: Res<LastRunAct>) {
+    let acts = act_cache.trie(acts.iter(), ActFlags::RunAct | ActFlags::Active);
     let prompt: Cow<'static, str> = last_act
         .hotkey()
         .map(|hotkey| {
             // We're hardcoding this little vim-ism. We feel slightly vandalous
             // _and_ good about it.
             if hotkey.alias.as_ref().map(|x| x == ":").unwrap_or(false) {
+                // All it does is remove the space after the prompt.
                 ":".into()
             } else {
                 format!("{} ", hotkey).into()
@@ -40,26 +38,28 @@ pub fn run_act(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<Last
         })
         .unwrap_or("run_act: ".into());
     minibuffer
-        .prompt_lookup(prompt, acts.clone())
-        .insert(RequireMatch)
+        .prompt_map(prompt, acts.clone())
         .observe(
-            move |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| match trigger
+            move |mut trigger: Trigger<Completed<Act>>, mut minibuffer: Minibuffer|
+            match trigger
                 .event_mut()
-                .take_result()
+                .take()
             {
-                Ok(act_name) => match acts.resolve_res(&act_name) {
-                    Ok(act) => {
-                        minibuffer.run_act(act);
-                    }
-                    Err(e) => {
-                        minibuffer.message(format!(
-                            "Error: Could not resolve act named {:?}: {}",
-                            act_name, e
-                        ));
+                Completed::Unhandled { result, input } => {
+                    match result {
+                        Ok(act) => {
+                            minibuffer.run_act(act);
+                        }
+                        Err(e) => {
+                            minibuffer.message(format!(
+                                "Error: Could not resolve act named {:?}: {}",
+                                input.as_deref().unwrap_or("???"), e
+                            ));
+                        }
                     }
                 },
-                Err(e) => {
-                    minibuffer.message(format!("Error: {e}"));
+                Completed::Handled => {
+                    warn!("Unexpected handled.");
                 }
             },
         );
@@ -175,12 +175,11 @@ pub fn toggle_visibility(
 /// Reveal act for inputted key chord sequence.
 ///
 /// Allow the user to input a key chord sequence. Reveal the bindings it has.
-pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<ActCache>, mut minibuffer: Minibuffer) {
+pub fn describe_key(acts: Query<&Act>, mut cache: ResMut<HotkeyActCache>, mut minibuffer: Minibuffer) {
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
     let mut position = trie.inc_search().into();
     // search
     let mut accum = Hotkey::empty();
-
     minibuffer.message("Press key: ");
     minibuffer.get_chord().observe(
         move |mut trigger: Trigger<KeyChordEvent>,

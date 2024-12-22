@@ -115,9 +115,10 @@ fn clear_arg(
     if let Some(_act) = clear.take() {
         arg.0 = None;
     }
-    if let Some(act) = event.read().next() {
-        if !act.flags.contains(ActFlags::Adverb) {
-            *clear = Some(act.name.clone());
+    if let Some(e) = event.read().next() {
+        if !e.act.flags.contains(ActFlags::Adverb) {
+            // *clear = Some(e.name.clone());
+            *clear = Some("something".into());//e.name.clone());
         }
     }
 }
@@ -144,6 +145,7 @@ fn universal_arg(
     mut minibuffer: Minibuffer,
     multiplier: Res<Multiplier>,
     last_act: Res<LastRunAct>,
+    acts: Query<&Act>,
 ) {
     use bevy::prelude::KeyCode::*;
 
@@ -152,7 +154,7 @@ fn universal_arg(
     let mut accum = 0;
     let mut accumulated = false;
     let prompt: Cow<'static, str> = last_act
-        .hotkey()
+        .hotkey(&acts)
         .map(|hotkey| {
             if hotkey.chords.len() == 1 {
                 bindkey = Some(hotkey.chords[0].clone());

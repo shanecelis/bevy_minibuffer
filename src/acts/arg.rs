@@ -1,8 +1,9 @@
-use super::Act;
+use super::{Act, ActRef};
 use std::borrow::Cow;
 /// An act argument by name or value.
 #[derive(Debug, Clone)]
 pub enum ActArg {
+    ActRef(ActRef),
     /// Reference by value
     Act(Act),
     /// Reference by name
@@ -12,6 +13,12 @@ pub enum ActArg {
 impl From<Act> for ActArg {
     fn from(act: Act) -> Self {
         ActArg::Act(act)
+    }
+}
+
+impl From<ActRef> for ActArg {
+    fn from(act: ActRef) -> Self {
+        ActArg::ActRef(act)
     }
 }
 

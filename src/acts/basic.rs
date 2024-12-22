@@ -23,9 +23,8 @@ pub fn run_act(mut minibuffer: Minibuffer,
                mut act_cache: ResMut<NameActCache>,
                acts: Query<&Act>,
                last_act: Res<LastRunAct>) {
-    let acts = act_cache.trie(acts.iter(), ActFlags::RunAct | ActFlags::Active);
     let prompt: Cow<'static, str> = last_act
-        .hotkey()
+        .hotkey(&acts)
         .map(|hotkey| {
             // We're hardcoding this little vim-ism. We feel slightly vandalous
             // _and_ good about it.
@@ -37,6 +36,7 @@ pub fn run_act(mut minibuffer: Minibuffer,
             }
         })
         .unwrap_or("run_act: ".into());
+    let acts = act_cache.trie(acts.iter(), ActFlags::RunAct | ActFlags::Active);
     minibuffer
         .prompt_map(prompt, acts.clone())
         .observe(
@@ -70,13 +70,13 @@ pub fn list_acts(acts: Query<&Act>) -> String {
     let mut table = Table::new("{:<}  {:<}");
     table.add_row(Row::new().with_cell("ACT ").with_cell("KEY BINDING"));
     let mut acts: Vec<_> = acts.iter().collect();
-    acts.sort_by(|a, b| a.name().cmp(b.name()));
+    acts.sort_by(|a, b| a.name.cmp(&b.name));
     for act in &acts {
-        let mut name = Some(act.name());
+        let mut name = Some(act.name.clone());
         if act.hotkeys.is_empty() {
             table.add_row(
                 Row::new()
-                    .with_cell(name.take().unwrap_or(""))
+                    .with_cell(name.take().unwrap_or("".into()))
                     .with_cell(""),
             );
         } else {
@@ -85,7 +85,7 @@ pub fn list_acts(acts: Query<&Act>) -> String {
             for binding in bindings {
                 table.add_row(
                     Row::new()
-                        .with_cell(name.take().unwrap_or(""))
+                        .with_cell(name.take().unwrap_or("".into()))
                         .with_cell(binding),
                 );
             }

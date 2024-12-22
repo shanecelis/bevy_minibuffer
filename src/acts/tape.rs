@@ -131,8 +131,8 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
     }
 }
 
-fn play_tape(mut minibuffer: Minibuffer, last_act: Res<LastRunAct>, universal_arg: Res<UniversalArg>) {
-    let this_keychord = last_act.hotkey().cloned();
+fn play_tape(mut minibuffer: Minibuffer, acts: Query<&Act>, last_act: Res<LastRunAct>, universal_arg: Res<UniversalArg>) {
+    let this_keychord = last_act.hotkey(&acts);
     let count = universal_arg.unwrap_or(1);
     minibuffer.message("Play tape for key: ");
     minibuffer.get_chord()
@@ -176,13 +176,13 @@ fn copy_tape(mut minibuffer: Minibuffer) {
     minibuffer
         .get_chord()
         .observe(|mut trigger: Trigger<KeyChordEvent>, mut commands: Commands,
-                 tapes: Res<Tapes>, mut minibuffer: Minibuffer, query: Query<&ActRunner>|
+                 tapes: Res<Tapes>, mut minibuffer: Minibuffer, runner: Query<&ActRunner>, acts: Query<&Act>|
                  {
                      match trigger.event_mut().take() {
                          Ok(chord) => 'press: {
                              if let Some(tape) = tapes.get(&chord) {
 
-                                 let script = match tape.to_fn(&query, &minibuffer.debug_map) {
+                                 let script = match tape.script(&acts, &runner, &minibuffer.debug_map) {
                                      Ok(s) => s,
                                      Err(e) => {
                                          minibuffer.message(format!("Could not generate script: {e}"));
@@ -249,7 +249,7 @@ impl Tape {
     pub fn ammend_input<I: Clone + 'static + Send + Sync + Debug>(&mut self, input: I, debug_map: &mut DebugMap) {
         if let Some(ref mut entry) = self.content.last_mut() {
             if entry.input.is_some() {
-                warn!("Overwriting tape input for act {}", &entry.act.name);
+                warn!("Overwriting tape input for act {}", &entry.act.id);
             }
             let type_id = TypeId::of::<I>();
             // info!("put type_id in {type_id:?}");
@@ -264,13 +264,14 @@ impl Tape {
         }
     }
 
-    fn to_fn(&self, query: &Query<&ActRunner>, debug_map: &DebugMap) -> Result<String, fmt::Error> {
+    fn script(&self, acts: &Query<&Act>, runner: &Query<&ActRunner>, debug_map: &DebugMap) -> Result<String, fmt::Error> {
         let mut f = String::new();
         writeln!(f, "fn tape(mut commands: Commands) {{")?;
         for event in &self.content {
-            let Ok(act_runner) = query.get(event.act.system_id) else {
-                warn!("Cannot add act {:?} to script: no act runner.", &event.act.name);
-                writeln!(f, "    // Skipping {:?}; no act runner.", &event.act.name)?;
+            let Ok(act) = acts.get(event.act.id) else { continue; };
+            let Ok(act_runner) = runner.get(act.system_id) else {
+                warn!("Cannot add act {:?} to script: no act runner.", &act.name);
+                writeln!(f, "    // Skipping {:?}; no act runner.", &act.name)?;
                 continue;
             };
             match event.input {
@@ -282,13 +283,13 @@ impl Tape {
                             match debug_str_fn(&**input) {
                                 Some(s) => s.into(),
                                 None => {
-                                    warn!("Debug string function failed for act {:?}", &event.act.name);
+                                    warn!("Debug string function failed for act {:?}", &act.name);
                                     "???".into()
                                 }
                             }
                         }
                         None => {
-                            warn!("No debug string function for act {:?}", &event.act.name);
+                            warn!("No debug string function for act {:?}", &act.name);
                             "!!!".into()
                         }
                     };
@@ -327,10 +328,17 @@ pub fn play_tape_sys(InRef(tape): InRef<Tape>,
                      mut commands: Commands,
                      mut last_act: ResMut<crate::event::LastRunAct>,
                      mut tape_recorder: ResMut<TapeRecorder>,
+                     acts: Query<&Act>,
                      runner: Query<&crate::acts::ActRunner>) {
     let old = std::mem::replace(&mut *tape_recorder, TapeRecorder::Play);
     for e in &tape.content {
-        crate::event::run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, None);
+        let Ok(act) = acts.get(e.act.id) else {
+            warn!("Could not get act for {:?}", e.act.id);
+            continue;
+        };
+        let act = acts.get(e.act.id).ok();
+        let runner = act.as_ref().and_then(|a|runner.get(a.system_id).ok());
+        crate::event::run_act_raw(e, act, runner, &mut next_prompt_state, &mut last_act, &mut commands, None);
     }
     let _ = std::mem::replace(&mut *tape_recorder, old);
 }

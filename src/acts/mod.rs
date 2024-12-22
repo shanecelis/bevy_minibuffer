@@ -39,6 +39,15 @@ pub mod basic_async;
 pub mod universal;
 pub mod tape;
 
+pub(crate) fn plugin(app: &mut App) {
+    app
+        .register_type::<Act>()
+        .add_plugins(tape::plugin)
+        .add_plugins(universal::plugin)
+        .add_plugins(cache::plugin)
+        ;
+}
+
 // impl<'w, 's> AddActs for Commands<'w, 's> {
 //     fn add_acts(&mut self, acts: impl Into<Acts>) -> &mut Self {
 //         let builders = acts.into();
@@ -73,6 +82,21 @@ impl Default for ActFlags {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct ActRef {
+    pub id: Entity,
+    pub flags: ActFlags,
+}
+
+impl ActRef {
+    pub fn new(act: &Act, act_id: Entity) -> Self {
+        ActRef {
+            id: act_id,
+            flags: act.flags.clone(),
+        }
+    }
+}
+
 /// A Minibuffer command
 #[derive(Debug, Clone, Component, Reflect)]
 #[reflect(from_reflect = false)]
@@ -92,7 +116,7 @@ pub struct Act {
 }
 impl Display for Act {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
+        write!(f, "{}", self.name)
     }
 }
 
@@ -113,13 +137,8 @@ impl Act {
         ActBuilder::new_with_input(system)
     }
 
-    /// Return the name of this act.
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
     /// Build the [KeySequence]s.
-    pub fn build_keyseqs(&self, world: &mut World) -> Vec<Entity> {
+    pub fn build_keyseqs(&self, act_id: Entity, world: &mut World) -> Vec<Entity> {
         self.hotkeys
             .iter()
             .enumerate()
@@ -130,7 +149,7 @@ impl Act {
                     KeySequence::new(
                         // XXX: Should this be trigger?
                         // action::send_event(RunActEvent::new(self.clone()).with_hotkey(i)),
-                        action::trigger(RunActEvent::new(self.clone()).with_hotkey(i)),
+                        action::trigger(RunActEvent::new(ActRef::new(self, act_id)).with_hotkey(i)),
                         hotkey.chords.clone(),
                     ),
                     id,
@@ -149,6 +168,6 @@ impl Act {
 
 impl AsRef<str> for Act {
     fn as_ref(&self) -> &str {
-        self.name()
+        &self.name
     }
 }

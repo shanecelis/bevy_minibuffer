@@ -115,8 +115,12 @@ impl Minibuffer<'_, '_> {
     /// Request an act be run.
     pub fn run_act(&mut self, act: impl Into<ActArg>) {
         match act.into() {
-            ActArg::Act(act) => {
+            ActArg::ActRef(act) => {
                 self.commands.trigger(RunActEvent::new(act));
+            }
+            ActArg::Act(act) => {
+                todo!();
+                // self.commands.trigger(RunActEvent::new(act));
                 // self.commands.send_event(RunActEvent::new(act));
                 // self.run_act_event.send();
             }
@@ -137,8 +141,12 @@ impl Minibuffer<'_, '_> {
     /// the latter.
     pub fn run_act_with_input<I: Send + Sync + Debug + 'static>(&mut self, act: impl Into<ActArg>, input: I) {
         match act.into() {
-            ActArg::Act(act) => {
+            ActArg::ActRef(act) => {
                 self.commands.trigger(RunActEvent::new_with_input(act, input));
+            }
+            ActArg::Act(act) => {
+                todo!();
+                // self.commands.trigger(RunActEvent::new_with_input(act, input));
                 // self.commands.send_event(RunActEvent::new(act));
                 // self.run_act_event.send();
             }

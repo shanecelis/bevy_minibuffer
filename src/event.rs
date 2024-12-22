@@ -1,7 +1,7 @@
 //! Events
 use crate::{
     Error,
-    acts::{Act, ActFlags, ActRunner, tape::{TapeRecorder, Tape}},
+    acts::{Act, ActRef, ActFlags, ActRunner, tape::{TapeRecorder, Tape}},
     input::{KeyChord, Hotkey},
     prompt::PromptState,
     Minibuffer
@@ -47,11 +47,10 @@ pub(crate) fn plugin(app: &mut App) {
 pub type Input = Arc<dyn Any + 'static + Send + Sync>;
 
 /// Requests an act to be run
-#[derive(Clone, Event, Debug, Deref)]
+#[derive(Clone, Event, Debug)]
 pub struct RunActEvent {
-    #[deref]
     /// The act to run
-    pub act: Act,
+    pub(crate) act: ActRef,
     /// Which if any of its hotkeys started it
     pub hotkey: Option<usize>,
     pub(crate) input: Option<Input>,
@@ -87,19 +86,27 @@ pub struct LastRunAct(Option<RunActEvent>);
 
 impl LastRunAct {
     /// Return the hotkey associated with this run.
-    pub fn hotkey(&self) -> Option<&Hotkey> {
-        self.0.as_ref().and_then(|run_act| run_act.hotkey())
+    pub fn hotkey(&self, acts: &Query<&Act>) -> Option<Hotkey> {
+        self.0.as_ref().and_then(|run_act| run_act.hotkey(acts))
     }
 }
 
 impl RunActEvent {
     /// Make a new run act event.
-    pub fn new(act: Act) -> Self {
+    pub fn new(act: ActRef) -> Self {
         Self { act, hotkey: None, input: None}
     }
 
-    pub fn new_with_input<I: 'static + Send + Sync + Debug>(act: Act, input: I) -> Self {
+    pub fn from_act(act: &Act, id: Entity) -> Self {
+        Self { act: ActRef { id, flags: act.flags.clone() }, hotkey: None, input: None}
+    }
+
+    pub fn new_with_input<I: 'static + Send + Sync + Debug>(act: ActRef, input: I) -> Self {
         Self { act, hotkey: None, input: Some(Arc::new(input))}
+    }
+
+    pub fn from_act_with_input<I: 'static + Send + Sync + Debug>(act: &Act, id: Entity, input: I) -> Self {
+        Self { act: ActRef { id, flags: act.flags.clone() }, hotkey: None, input: Some(Arc::new(input))}
     }
 
     // pub fn from_name(name: impl Into<Cow<'static, str>>) -> Self {
@@ -113,8 +120,9 @@ impl RunActEvent {
     }
 
     /// Return the hotkey associated with this run.
-    pub fn hotkey(&self) -> Option<&Hotkey> {
-        self.hotkey.map(|index| &self.act.hotkeys[index])
+    pub fn hotkey(&self, acts: &Query<&Act>) -> Option<Hotkey> {
+        acts.get(self.act.id).ok().and_then(|act|
+                                        self.hotkey.map(|index| act.hotkeys[index].clone()))
     }
 }
 
@@ -125,12 +133,12 @@ impl RunActEvent {
 //     }
 // }
 
-impl fmt::Display for RunActEvent {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // write!(f, "RunAct({})", self.0)
-        write!(f, "{}", self.act)
-    }
-}
+// impl fmt::Display for RunActEvent {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         // write!(f, "RunAct({})", self.0)
+//         write!(f, "{}", self.act)
+//     }
+// }
 // impl fmt::Debug for RunActEvent {
 //     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 //         let rnd_state = bevy::utils::RandomState::with_seed(0);
@@ -188,6 +196,7 @@ pub(crate) fn dispatch_events(
     mut dispatch_events: EventReader<DispatchEvent>,
     mut lookup_events: EventWriter<LookupEvent>,
     mut minibuffer: Minibuffer,
+    acts: Query<&Act>,
 ) {
     use crate::event::DispatchEvent::*;
     for e in dispatch_events.read() {
@@ -196,7 +205,7 @@ pub(crate) fn dispatch_events(
                 lookup_events.send(l.clone());
             }
             RunActEvent(e) => {
-                minibuffer.run_act(e.clone().act);
+                minibuffer.run_act(e.act);
             }
             RunActByNameEvent(e) => {
                 minibuffer.run_act(e.clone().name);
@@ -269,6 +278,7 @@ impl KeyChordEvent {
 
 
 pub fn run_act_raw(e: &RunActEvent,
+                   act: Option<&Act>,
                    runner: Option<&ActRunner>,
                    mut next_prompt_state: &mut NextState<PromptState>,
                    mut last_act: &mut LastRunAct,
@@ -278,25 +288,34 @@ pub fn run_act_raw(e: &RunActEvent,
     if e.act.flags.contains(ActFlags::ShowMinibuffer) {
         next_prompt_state.set(PromptState::Visible);
     }
+    let Some(act) = act else {
+        warn!("Could not find act at {:?}", e.act.id);
+        return;
+    };
     last_act.0 = Some(e.clone());
     if let Some(runner) = runner {
         if let Some(ref input) = e.input {
             let input = input.clone();
             if let Err(error) = runner.run_with_input(&*input, commands) {
-                warn!("Error running act with input '{}': {:?}", e.act.name, error);
+                warn!("Error running act with input '{}': {:?}", act.name, error);
             }
         } else {
             if let Err(error) = runner.run(commands) {
-                warn!("Error running act '{}': {:?}", e.act.name, error);
+                warn!("Error running act '{}': {:?}", act.name, error);
             }
         }
         if let Some(tape_recorder) = tape_recorder {
             tape_recorder.process_event(e);
         }
     } else {
-        warn!("Could not find ActRunner.");
+        warn!("Could not find ActRunner for act '{}'.", act.name);
     }
 }
+
+// fn act_and_runner(act_id: Entity, acts: &Query<&Act>, runners: &Query<&ActRunner>) -> Option<(&Act, &ActRunner)>{
+//     acts.get(act_id).ok().and_then(|act| runners.get(act.system_id).ok().map(|runner| (act, runner)))
+// }
+
 
 /// Run act for any [RunActEvent].
 pub(crate) fn run_acts(
@@ -305,10 +324,13 @@ pub(crate) fn run_acts(
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
     mut tape: ResMut<TapeRecorder>,
+    acts: Query<&Act>,
     runner: Query<&ActRunner>,
 ) {
     for e in events.read() {
-        run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
+        let act = acts.get(e.act.id).ok();
+        let runner = act.as_ref().and_then(|a|runner.get(a.system_id).ok());
+        run_act_raw(e, act, runner, &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
     }
 }
 
@@ -319,10 +341,13 @@ pub(crate) fn run_acts_trigger(
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
     runner: Query<&ActRunner>,
+    acts: Query<&Act>,
     mut tape: ResMut<TapeRecorder>,
 ) {
     let e = trigger.event();
-    run_act_raw(e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
+    let act = acts.get(e.act.id).ok();
+    let runner = act.as_ref().and_then(|a|runner.get(a.system_id).ok());
+    run_act_raw(e, act, runner, &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
 }
 
 /// Lookup and run act for any [RunActByNameEvent].
@@ -332,16 +357,17 @@ pub(crate) fn run_acts_by_name(
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
     runner: Query<&ActRunner>,
-    acts: Query<&Act>,
+    acts: Query<(Entity, &Act)>,
     mut tape: ResMut<TapeRecorder>,
 ) {
     for e in events.read() {
-        if let Some(act) = acts.iter().find(|a| a.name == e.name) {
+        if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
             let e = match &e.input {
-                Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone())},
-                None => RunActEvent::new(act.clone()),
+                Some(input) => RunActEvent { act: ActRef::new(act, id), hotkey: None, input: Some(input.clone())},
+                None => RunActEvent::from_act(act, id),
             };
-            run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
+            let runner = runner.get(act.system_id).ok();
+            run_act_raw(&e, Some(act), runner, &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
         } else {
             warn!("No act named '{}' found.", e.name);
         }
@@ -354,16 +380,17 @@ pub(crate) fn run_acts_by_name_trigger(
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
     runner: Query<&ActRunner>,
-    acts: Query<&Act>,
+    acts: Query<(Entity, &Act)>,
     mut tape: ResMut<TapeRecorder>,
 ) {
     let e = trigger.event();
-    if let Some(act) = acts.iter().find(|a| a.name == e.name) {
+    if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
         let e = match &e.input {
-            Some(input) => RunActEvent { act: act.clone(), hotkey: None, input: Some(input.clone())},
-            None => RunActEvent::new(act.clone()),
+            Some(input) => RunActEvent { act: ActRef::new(act, id), hotkey: None, input: Some(input.clone())},
+            None => RunActEvent::from_act(act, id),
         };
-        run_act_raw(&e, runner.get(e.act.system_id).ok(), &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
+        let runner = runner.get(act.system_id).ok();
+        run_act_raw(&e, Some(act), runner, &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
     } else {
         warn!("No act named '{}' found.", e.name);
     }

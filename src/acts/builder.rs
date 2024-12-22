@@ -217,12 +217,18 @@ impl From<&mut ActBuilder> for ActBuilder {
 
 impl Command for ActBuilder {
     fn apply(self, world: &mut World) {
-        let act  = self.build(world);
-        let keyseqs = act.build_keyseqs(world);
+        let act = self.build(world);
         let name = Name::new(act.name.clone());
         let system_entity = act.system_id;
+        let id = {
+            world.spawn_empty().id()
+        };
+        let keyseqs = act.build_keyseqs(id, world);
+        world.entity_mut(id)
+             .insert(act)
+             .insert(name);
 
-        let id = world.spawn(act).insert(name).id();
+        // let id = world.spawn(act).insert(name).id();
         for keyseq_id in keyseqs {
             world.entity_mut(keyseq_id).set_parent(id);
         }
@@ -233,7 +239,7 @@ impl Command for ActBuilder {
 impl EntityCommand for ActBuilder {
     fn apply(self, id: Entity, world: &mut World) {
         let act = self.build(world);
-        let keyseqs = act.build_keyseqs(world);
+        let keyseqs = act.build_keyseqs(id, world);
         let mut entity = world.get_entity_mut(id).unwrap();
         entity.insert(act);
         for keyseq_id in keyseqs {

@@ -18,7 +18,9 @@ use tabular::{Row, Table};
 use trie_rs::inc_search::IncSearch;
 use trie_rs::map::{Trie, TrieBuilder};
 
-/// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
+/// Run an act by name.
+///
+/// Similar to Emacs' `M-x` or vim's `:` key binding.
 pub fn run_act(mut minibuffer: Minibuffer,
                mut act_cache: ResMut<NameActCache>,
                mut acts: Query<(Entity, &Act)>,
@@ -252,10 +254,12 @@ impl Default for BasicActs {
                 ActBuilder::new(list_acts.pipe(to_message))
                     .named("list_acts")
                     .add_flags(ActFlags::ShowMinibuffer)
+                    .sub_flags(ActFlags::Record)
                     .bind(keyseq! { Ctrl-H A }),
                 ActBuilder::new(list_key_bindings.pipe(to_message))
                     .named("list_key_bindings")
                     .add_flags(ActFlags::ShowMinibuffer)
+                    .sub_flags(ActFlags::Record)
                     .bind(keyseq! { Ctrl-H B }),
                 ActBuilder::new(toggle_visibility)
                     .named("toggle_visibility")
@@ -269,19 +273,22 @@ impl Default for BasicActs {
                     .sub_flags(ActFlags::RunAct | ActFlags::Record),
                 ActBuilder::new(describe_key)
                     .named("describe_key")
-                    .bind(keyseq! { Ctrl-H K }),
+                    .bind(keyseq! { Ctrl-H K })
+                    .sub_flags(ActFlags::Record),
             ]),
         }
     }
 }
 
 impl BasicActs {
-    /// Make run_act look like 'M-x ' at the prompt.
+    /// Make run_act use 'M-x' at the prompt.
+    ///
+    /// TODO: Makes me wonder if there should be a hotkey formatter.
     pub fn emacs() -> Self {
         let mut basic = Self::default();
         let run_act = basic.get_mut("run_act").unwrap();
         run_act.hotkeys.clear();
-        run_act.bind_aliased(keyseq! { Alt-X }, "M-x ");
+        run_act.bind_aliased(keyseq! { Alt-X }, "M-x");
         basic
     }
 }

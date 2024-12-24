@@ -1,17 +1,22 @@
 use crate::{
     acts::{Act, Acts, ActsPlugin, AddActs, ActFlags, ActRunner, universal::UniversalArg},
+    ui::IconContainer,
     input::{KeyChord, keyseq},
     event::{RunActEvent, KeyChordEvent, LastRunAct},
     Minibuffer,
 };
 use std::{fmt::{self, Debug, Write}, sync::Arc, collections::HashMap, any::{Any, TypeId}, borrow::Cow};
-use bevy::prelude::*;
+use bevy::{
+    ui::widget::NodeImageMode,
+    prelude::*
+};
 #[cfg(feature = "clipboard")]
 use copypasta::{ClipboardContext, ClipboardProvider};
 
 pub(crate) fn plugin(app: &mut App) {
     app
         .init_resource::<TapeRecorder>()
+        .init_resource::<TapeAnimate>()
         .init_resource::<DebugMap>();
 }
 
@@ -25,18 +30,40 @@ impl Default for TapeActs {
             acts: Acts::new([
                 Act::new(record_tape).bind(keyseq! { Q }).sub_flags(ActFlags::Record),
                 Act::new(play_tape).bind_aliased(keyseq! { Shift-2 }, "@").sub_flags(ActFlags::Record),
-                Act::new(repeat).bind(keyseq! { Period }).sub_flags(ActFlags::Record | ActFlags::RunAct),
+                // Act::new(repeat).bind(keyseq! { Period }).sub_flags(ActFlags::Record | ActFlags::RunAct),
+                Act::new(repeat).bind(keyseq! { Period }).sub_flags(ActFlags::Record),
                 &mut Act::new(copy_tape),
                 ]),
         }
     }
 }
 
+#[derive(Resource, Default)]
+enum TapeAnimate {
+    Speed(f32),
+    Curve { curve: Box<dyn Curve<f32> + 'static + Send + Sync>, pos: f32 }, // then: Option<Box<TapeAnimate>> },
+    #[default]
+    Hide,
+}
+
+impl TapeAnimate {
+    fn curve(curve: impl Curve<f32> + Send + Sync + 'static) -> Self {
+        Self::Curve { curve: Box::new(curve), pos: 0.0 } //, then: None }
+    }
+}
+
+// struct TapeAnimator(Vec<TapeAnimate>);
+
+#[derive(Component)]
+struct TapeIcon;
+
 impl Plugin for TapeActs {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<Tapes>()
-            .init_resource::<LastPlayed>();
+            .init_resource::<LastPlayed>()
+            .add_systems(Startup, setup_icon)
+            .add_systems(Update, animate_icon);
 
         self.warn_on_unused_acts();
     }
@@ -50,11 +77,72 @@ impl ActsPlugin for TapeActs {
         &mut self.acts
     }
 }
+const PADDING: Val = Val::Px(5.0);
+
+fn setup_icon(mut commands: Commands, query: Query<Entity, With<IconContainer>>, asset_loader: Res<AssetServer>) {
+    let icon_container = query.single();
+    commands.entity(icon_container)
+        .with_children(|parent| {
+            parent.spawn((ImageNode::new(asset_loader.load("tape-2.png")),
+                          Node {
+                              width: Val::Px(25.0),
+                              height: Val::Px(25.0),
+                              margin: UiRect {
+                                  top: PADDING,
+                                  left: PADDING,
+                                  right: PADDING,
+                                  bottom: PADDING,
+                              },
+                              aspect_ratio: Some(1.0),
+                              ..default()
+                          },
+                          // .with_mode(NodeImageMode::Stretch),
+                          TapeIcon));
+        });
+}
+
+// fn play_icon(mut query: Query<&mut Transform, With<TapeIcon>>, recorder: Res<TapeRecorder>, time: Res<Time>) {
+//     let speed = match *recorder {
+//         TapeRecorder::Off { .. } => None,
+//         TapeRecorder::Record { .. } => Some(1.0),
+//         TapeRecorder::Play => None,
+//     };
+
+//     if let Some(speed) = speed {
+//         for mut transform in &mut query {
+//             transform.rotate_local_z(speed * time.delta_secs());
+//         }
+//     }
+// }
+
+fn animate_icon(mut query: Query<&mut Transform, With<TapeIcon>>,
+                mut animate: ResMut<TapeAnimate>,
+                mut last_speed: Local<Option<f32>>,
+                time: Res<Time>) {
+    let speed = match *animate {
+        TapeAnimate::Speed(speed) => Some(speed),
+        TapeAnimate::Hide => None,
+        TapeAnimate::Curve { ref curve, ref mut pos } => {
+            let r = curve.sample(*pos);
+            *pos += time.delta_secs();
+            // This could be none. Should do something at that point.
+            r.or_else(|| *last_speed)
+        }
+    };
+    // *last_speed = speed;
+
+    if let Some(speed) = speed {
+        for mut transform in &mut query {
+            transform.rotate_local_z(speed * time.delta_secs());
+        }
+    }
+}
 
 #[derive(Resource, Debug)]
 pub enum TapeRecorder {
     /// Record only the last act that was run.
     Off { one_off: Tape },
+    /// A Tape is being recorded.
     Record { tape: Tape, chord: KeyChord },
     Play,
 }
@@ -100,16 +188,36 @@ pub struct DebugMap(HashMap<TypeId, Box<dyn Fn(&dyn Any) -> Option<String> + 'st
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct LastPlayed(Option<KeyChord>);
 
-fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
+fn easing(amp: f32, duration: f32, func: EaseFunction) -> Option<LinearReparamCurve<f32, EasingCurve<f32>>> {
+    let domain = Interval::new(0.0, duration).ok()?;
+    EasingCurve::new(0.0, amp, EaseFunction::Steps(3)).reparametrize_linear(domain).ok()
+}
+
+fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>, universal: Res<UniversalArg>, mut animate: ResMut<TapeAnimate>) {
+    *animate = TapeAnimate::curve(easing(-3.0, 4.0, EaseFunction::Steps(3)).unwrap());//.map(|x| -x));
+    let append = universal.is_some();
     match &*minibuffer.tape_recorder {
         TapeRecorder::Off { one_off }=> {
-            minibuffer.message("Record tape for key: ");
+            minibuffer.message("Record tape: ");
             minibuffer.get_chord()
-                .observe(|mut trigger: Trigger<KeyChordEvent>, mut commands: Commands, mut minibuffer: Minibuffer| {
+                .observe(move |mut trigger: Trigger<KeyChordEvent>,
+                         tapes: Res<Tapes>,
+                         mut commands: Commands,
+                         mut minibuffer: Minibuffer| {
                     match trigger.event_mut().take() {
                         Ok(chord) => {
-                            minibuffer.message(format!("Recording new tape for {}", &chord));
-                            *minibuffer.tape_recorder = TapeRecorder::Record { tape: Tape::default(), chord: chord };
+                            if append {
+                                if let Some(tape) = tapes.get(&chord) {
+                                    minibuffer.message(format!("Recording tape {}", &chord));
+                                    *minibuffer.tape_recorder = TapeRecorder::Record { tape: tape.clone(), chord: chord };
+                                } else {
+                                    minibuffer.message(format!("No prior tape. Recording new tape {}", &chord));
+                                    *minibuffer.tape_recorder = TapeRecorder::Record { tape: Tape::default(), chord: chord };
+                                }
+                            } else {
+                                minibuffer.message(format!("Recording new tape {}", &chord));
+                                *minibuffer.tape_recorder = TapeRecorder::Record { tape: Tape::default(), chord: chord };
+                            }
                         }
                         Err(e) => {
                             minibuffer.message(format!("{e}"));
@@ -122,7 +230,7 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
             let TapeRecorder::Record { tape, chord } = std::mem::take(&mut *minibuffer.tape_recorder) else {
                 unreachable!();
             };
-            minibuffer.message(format!("Defined tape {}", &chord));
+            minibuffer.message(format!("Stop recording tape {}", &chord));
             tapes.insert(chord, tape);
         }
         TapeRecorder::Play => {
@@ -134,7 +242,7 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>) {
 fn play_tape(mut minibuffer: Minibuffer, mut acts: Query<&Act>, last_act: Res<LastRunAct>, universal_arg: Res<UniversalArg>) {
     let this_keychord = last_act.hotkey(&mut acts.as_query_lens());
     let count = universal_arg.unwrap_or(1);
-    minibuffer.message("Play tape for key: ");
+    minibuffer.message("Play tape: ");
     minibuffer.get_chord()
         .observe(move |mut trigger: Trigger<KeyChordEvent>, mut commands: Commands,
                  tapes: Res<Tapes>, mut minibuffer: Minibuffer, mut last_played: ResMut<LastPlayed>| {
@@ -254,7 +362,6 @@ impl Tape {
             let type_id = TypeId::of::<I>();
             // info!("put type_id in {type_id:?}");
             debug_map.entry(type_id).or_insert_with(|| Box::new(|boxed_input: &dyn Any| {
-
                 // info!("debug_str_fn type_id in {:?}", boxed_input.type_id());
                 boxed_input.downcast_ref::<I>().map(|input: &I| format!("{:?}", input))
             }));
@@ -342,3 +449,56 @@ pub fn play_tape_sys(InRef(tape): InRef<Tape>,
     }
     let _ = std::mem::replace(&mut *tape_recorder, old);
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use bevy::ecs::system::SystemParam;
+
+    #[test]
+    fn test_curve_api() {
+        let curve = EasingCurve::new(0.0, 1.0, EaseFunction::BackInOut);
+        assert_eq!(curve.sample(0.0), Some(0.0));
+        assert_eq!(curve.sample(1.0), Some(1.0));
+        assert_eq!(curve.sample(2.0), None);
+        assert_eq!(curve.sample(-1.0), None);
+
+        let curve = EasingCurve::new(0.0, 2.0, EaseFunction::BackInOut);
+        assert_eq!(curve.sample(0.0), Some(0.0));
+        assert_eq!(curve.sample(1.0), Some(2.0));
+        assert_eq!(curve.sample(2.0), None);
+        assert_eq!(curve.sample(-1.0), None);
+    }
+
+    #[test]
+    fn chaos_katt() {
+
+        fn new<S, P>(system: S) -> S::System
+        where
+            S: IntoSystem<(), (), P> + 'static,
+        {
+            IntoSystem::into_system(system)
+        }
+        // fn create_problem() -> impl FnMut(Commands) {
+        //     move |_| {
+        //     }
+        // }
+
+        // let system = IntoSystem::<(),(), _>::into_system(|commands: Commands, query: Query<Entity>| {});
+        // let system = IntoSystem::<(),(), _>::into_system(create_problem(|q: &Query<Entity>| { }));
+        let system = IntoSystem::into_system(create_problem(|q: &Query<Entity>| {
+        }));
+        // let system = IntoSystem::into_system(create_problem::<Query<Entity>>());
+        // let system = new(create_problem::<Option<Res<TapeAnimate>>>());
+        // let system = new(create_problem::<Query<Entity>>());
+        // let system = new(
+        // let system = new(create_problem());
+    }
+
+}
+    use bevy::ecs::system::SystemParam;
+    fn create_problem<P: SystemParam + 'static + Send + Sync>(f: impl Fn(&P)) -> impl Fn(P) {
+        move |p| {
+            f(&p);
+        }
+    }

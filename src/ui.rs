@@ -24,6 +24,8 @@ struct MinibufferNode;
 #[derive(Component)]
 pub(crate) struct PromptContainer;
 
+#[derive(Component)]
+pub struct IconContainer;
 // /// Mode line
 // #[derive(Component)]
 // pub struct StatusNode;
@@ -136,24 +138,35 @@ fn spawn_layout(mut commands: Commands) {
                         });
                 });
             builder
-                .spawn((
-                    Node {
-                        flex_wrap: FlexWrap::Wrap,
-                        flex_direction: FlexDirection::Row,
-                        flex_grow: 1.,
-                        padding: UiRect {
-                            top: PADDING,
-                            left: LEFT_PADDING,
-                            right: PADDING,
-                            bottom: PADDING,
-                        },
-                        ..Default::default()
-                    },
-                    Visibility::Hidden,
-                    BackgroundColor(Color::BLACK),
+                .spawn((Node::default(),
+                            BackgroundColor(Color::BLACK),
                 ))
-                .insert(Name::new("buffer"))
-                .insert(PromptContainer);
+                .with_children(|parent| {
+                    parent
+                        .spawn((
+                            Node {
+                                flex_wrap: FlexWrap::Wrap,
+                                flex_direction: FlexDirection::Row,
+                                flex_grow: 1.,
+                                padding: UiRect {
+                                    top: PADDING,
+                                    left: LEFT_PADDING,
+                                    right: PADDING,
+                                    bottom: PADDING,
+                                },
+                                ..Default::default()
+                            },
+                            Visibility::Hidden,
+                        ))
+                        .insert(Name::new("buffer"))
+                        .insert(PromptContainer);
+                    parent.spawn((Node {
+                        // max_height: Val::Px(20.0),
+                        ..default()
+                    },
+                                  Name::new("icons"),
+                                  IconContainer));
+                });
         })
         .id();
     commands.insert_resource(MinibufferRoot(root));

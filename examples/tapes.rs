@@ -38,6 +38,7 @@ fn main() {
         .init_resource::<Selectables>()
         .add_systems(Startup, setup_scene)
         .add_systems(Update, (rotate, (update_selected, update_color).chain()))
+        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .run();
 }
 

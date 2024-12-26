@@ -1,6 +1,6 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    acts::{basic::BasicActs, HotkeyActCache, ActFlags, ActsPlugin},
+    acts::{basic::BasicActs, cache::HotkeyActCache, ActFlags, ActsPlugin},
     autocomplete::LookupMap,
     event::LastRunAct,
     prelude::*,

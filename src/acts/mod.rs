@@ -42,6 +42,8 @@ pub mod tape;
 pub(crate) fn plugin(app: &mut App) {
     app
         .register_type::<Act>()
+        .register_type::<RunActMap>()
+        .init_resource::<RunActMap>()
         .add_plugins(tape::plugin)
         .add_plugins(universal::plugin)
         .add_plugins(cache::plugin)
@@ -117,6 +119,8 @@ pub struct Act {
     /// Flags for this act
     #[reflect(ignore)]
     pub flags: ActFlags,
+    pub(crate) system_name: Cow<'static, str>,
+    pub(crate) input: Option<TypeId>,
 }
 impl Display for Act {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -136,7 +140,7 @@ impl Act {
 
     pub fn new_with_input<S, I, P>(system: S) -> ActBuilder
         where S: IntoSystem<In<I>,(), P> + 'static,
-    I: 'static + Default + Clone + Send + Sync
+    I: 'static + Debug + Default + Clone + Send + Sync
     {
         ActBuilder::new_with_input(system)
     }

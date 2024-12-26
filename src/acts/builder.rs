@@ -1,6 +1,6 @@
 //! Acts and their flags, builders, and collections
 use crate::{
-    acts::{Act, ActFlags, ActSystem, ActWithInputSystem, ActRunner},
+    acts::{Act, ActFlags, ActSystem, ActWithInputSystem, RunActMap},
     input::Hotkey,
 };
 use bevy::{
@@ -12,6 +12,7 @@ use bevy::{
 };
 use bevy_input_sequence::KeyChord;
 use std::{
+    any::TypeId,
     borrow::Cow,
     fmt::{
         self,
@@ -21,30 +22,32 @@ use std::{
 };
 
 /// Builds an [Act]
-// #[derive(Debug)]
+#[derive(Debug)]
 pub struct ActBuilder {
     pub name: Cow<'static, str>,
     /// Hotkeys
     pub hotkeys: Vec<Hotkey>,
-    make_act_runner: Box<dyn FnOnce(&mut World) -> Entity + 'static + Send + Sync>,
+    system_name: Cow<'static, str>,
+    // make_act_runner: Box<dyn FnOnce(&mut World) -> Entity + 'static + Send + Sync>,
     // pub(crate) system: Option<BoxedSystem>,
     /// Flags for this act
     pub flags: ActFlags,
     /// Shorten the name to just the first system.
     pub shorten_name: bool,
+    input: Option<TypeId>,
 }
 
-impl fmt::Debug for ActBuilder {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.debug_struct("ActBuilder")
-            .field("name", &self.name)
-            .field("hotkeys", &self.hotkeys)
-            .field("make_act_runner", &"Box<dyn FnOnce(&mut World) -> Entity { ... }")
-            .field("flags", &self.flags)
-            .field("shorten_name", &self.shorten_name)
-            .finish()
-    }
-}
+// impl fmt::Debug for ActBuilder {
+//     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         fmt.debug_struct("ActBuilder")
+//             .field("name", &self.name)
+//             .field("hotkeys", &self.hotkeys)
+//             .field("make_act_runner", &"Box<dyn FnOnce(&mut World) -> Entity { ... }")
+//             .field("flags", &self.flags)
+//             .field("shorten_name", &self.shorten_name)
+//             .finish()
+//     }
+// }
 
 impl ActBuilder {
     /// Create a new [Act].
@@ -53,44 +56,32 @@ impl ActBuilder {
         S: IntoSystem<(), (), P> + 'static,
     {
         let system = IntoSystem::into_system(system);
-        let sys_name = system.name();
+        let system_name = system.name();
         let name = Self::name_for_system(&system, true);
-        let make_act_runner = Box::new(move |world: &mut World| {
-            let system_id = world.register_system(system);
-            let id = system_id.entity();
-            world.get_entity_mut(id).expect("entity for system_id")
-                                    .insert(ActRunner::new(ActSystem(system_id, sys_name)));
-            id
-        });
         ActBuilder {
             name,
+            system_name,
             hotkeys: Vec::new(),
-            make_act_runner,
             flags: ActFlags::default(),
             shorten_name: true,
+            input: None,
         }
     }
 
     pub fn new_with_input<S, I, P>(system: S) -> Self
         where S: IntoSystem<In<I>,(), P> + 'static,
-    I: 'static + Default + Clone + Send + Sync
+    I: 'static + Default + Clone + Send + Sync + Debug
     {
         let system = IntoSystem::into_system(system);
-        let sys_name = system.name();
+        let system_name = system.name();
         let name = Self::name_for_system(&system, true);
-        let make_act_runner = Box::new(move |world: &mut World| {
-            let system_id = world.register_system(system);
-            let id = system_id.entity();
-            world.get_entity_mut(id).expect("entity for system_id")
-                                    .insert(ActRunner::new(ActWithInputSystem(system_id, sys_name)));
-            id
-        });
         ActBuilder {
             name,
+            system_name,
             hotkeys: Vec::new(),
-            make_act_runner,
             flags: ActFlags::default(),
             shorten_name: true,
+            input: Some(TypeId::of::<I>())
         }
     }
 
@@ -137,16 +128,17 @@ impl ActBuilder {
     /// Build [Act].
     pub fn build(mut self, world: &mut World) -> Act {
         let name = self.name;
-        let id = (self.make_act_runner)(world);
-        // let system_id = world.register_boxed_system(self.system.take().expect("system"));
+        // let id = (self.make_act_runner)(world);
+        let system_id = world.register_boxed_system(self.system.take().expect("system"));
         // let id = system_id.entity();
         // world.get_entity_mut(id).expect("entity for system_id")
-        //     .insert(ActRunner::new(ActSystem(system_id)));
+        //     .insert(RunActMap::new(ActSystem(system_id)));
         Act {
             name,
             hotkeys: self.hotkeys,
             flags: self.flags,
-            system_id: id,
+            system_id,
+            system_name: self.system_name,
         }
     }
 
@@ -204,13 +196,15 @@ impl ActBuilder {
 
 impl From<&mut ActBuilder> for ActBuilder {
     fn from(builder: &mut ActBuilder) -> Self {
+        let taken: Cow<'static, str> = "*TAKEN*".into();
         Self {
-            name: std::mem::replace(&mut builder.name, "*TAKEN*".into()),
-            make_act_runner: std::mem::replace(&mut builder.make_act_runner, Box::new(|world: &mut World| { Entity::PLACEHOLDER })),
+            name: std::mem::replace(&mut builder.name, taken.clone()),
+            // make_act_runner: std::mem::replace(&mut builder.make_act_runner, Box::new(|world: &mut World| { Entity::PLACEHOLDER })),
             // system: builder.system.take(),
             hotkeys: std::mem::take(&mut builder.hotkeys),
             flags: builder.flags,
             shorten_name: builder.shorten_name,
+            system_name: std::mem::replace(&mut builder.system_name, taken)
         }
     }
 }

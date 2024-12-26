@@ -2,7 +2,7 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
-    acts::{ActArg, tape::{DebugMap, TapeRecorder}},
+    acts::{ActArg, tape::{ActRunMap, TapeRecorder}},
     autocomplete::{AutoComplete, Completed, Lookup, LookupMap, RequireMatch},
     event::{RunActByNameEvent, RunActEvent},
     prompt::{GetKeyChord, PromptState},
@@ -46,7 +46,7 @@ pub struct Minibuffer<'w, 's> {
     next_prompt_state: ResMut<'w, NextState<PromptState>>,
     /// macro state
     pub(crate) tape_recorder: ResMut<'w, TapeRecorder>,
-    pub(crate) debug_map: ResMut<'w, DebugMap>,
+    // pub(crate) run_act_map: ResMut<'w, RunActMap>,
 }
 
 /// An [EntityCommands] extension trait
@@ -147,10 +147,10 @@ impl Minibuffer<'_, '_> {
     }
 
     pub fn log_input<I: Debug + Clone + Send + Sync + 'static>(&mut self, input: &I) {
-        self.tape_recorder.process_input(input, &mut *self.debug_map);
+        self.tape_recorder.process_input(input);
         match *self.tape_recorder {
             TapeRecorder::Record { ref mut tape, .. } => {
-                tape.ammend_input(input.clone(), &mut *self.debug_map);
+                tape.ammend_input(input.clone());
             }
             _ => ()
         }

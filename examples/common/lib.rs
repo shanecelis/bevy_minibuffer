@@ -116,7 +116,7 @@ impl VideoCapturePlugin {
                 };
                 let res = self.resolution;
                 // if let Some(res) = self.resolution {
-                    window.resolution = [res.x, res.y].into();
+                window.resolution = [res.x, res.y].into();
                 // }
                 window
             }),

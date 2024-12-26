@@ -22,7 +22,7 @@ fn plugin(app: &mut App) {
             Act::new(start).bind(keyseq! { D }),
             Act::new_with_input(speed_scriptable).bind(keyseq! { F }),
             Act::new(call_speed_scriptable).bind(keyseq! { G }),
-            Act::new(tape)
+            Act::new(tape),
         ))
         .add_systems(Startup, |mut minibuffer: Minibuffer| {
             minibuffer.message("Hit A, S, or D to change cube speed. Hit 'Ctrl-H B' for keys.");
@@ -76,14 +76,20 @@ fn tape(mut commands: Commands) {
 }
 
 /// Set the speed of the spinning cube with input.
-fn speed_scriptable(In(number_maybe): In<Option<f32>>, mut minibuffer: Minibuffer, mut query: Query<&mut Rotatable>) {
+fn speed_scriptable(
+    In(number_maybe): In<Option<f32>>,
+    mut minibuffer: Minibuffer,
+    mut query: Query<&mut Rotatable>,
+) {
     if let Some(speed) = number_maybe {
         for mut r in &mut query {
             r.speed = speed;
         }
     } else {
         minibuffer.prompt::<Number<f32>>("speed: ").observe(
-            |mut trigger: Trigger<Submit<f32>>, mut query: Query<&mut Rotatable>, mut minibuffer: Minibuffer| {
+            |mut trigger: Trigger<Submit<f32>>,
+             mut query: Query<&mut Rotatable>,
+             mut minibuffer: Minibuffer| {
                 let speed = trigger.event_mut().take_result().expect("speed");
                 minibuffer.log_input(&Some(speed));
                 for mut r in &mut query {

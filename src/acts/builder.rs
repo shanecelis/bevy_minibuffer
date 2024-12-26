@@ -1,14 +1,11 @@
 //! Acts and their flags, builders, and collections
 use crate::{
     acts::{Act, ActFlags, ActWithInputSystem, RunActMap},
-    ui::ActContainer,
     input::Hotkey,
+    ui::ActContainer,
 };
 use bevy::{
-    ecs::{
-        system::EntityCommand,
-        world::Command,
-    },
+    ecs::{system::EntityCommand, world::Command},
     prelude::*,
 };
 use bevy_input_sequence::KeyChord;
@@ -43,7 +40,10 @@ impl fmt::Debug for ActBuilder {
         fmt.debug_struct("ActBuilder")
             .field("name", &self.name)
             .field("hotkeys", &self.hotkeys)
-            .field("register_system", &"Box<dyn FnOnce(&mut World) -> Entity { ... }")
+            .field(
+                "register_system",
+                &"Box<dyn FnOnce(&mut World) -> Entity { ... }",
+            )
             .field("flags", &self.flags)
             .field("shorten_name", &self.shorten_name)
             .finish()
@@ -74,8 +74,9 @@ impl ActBuilder {
     }
 
     pub fn new_with_input<S, I, P>(system: S) -> Self
-        where S: IntoSystem<In<I>,(), P> + 'static,
-    I: 'static + Default + Clone + Send + Sync + Debug
+    where
+        S: IntoSystem<In<I>, (), P> + 'static,
+        I: 'static + Default + Clone + Send + Sync + Debug,
     {
         let system = IntoSystem::into_system(system);
         let system_name = system.name();
@@ -86,16 +87,16 @@ impl ActBuilder {
             register_system: Box::new(move |world: &mut World| {
                 let mut run_act_map = world.resource_mut::<RunActMap>();
                 let type_id = TypeId::of::<I>();
-                run_act_map.entry(type_id).or_insert_with(|| {
-                    Box::new(ActWithInputSystem::<I>::new())
-                });
+                run_act_map
+                    .entry(type_id)
+                    .or_insert_with(|| Box::new(ActWithInputSystem::<I>::new()));
                 let system_id = world.register_system(system);
                 system_id.entity()
             }),
             hotkeys: Vec::new(),
             flags: ActFlags::default(),
             shorten_name: true,
-            input: Some(TypeId::of::<I>())
+            input: Some(TypeId::of::<I>()),
         }
     }
 
@@ -134,14 +135,17 @@ impl ActBuilder {
         // let id = system_id.entity();
         // world.get_entity_mut(id).expect("entity for system_id")
         //     .insert(RunActMap::new(ActSystem(system_id)));
-        (Act {
-            name,
-            hotkeys: self.hotkeys,
-            flags: self.flags,
+        (
+            Act {
+                name,
+                hotkeys: self.hotkeys,
+                flags: self.flags,
+                system_id,
+                system_name: self.system_name,
+                input: self.input,
+            },
             system_id,
-            system_name: self.system_name,
-            input: self.input,
-        }, system_id)
+        )
     }
 
     /// Name the act.
@@ -201,10 +205,13 @@ impl From<&mut ActBuilder> for ActBuilder {
         let taken: Cow<'static, str> = "*TAKEN*".into();
         Self {
             name: std::mem::replace(&mut builder.name, taken.clone()),
-            register_system: std::mem::replace(&mut builder.register_system, Box::new(|_world: &mut World| {
-                warn!("Tried to register a depleted ActBuilder.");
-                Entity::PLACEHOLDER
-            })),
+            register_system: std::mem::replace(
+                &mut builder.register_system,
+                Box::new(|_world: &mut World| {
+                    warn!("Tried to register a depleted ActBuilder.");
+                    Entity::PLACEHOLDER
+                }),
+            ),
             // system: builder.system.take(),
             hotkeys: std::mem::take(&mut builder.hotkeys),
             flags: builder.flags,
@@ -220,9 +227,7 @@ impl Command for ActBuilder {
         let (act, id) = self.build(world);
         let name = Name::new(act.name.clone());
         let keyseqs = act.build_keyseqs(id, world);
-        world.entity_mut(id)
-             .insert(act)
-             .insert(name);
+        world.entity_mut(id).insert(act).insert(name);
 
         // let id = world.spawn(act).insert(name).id();
         for keyseq_id in keyseqs {

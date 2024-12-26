@@ -294,11 +294,7 @@ impl MinibufferAsync {
                 commands.spawn(GetKeyChord).observe(
                     move |mut trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
-                            let _ = promise.send(
-                                trigger
-                                    .event_mut()
-                                    .take()
-                            );
+                            let _ = promise.send(trigger.event_mut().take());
                         }
                         commands.entity(trigger.entity()).despawn();
                     },

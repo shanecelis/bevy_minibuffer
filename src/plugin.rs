@@ -82,7 +82,6 @@ pub enum Error {
     Futures(#[from] futures::channel::oneshot::Canceled),
 }
 
-
 /// Minibuffer generally runs in the Update schedule of sets in this order where
 /// necessary: Input, Process, Output.
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]

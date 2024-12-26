@@ -2,7 +2,7 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
-    acts::{ActArg, tape::TapeRecorder},
+    acts::{tape::TapeRecorder, ActArg},
     autocomplete::{AutoComplete, Completed, Lookup, LookupMap, RequireMatch},
     event::{RunActByNameEvent, RunActEvent},
     prompt::{GetKeyChord, PromptState},
@@ -18,7 +18,10 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{DespawnRecursiveExt, NextState, Res, ResMut, State, Text, Trigger, TextLayout, LineBreak, default},
+    prelude::{
+        default, DespawnRecursiveExt, LineBreak, NextState, Res, ResMut, State, Text, TextLayout,
+        Trigger,
+    },
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
 use std::fmt::Debug;
@@ -103,12 +106,10 @@ impl Minibuffer<'_, '_> {
         let msg = msg.into();
         let dest = self.dest.single();
         if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut self.commands) {
-            commands
-                .insert(Text::new(msg))
-                .insert(TextLayout {
-                    linebreak: LineBreak::WordOrCharacter,
-                    ..default()
-                });
+            commands.insert(Text::new(msg)).insert(TextLayout {
+                linebreak: LineBreak::WordOrCharacter,
+                ..default()
+            });
         }
     }
 
@@ -133,13 +134,19 @@ impl Minibuffer<'_, '_> {
     /// literals. For instance `Some(2.0)` is an `Option<f64>` without any
     /// further indication not an `Option<f32>`; use `Some(2.0f32)` if you want
     /// the latter.
-    pub fn run_act_with_input<I: Send + Sync + Debug + 'static>(&mut self, act: impl Into<ActArg>, input: I) {
+    pub fn run_act_with_input<I: Send + Sync + Debug + 'static>(
+        &mut self,
+        act: impl Into<ActArg>,
+        input: I,
+    ) {
         match act.into() {
             ActArg::ActRef(act) => {
-                self.commands.trigger(RunActEvent::new_with_input(act, input));
+                self.commands
+                    .trigger(RunActEvent::new_with_input(act, input));
             }
             ActArg::Name(name) => {
-                self.commands.trigger(RunActByNameEvent::new_with_input(name, input));
+                self.commands
+                    .trigger(RunActByNameEvent::new_with_input(name, input));
                 // self.commands.send_event(RunActByNameEvent::new(name));
                 // self.lookup_and_run_act_event.send(RunActByNameEvent::new(name));
             }
@@ -199,7 +206,8 @@ impl Minibuffer<'_, '_> {
                             input = Some(s);
                             r
                         });
-                    commands.trigger_targets(Completed::Unhandled { result, input }, trigger.entity());
+                    commands
+                        .trigger_targets(Completed::Unhandled { result, input }, trigger.entity());
                 },
             );
         ecommands

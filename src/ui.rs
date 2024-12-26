@@ -62,24 +62,24 @@ pub(crate) fn plugin(app: &mut App) {
 /// Create the UI layout.
 fn spawn_layout(mut commands: Commands) {
     let root = commands
-                .spawn((Node {
-            // visibility: Visibility::Hidden,
-            position_type: PositionType::Absolute,
-            // top: Val::Px(0.0),
-            bottom: Val::Px(0.0),
-            right: Val::Px(0.0),
-            left: Val::Px(0.0),
-            flex_direction: FlexDirection::Column,
-            // align_items: AlignItems::FlexEnd,
-            // justify_content:
-            ..Default::default()
-        },
-                Name::new("minibuffer"),
-                MinibufferNode
-            ))
+        .spawn((
+            Node {
+                // visibility: Visibility::Hidden,
+                position_type: PositionType::Absolute,
+                // top: Val::Px(0.0),
+                bottom: Val::Px(0.0),
+                right: Val::Px(0.0),
+                left: Val::Px(0.0),
+                flex_direction: FlexDirection::Column,
+                // align_items: AlignItems::FlexEnd,
+                // justify_content:
+                ..Default::default()
+            },
+            Name::new("minibuffer"),
+            MinibufferNode,
+        ))
         .with_children(|builder| {
-            builder.spawn((Name::new("acts"),
-                        ActContainer));
+            builder.spawn((Name::new("acts"), ActContainer));
             builder
                 .spawn((
                     Node {
@@ -143,9 +143,7 @@ fn spawn_layout(mut commands: Commands) {
                         });
                 });
             builder
-                .spawn((Node::default(),
-                            BackgroundColor(Color::BLACK),
-                ))
+                .spawn((Node::default(), BackgroundColor(Color::BLACK)))
                 .with_children(|parent| {
                     parent
                         .spawn((
@@ -165,12 +163,14 @@ fn spawn_layout(mut commands: Commands) {
                         ))
                         .insert(Name::new("buffer"))
                         .insert(PromptContainer);
-                    parent.spawn((Node {
-                        // max_height: Val::Px(20.0),
-                        ..default()
-                    },
-                                  Name::new("icons"),
-                                  IconContainer));
+                    parent.spawn((
+                        Node {
+                            // max_height: Val::Px(20.0),
+                            ..default()
+                        },
+                        Name::new("icons"),
+                        IconContainer,
+                    ));
                 });
         })
         .id();

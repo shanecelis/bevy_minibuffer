@@ -1,6 +1,9 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    acts::{ActRef, cache::{HotkeyActCache, NameActCache}, ActFlags, ActsPlugin},
+    acts::{
+        cache::{HotkeyActCache, NameActCache},
+        ActFlags, ActRef, ActsPlugin,
+    },
     event::LastRunAct,
     input::{Hotkey, KeyChord},
     prelude::*,
@@ -20,10 +23,12 @@ use trie_rs::map::Trie;
 /// Run an act by name.
 ///
 /// Similar to Emacs' `M-x` or vim's `:` key binding.
-pub fn run_act(mut minibuffer: Minibuffer,
-               mut act_cache: ResMut<NameActCache>,
-               mut acts: Query<(Entity, &Act)>,
-               last_act: Res<LastRunAct>) {
+pub fn run_act(
+    mut minibuffer: Minibuffer,
+    mut act_cache: ResMut<NameActCache>,
+    mut acts: Query<(Entity, &Act)>,
+    last_act: Res<LastRunAct>,
+) {
     let prompt: Cow<'static, str> = last_act
         .hotkey(&mut acts.transmute_lens::<&Act>())
         .map(|hotkey| {
@@ -38,32 +43,28 @@ pub fn run_act(mut minibuffer: Minibuffer,
         })
         .unwrap_or("run_act: ".into());
     let acts = act_cache.trie(acts.iter(), ActFlags::RunAct | ActFlags::Active);
-    minibuffer
-        .prompt_map(prompt, acts.clone())
-        .observe(
-            move |mut trigger: Trigger<Completed<ActRef>>, mut minibuffer: Minibuffer|
-            match trigger
-                .event_mut()
-                .take()
-            {
-                Completed::Unhandled { result, input } => {
-                    match result {
-                        Ok(act) => {
-                            minibuffer.run_act(act);
-                        }
-                        Err(e) => {
-                            minibuffer.message(format!(
-                                "Error: Could not resolve act named {:?}: {}",
-                                input.as_deref().unwrap_or("???"), e
-                            ));
-                        }
-                    }
-                },
-                Completed::Handled => {
-                    warn!("Unexpected handled.");
+    minibuffer.prompt_map(prompt, acts.clone()).observe(
+        move |mut trigger: Trigger<Completed<ActRef>>, mut minibuffer: Minibuffer| match trigger
+            .event_mut()
+            .take()
+        {
+            Completed::Unhandled { result, input } => match result {
+                Ok(act) => {
+                    minibuffer.run_act(act);
+                }
+                Err(e) => {
+                    minibuffer.message(format!(
+                        "Error: Could not resolve act named {:?}: {}",
+                        input.as_deref().unwrap_or("???"),
+                        e
+                    ));
                 }
             },
-        );
+            Completed::Handled => {
+                warn!("Unexpected handled.");
+            }
+        },
+    );
 }
 
 /// List acts currently operant.
@@ -176,7 +177,11 @@ pub fn toggle_visibility(
 /// Reveal act for inputted key chord sequence.
 ///
 /// Allow the user to input a key chord sequence. Reveal the bindings it has.
-pub fn describe_key(acts: Query<(Entity, &Act)>, mut cache: ResMut<HotkeyActCache>, mut minibuffer: Minibuffer) {
+pub fn describe_key(
+    acts: Query<(Entity, &Act)>,
+    mut cache: ResMut<HotkeyActCache>,
+    mut minibuffer: Minibuffer,
+) {
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
     let mut position = trie.inc_search().into();
     // search

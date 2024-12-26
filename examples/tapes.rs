@@ -16,13 +16,13 @@ use bevy_minibuffer::prelude::*;
 mod common;
 
 fn plugin(app: &mut App) {
-    app
-        .add_plugins(MinibufferPlugins)
-        .add_acts((BasicActs::default(),
-                   UniversalArgActs::default(),
-                   TapeActs::default(),
-                   // unscriptable::set_color,
-                   Act::new_with_input(set_color)));
+    app.add_plugins(MinibufferPlugins).add_acts((
+        BasicActs::default(),
+        UniversalArgActs::default(),
+        TapeActs::default(),
+        // unscriptable::set_color,
+        Act::new_with_input(set_color),
+    ));
 }
 
 fn main() {
@@ -69,7 +69,7 @@ struct Selectables(Vec<Entity>);
 #[derive(Component, Clone, Copy)]
 struct Paint {
     base: Color,
-    tone: Option<(Color, f32)>
+    tone: Option<(Color, f32)>,
 }
 
 impl Default for Paint {
@@ -124,23 +124,24 @@ fn setup_scene(
         Observer::new(update_color_on::<Pointer<Down>>(pressed_color)),
         Observer::new(update_color_on::<Pointer<Up>>(hover_color)),
         Observer::new(select),
-        Observer::new(rotate_on_drag)];
+        Observer::new(rotate_on_drag),
+    ];
     // Spawn the shapes. The meshes will be pickable by default.
     for (i, shape) in shapes.into_iter().enumerate() {
         let id = commands
-                .spawn((
-                    Mesh3d(shape),
-                    MeshMaterial3d(materials.add(Color::WHITE)),
-                    Transform::from_xyz(
-                        -SHAPES_X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * SHAPES_X_EXTENT,
-                        2.0,
-                        Z_EXTENT / 2.,
-                    )
-                        .with_rotation(Quat::from_rotation_x(-PI / 4.)),
-                    Shape,
-                    Paint::default(),
-                ))
-                .id();
+            .spawn((
+                Mesh3d(shape),
+                MeshMaterial3d(materials.add(Color::WHITE)),
+                Transform::from_xyz(
+                    -SHAPES_X_EXTENT / 2. + i as f32 / (num_shapes - 1) as f32 * SHAPES_X_EXTENT,
+                    2.0,
+                    Z_EXTENT / 2.,
+                )
+                .with_rotation(Quat::from_rotation_x(-PI / 4.)),
+                Shape,
+                Paint::default(),
+            ))
+            .id();
         selectables.push(id);
     }
 
@@ -148,20 +149,20 @@ fn setup_scene(
 
     for (i, shape) in extrusions.into_iter().enumerate() {
         let id = commands
-                .spawn((
-                    Mesh3d(shape),
-                    MeshMaterial3d(materials.add(Color::WHITE)),
-                    Transform::from_xyz(
-                        -EXTRUSION_X_EXTENT / 2.
-                            + i as f32 / (num_extrusions - 1) as f32 * EXTRUSION_X_EXTENT,
-                        2.0,
-                        -Z_EXTENT / 2.,
-                    )
-                        .with_rotation(Quat::from_rotation_x(-PI / 4.)),
-                    Shape,
-                    Paint::default(),
-                ))
-                .id();
+            .spawn((
+                Mesh3d(shape),
+                MeshMaterial3d(materials.add(Color::WHITE)),
+                Transform::from_xyz(
+                    -EXTRUSION_X_EXTENT / 2.
+                        + i as f32 / (num_extrusions - 1) as f32 * EXTRUSION_X_EXTENT,
+                    2.0,
+                    -Z_EXTENT / 2.,
+                )
+                .with_rotation(Quat::from_rotation_x(-PI / 4.)),
+                Shape,
+                Paint::default(),
+            ))
+            .id();
         selectables.push(id);
     }
     // Observers
@@ -223,40 +224,48 @@ mod unscriptable {
             minibuffer.message("Select a shape first.");
         } else {
             let selection = selected.curr.unwrap();
-            minibuffer.prompt_map("Hex color: ", bevy_minibuffer::autocomplete::SrgbaHexLookup)
-                      .observe(move |mut trigger: Trigger<Completed<Srgba>>,
-                               mut selected: ResMut<Selected>,
-                               mut paints: Query<&mut Paint>,
-                               mut commands: Commands, mut minibuffer: Minibuffer,
-                               selectables: Res<Selectables>| {
-                                   if let Completed::Unhandled { result, input: _ } = trigger.event_mut().take() {
-                                       match result {
-                                           Ok(color) => {
-                                               goto_next_selectable(selection, &selectables, &mut selected);
-                                               if let Ok(mut paint) = paints.get_mut(selection) {
-                                                   minibuffer.message(format!("Set color to {:?}", &color));
-                                                   paint.base = color.into();
-                                                   paint.tone = None;
-                                               }
-                                               commands.entity(trigger.entity()).despawn_recursive();
-                                           }
-                                           Err(e) => {
-                                               warn!("set_color error: {e}");
-                                           }
-                                       }
-                                   } else {
-                                       commands.entity(trigger.entity()).despawn_recursive();
-                                   }
-                               });
+            minibuffer
+                .prompt_map("Hex color: ", bevy_minibuffer::autocomplete::SrgbaHexLookup)
+                .observe(
+                    move |mut trigger: Trigger<Completed<Srgba>>,
+                          mut selected: ResMut<Selected>,
+                          mut paints: Query<&mut Paint>,
+                          mut commands: Commands,
+                          mut minibuffer: Minibuffer,
+                          selectables: Res<Selectables>| {
+                        if let Completed::Unhandled { result, input: _ } =
+                            trigger.event_mut().take()
+                        {
+                            match result {
+                                Ok(color) => {
+                                    goto_next_selectable(selection, &selectables, &mut selected);
+                                    if let Ok(mut paint) = paints.get_mut(selection) {
+                                        minibuffer.message(format!("Set color to {:?}", &color));
+                                        paint.base = color.into();
+                                        paint.tone = None;
+                                    }
+                                    commands.entity(trigger.entity()).despawn_recursive();
+                                }
+                                Err(e) => {
+                                    warn!("set_color error: {e}");
+                                }
+                            }
+                        } else {
+                            commands.entity(trigger.entity()).despawn_recursive();
+                        }
+                    },
+                );
         }
     }
 }
 
-pub(crate) fn set_color(In(input): In<Option<Srgba>>,
-                mut minibuffer: Minibuffer,
-                mut paints: Query<&mut Paint>,
-                mut selected: ResMut<Selected>,
-                selectables: Res<Selectables>) {
+pub(crate) fn set_color(
+    In(input): In<Option<Srgba>>,
+    mut minibuffer: Minibuffer,
+    mut paints: Query<&mut Paint>,
+    mut selected: ResMut<Selected>,
+    selectables: Res<Selectables>,
+) {
     if selected.curr.is_none() {
         minibuffer.message("Select a shape first.");
     } else {
@@ -269,52 +278,53 @@ pub(crate) fn set_color(In(input): In<Option<Srgba>>,
                 paint.tone = None;
             }
         } else {
-            minibuffer.prompt_map("Hex color: ", bevy_minibuffer::autocomplete::SrgbaHexLookup)
-                        .observe(move |mut trigger: Trigger<Completed<Srgba>>,
-                                mut selected: ResMut<Selected>,
-                                mut paints: Query<&mut Paint>,
-                                mut commands: Commands,
-                                mut minibuffer: Minibuffer,
-                                selectables: Res<Selectables>| {
-                                    if let Completed::Unhandled { result, input: _ } = trigger.event_mut().take() {
-                                        match result {
-                                            Ok(color) => {
-                                                minibuffer.log_input(&Some(color));
-                                                goto_next_selectable(selection, &selectables, &mut selected);
-                                                if let Ok(mut paint) = paints.get_mut(selection) {
-                                                    minibuffer.message(format!("Set color to {:?}", &color));
-                                                    paint.base = color.into();
-                                                    paint.tone = None;
-                                                }
-                                                commands.entity(trigger.entity()).despawn_recursive();
-                                            }
-                                            Err(e) => {
-                                                warn!("set_color error: {e}");
-                                            }
-                                        }
-                                    } else {
-                                        commands.entity(trigger.entity()).despawn_recursive();
+            minibuffer
+                .prompt_map("Hex color: ", bevy_minibuffer::autocomplete::SrgbaHexLookup)
+                .observe(
+                    move |mut trigger: Trigger<Completed<Srgba>>,
+                          mut selected: ResMut<Selected>,
+                          mut paints: Query<&mut Paint>,
+                          mut commands: Commands,
+                          mut minibuffer: Minibuffer,
+                          selectables: Res<Selectables>| {
+                        if let Completed::Unhandled { result, input: _ } =
+                            trigger.event_mut().take()
+                        {
+                            match result {
+                                Ok(color) => {
+                                    minibuffer.log_input(&Some(color));
+                                    goto_next_selectable(selection, &selectables, &mut selected);
+                                    if let Ok(mut paint) = paints.get_mut(selection) {
+                                        minibuffer.message(format!("Set color to {:?}", &color));
+                                        paint.base = color.into();
+                                        paint.tone = None;
                                     }
-                                });
+                                    commands.entity(trigger.entity()).despawn_recursive();
+                                }
+                                Err(e) => {
+                                    warn!("set_color error: {e}");
+                                }
+                            }
+                        } else {
+                            commands.entity(trigger.entity()).despawn_recursive();
+                        }
+                    },
+                );
         }
     }
 }
 
-fn goto_next_selectable(selection: Entity,
-                        selectables: &Selectables,
-                        selected: &mut Selected,
-) {
-    selected.curr = selectables.0.iter()
-                                 .position(|x| *x == selection)
-                                 .and_then(|index| selectables.0.get(index + 1))
-                                 .or(selectables.0.first()).copied();
+fn goto_next_selectable(selection: Entity, selectables: &Selectables, selected: &mut Selected) {
+    selected.curr = selectables
+        .0
+        .iter()
+        .position(|x| *x == selection)
+        .and_then(|index| selectables.0.get(index + 1))
+        .or(selectables.0.first())
+        .copied();
 }
 
-
-
-fn select(trigger: Trigger<Pointer<Click>>,
-          mut selected: ResMut<Selected>,
-) {
+fn select(trigger: Trigger<Pointer<Click>>, mut selected: ResMut<Selected>) {
     selected.set(Some(trigger.entity()));
 }
 
@@ -337,13 +347,12 @@ fn update_selected(selected: Res<Selected>, mut paints: Query<&mut Paint>) {
 fn update_color(
     mut query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Paint), Changed<Paint>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-
 ) {
     for (mut mesh_material, paint) in &mut query {
         if let Some(material) = materials.get_mut(&mut mesh_material.0) {
             material.base_color = match paint.tone {
                 Some((tone, k)) => paint.base.mix(&tone, k),
-                None => paint.base
+                None => paint.base,
             };
         }
     }
@@ -354,7 +363,11 @@ fn update_color_on<E>(
     color: Option<Color>,
 ) -> impl Fn(Trigger<E>, Query<&mut Paint>, Res<Selected>) {
     move |trigger, mut query, selected| {
-        if selected.curr.map(|x| x == trigger.entity()).unwrap_or(false) {
+        if selected
+            .curr
+            .map(|x| x == trigger.entity())
+            .unwrap_or(false)
+        {
             return;
         }
         if let Ok(mut paint) = query.get_mut(trigger.entity()) {

@@ -6,10 +6,10 @@ use bevy_defer::{AsyncExecutor, NonSend};
 use std::{fmt::Display, future::Future};
 
 /// Show error if any in minibuffer.
-pub fn result<T, E>(In(result): In<Result<T,E>>,
-                    mut minibuffer: Minibuffer)
-where T: 'static,
-      E: 'static + Display
+pub fn result<T, E>(In(result): In<Result<T, E>>, mut minibuffer: Minibuffer)
+where
+    T: 'static,
+    E: 'static + Display,
 {
     if let Err(e) = result {
         minibuffer.message(format!("{e}"));

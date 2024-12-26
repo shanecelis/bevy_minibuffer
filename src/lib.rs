@@ -35,12 +35,14 @@ pub mod input {
 /// Prelude for convenient splat importing, e.g., `use bevy_minibuffer::prelude::*`.
 pub mod prelude {
     pub use super::acts::basic::BasicActs;
-    pub use super::acts::universal::*;
     pub use super::acts::tape::TapeActs;
-    pub use super::acts::{self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, ActsPluginGroup, AddActs};
+    pub use super::acts::universal::*;
+    pub use super::acts::{
+        self, Act, ActBuilder, ActFlags, Acts, ActsPlugin, ActsPluginGroup, AddActs,
+    };
     pub use super::autocomplete::*;
     pub use super::event::RunActEvent;
-    pub use super::input::{key, keyseq, Modifiers, KeyChord};
+    pub use super::input::{key, keyseq, KeyChord, Modifiers};
     pub use super::prompt::*;
     #[cfg(feature = "async")]
     pub use super::sink::{future_result_sink, future_sink};

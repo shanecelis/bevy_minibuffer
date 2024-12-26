@@ -1,12 +1,10 @@
 //! Acts and their flags, builders, and collections
 use crate::{event::RunActEvent, input::Hotkey, ui::ActContainer};
-use bevy::{
-    ecs::system::EntityCommand,
-    prelude::*,
-};
+use bevy::{ecs::system::EntityCommand, prelude::*};
 use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
 use bitflags::bitflags;
 use std::{
+    any::TypeId,
     borrow::Cow,
     fmt::{
         self,
@@ -14,7 +12,6 @@ use std::{
         Display,
         // Write
     },
-    any::TypeId,
 };
 
 mod collection;
@@ -35,21 +32,23 @@ pub mod basic;
 #[cfg(feature = "async")]
 pub mod basic_async;
 
-pub mod universal;
 pub mod tape;
+pub mod universal;
 
 pub(crate) fn plugin(app: &mut App) {
-    app
-        .register_type::<Act>()
+    app.register_type::<Act>()
         .add_plugins(tape::plugin)
         .add_plugins(universal::plugin)
         .add_plugins(cache::plugin)
         .add_plugins(run_act::plugin)
-        .add_systems(PostStartup, reparent_acts)
-        ;
+        .add_systems(PostStartup, reparent_acts);
 }
 
-fn reparent_acts(acts: Query<Entity, With<Act>>, act_container: Query<Entity, With<ActContainer>>, mut commands: Commands) {
+fn reparent_acts(
+    acts: Query<Entity, With<Act>>,
+    act_container: Query<Entity, With<ActContainer>>,
+    mut commands: Commands,
+) {
     let Ok(act_container) = act_container.get_single() else {
         warn!("No ActContainer");
         return;
@@ -146,8 +145,9 @@ impl Act {
     }
 
     pub fn new_with_input<S, I, P>(system: S) -> ActBuilder
-        where S: IntoSystem<In<I>,(), P> + 'static,
-    I: 'static + Debug + Default + Clone + Send + Sync
+    where
+        S: IntoSystem<In<I>, (), P> + 'static,
+        I: 'static + Debug + Default + Clone + Send + Sync,
     {
         ActBuilder::new_with_input(system)
     }

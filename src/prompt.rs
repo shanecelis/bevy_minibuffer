@@ -111,7 +111,7 @@ pub(crate) fn get_key_chords(
 
     if let Some(chord) = buffer.pop_front().or_else(|| chords.pop_front()) {
         for (id, get_key_chord) in query.iter_mut() {
-            if ! get_key_chord.is_added() {
+            if !get_key_chord.is_added() {
                 if chord.1 == KeyCode::Escape && chord.0.is_empty() {
                     commands.trigger_targets(KeyChordEvent::Canceled, id);
                 } else {

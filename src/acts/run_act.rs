@@ -1,16 +1,13 @@
 //! Acts and their flags, builders, and collections
-use bevy::{
-    ecs::system::SystemId,
-    prelude::*,
-};
+use bevy::{ecs::system::SystemId, prelude::*};
 use std::{
+    any::{Any, TypeId},
     collections::HashMap,
-    marker::PhantomData,
     fmt::{
         Debug,
         // Write
     },
-    any::{Any, TypeId},
+    marker::PhantomData,
 };
 
 #[derive(Debug)]
@@ -21,13 +18,17 @@ pub enum RunActError {
 }
 
 pub(crate) fn plugin(app: &mut App) {
-    app
-        .init_resource::<RunActMap>();
+    app.init_resource::<RunActMap>();
 }
 
 pub trait RunAct {
     fn run(&self, system_entity: Entity, world: &mut Commands) -> Result<(), RunActError>;
-    fn run_with_input(&self, system_entity: Entity, input: &dyn Any, world: &mut Commands) -> Result<(), RunActError>;
+    fn run_with_input(
+        &self,
+        system_entity: Entity,
+        input: &dyn Any,
+        world: &mut Commands,
+    ) -> Result<(), RunActError>;
     fn debug_string(&self, input: &dyn Any) -> Option<String>;
 }
 
@@ -74,7 +75,12 @@ impl RunAct for ActSystem {
         Ok(())
     }
 
-    fn run_with_input(&self, _system_entity: Entity, _input: &dyn Any, _commands: &mut Commands) -> Result<(), RunActError> {
+    fn run_with_input(
+        &self,
+        _system_entity: Entity,
+        _input: &dyn Any,
+        _commands: &mut Commands,
+    ) -> Result<(), RunActError> {
         Err(RunActError::CannotAcceptInput)
     }
 
@@ -98,15 +104,22 @@ impl<I: 'static> ActWithInputSystem<I> {
     }
 }
 
-impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Default + Debug + Send + Sync {
+impl<I> RunAct for ActWithInputSystem<I>
+where
+    I: Clone + Default + Debug + Send + Sync,
+{
     fn run(&self, system_entity: Entity, commands: &mut Commands) -> Result<(), RunActError> {
-
         let system_id = SystemId::<In<I>>::from_entity(system_entity);
         commands.run_system_with_input(system_id, I::default());
         Ok(())
     }
 
-    fn run_with_input(&self, system_entity: Entity, input: &dyn Any, commands: &mut Commands) -> Result<(), RunActError> {
+    fn run_with_input(
+        &self,
+        system_entity: Entity,
+        input: &dyn Any,
+        commands: &mut Commands,
+    ) -> Result<(), RunActError> {
         // The debugging with Any was _rough_.
         // info!("input typeid {:?}", input.type_id());
         // info!("Arc typeid {:?}", TypeId::of::<Arc<dyn Any>>());
@@ -127,7 +140,9 @@ impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Default + Debug + Send
     }
 
     fn debug_string(&self, input: &dyn Any) -> Option<String> {
-        input.downcast_ref::<I>().map(|input: &I| format!("{:?}", input))
+        input
+            .downcast_ref::<I>()
+            .map(|input: &I| format!("{:?}", input))
     }
 }
 

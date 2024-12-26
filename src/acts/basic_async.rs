@@ -1,6 +1,10 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    acts::{basic::BasicActs, cache::{HotkeyActCache, NameActCache}, ActRef, ActFlags, ActsPlugin},
+    acts::{
+        basic::BasicActs,
+        cache::{HotkeyActCache, NameActCache},
+        ActFlags, ActRef, ActsPlugin,
+    },
     event::LastRunAct,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
@@ -11,8 +15,8 @@ use bevy::prelude::*;
 use bevy_defer::AsyncWorld;
 use futures::Future;
 use std::{
-    collections::HashMap,
     borrow::Cow,
+    collections::HashMap,
     fmt::{Debug, Write},
 };
 use trie_rs::map::Trie;
@@ -24,8 +28,9 @@ pub fn run_act(
     mut acts: Query<(Entity, &Act)>,
     last_act: Res<LastRunAct>,
 ) -> impl Future<Output = Result<(), crate::Error>> {
-    let acts_trie = act_cache.trie(acts.iter(),
-                                   ActFlags::RunAct | ActFlags::Active).clone();
+    let acts_trie = act_cache
+        .trie(acts.iter(), ActFlags::RunAct | ActFlags::Active)
+        .clone();
     let prompt: Cow<'static, str> = last_act
         .hotkey(&mut acts.transmute_lens::<&Act>())
         .map(|hotkey| {
@@ -60,7 +65,10 @@ pub fn describe_key(
     mut minibuffer: MinibufferAsync,
 ) -> impl Future<Output = Result<(), crate::Error>> {
     use trie_rs::inc_search::Answer;
-    let act_names: HashMap<Entity, Cow<'static, str>> = acts.iter().map(|(id, act)| (id, act.name.clone())).collect();
+    let act_names: HashMap<Entity, Cow<'static, str>> = acts
+        .iter()
+        .map(|(id, act)| (id, act.name.clone()))
+        .collect();
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
     async move {
         let mut search = trie.inc_search();
@@ -72,11 +80,21 @@ pub fn describe_key(
             match search.query(&chord) {
                 Some(x) => {
                     let _ = write!(accum, "{} ", chord);
-                    let name: Option<&Cow<'static, str>> = search.value().and_then(|act_ref: &ActRef| act_names.get(&act_ref.id));
+                    let name: Option<&Cow<'static, str>> = search
+                        .value()
+                        .and_then(|act_ref: &ActRef| act_names.get(&act_ref.id));
                     let msg = match x {
-                        Answer::Match => format!("{}is bound to {}", accum, name.as_deref().unwrap_or(&"???".into())),
+                        Answer::Match => format!(
+                            "{}is bound to {}",
+                            accum,
+                            name.as_deref().unwrap_or(&"???".into())
+                        ),
                         Answer::PrefixAndMatch => {
-                            format!("{}is bound to {} and more", accum, name.as_deref().unwrap_or(&"???".into()))
+                            format!(
+                                "{}is bound to {} and more",
+                                accum,
+                                name.as_deref().unwrap_or(&"???".into())
+                            )
                         }
                         Answer::Prefix => accum.clone(),
                     };

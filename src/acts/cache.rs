@@ -1,13 +1,12 @@
 //! Acts and their flags, builders, and collections
-use crate::acts::{Act, ActRef, ActFlags};
+use crate::acts::{Act, ActFlags, ActRef};
 use bevy::prelude::*;
 use bevy_input_sequence::KeyChord;
-use trie_rs::map::{Trie, TrieBuilder};
 use std::collections::HashMap;
+use trie_rs::map::{Trie, TrieBuilder};
 
 pub(crate) fn plugin(app: &mut App) {
-    app
-        .init_resource::<HotkeyActCache>()
+    app.init_resource::<HotkeyActCache>()
         .init_resource::<NameActCache>();
 }
 
@@ -20,7 +19,11 @@ impl NameActCache {
     /// Retrieve the cached trie without iterating through `acts`. Or if the
     /// cache has been invalidated, build and cache a new trie using the
     /// `acts` iterator.
-    pub fn trie<'a>(&mut self, acts: impl Iterator<Item = (Entity, &'a Act)>, flags: ActFlags) -> &Trie<u8, ActRef> {
+    pub fn trie<'a>(
+        &mut self,
+        acts: impl Iterator<Item = (Entity, &'a Act)>,
+        flags: ActFlags,
+    ) -> &Trie<u8, ActRef> {
         self.trie.entry(flags).or_insert_with(|| {
             let mut builder: TrieBuilder<u8, ActRef> = TrieBuilder::new();
             for (id, act) in acts {
@@ -55,7 +58,10 @@ impl HotkeyActCache {
     /// Retrieve the cached trie without iterating through `acts`. Or if
     /// the cache has been invalidated, build and cache a new trie using the
     /// `acts` iterator.
-    pub fn trie<'a>(&mut self, acts: impl Iterator<Item = (Entity, &'a Act)>) -> &Trie<KeyChord, ActRef> {
+    pub fn trie<'a>(
+        &mut self,
+        acts: impl Iterator<Item = (Entity, &'a Act)>,
+    ) -> &Trie<KeyChord, ActRef> {
         self.trie.get_or_insert_with(|| {
             let mut builder: TrieBuilder<KeyChord, ActRef> = TrieBuilder::new();
             for (id, act) in acts {

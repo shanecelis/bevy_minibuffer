@@ -3,8 +3,8 @@
 //! Can be queried by other commands using the [UniversalArg] resource.
 use crate::{
     acts::{Act, ActFlags, Acts, ActsPlugin},
-    event::{LastRunAct, RunActEvent, KeyChordEvent},
-    prelude::{keyseq},
+    event::{KeyChordEvent, LastRunAct, RunActEvent},
+    prelude::keyseq,
     Minibuffer,
 };
 #[cfg(feature = "async")]
@@ -118,7 +118,7 @@ fn clear_arg(
     if let Some(e) = event.read().next() {
         if !e.act.flags.contains(ActFlags::Adverb) {
             // *clear = Some(e.name.clone());
-            *clear = Some("something".into());//e.name.clone());
+            *clear = Some("something".into()); //e.name.clone());
         }
     }
 }
@@ -165,10 +165,10 @@ fn universal_arg(
     minibuffer.message(prompt.clone());
     minibuffer.get_chord().observe(
         move |mut trigger: Trigger<KeyChordEvent>,
-        mut universal_arg: ResMut<UniversalArg>,
-        mut chord_queue: ResMut<KeyChordQueue>,
-        mut minibuffer: Minibuffer,
-        mut commands: Commands| {
+              mut universal_arg: ResMut<UniversalArg>,
+              mut chord_queue: ResMut<KeyChordQueue>,
+              mut minibuffer: Minibuffer,
+              mut commands: Commands| {
             let abort: bool = 'body: {
                 let Ok(chord @ KeyChord(mods, key)) = trigger.event_mut().take() else {
                     break 'body true;
@@ -232,7 +232,8 @@ fn universal_arg(
                 minibuffer.clear();
                 commands.entity(trigger.entity()).despawn();
             }
-        });
+        },
+    );
 }
 
 #[cfg(feature = "async")]

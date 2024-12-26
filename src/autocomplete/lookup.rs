@@ -72,7 +72,9 @@ pub struct SrgbaHexLookup;
 
 impl Lookup for SrgbaHexLookup {
     fn lookup(&self, input: &str) -> Result<(), LookupError> {
-        Srgba::hex(input).map(|_| ()).map_err(|e| LookupError::Message(format!("{e}").into()))
+        Srgba::hex(input)
+            .map(|_| ())
+            .map_err(|e| LookupError::Message(format!("{e}").into()))
     }
     fn longest_prefix(&self, _input: &str) -> Option<String> {
         None
@@ -94,7 +96,10 @@ impl LookupMap for SrgbaHexLookup {
 #[derive(Event, Debug)]
 pub enum Completed<T> {
     /// A completion event with its associated input if available
-    Unhandled { result: Result<T, Error>, input: Option<String> },
+    Unhandled {
+        result: Result<T, Error>,
+        input: Option<String>,
+    },
     /// This completion event has been handled.
     Handled,
 }

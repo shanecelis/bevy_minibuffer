@@ -119,10 +119,16 @@ fn setup_scene(
 
     let mut selectables = vec![];
 
+    let mut observers = vec![
+        Observer::new(update_color_on::<Pointer<Over>>(hover_color.clone())),
+        Observer::new(update_color_on::<Pointer<Out>>(None)),
+        Observer::new(update_color_on::<Pointer<Down>>(pressed_color.clone())),
+        Observer::new(update_color_on::<Pointer<Up>>(hover_color.clone())),
+        Observer::new(select),
+        Observer::new(rotate_on_drag)];
     // Spawn the shapes. The meshes will be pickable by default.
     for (i, shape) in shapes.into_iter().enumerate() {
-        selectables.push(
-            commands
+        let id = commands
                 .spawn((
                     Mesh3d(shape),
                     MeshMaterial3d(materials.add(Color::WHITE)),
@@ -135,20 +141,14 @@ fn setup_scene(
                     Shape,
                     Paint::default(),
                 ))
-                .observe(update_color_on::<Pointer<Over>>(hover_color.clone()))
-                .observe(update_color_on::<Pointer<Out>>(None))
-                .observe(update_color_on::<Pointer<Down>>(pressed_color.clone()))
-                .observe(update_color_on::<Pointer<Up>>(hover_color.clone()))
-                .observe(select)
-                .observe(rotate_on_drag)
-                .id());
+                .id();
+        selectables.push(id);
     }
 
     let num_extrusions = extrusions.len();
 
     for (i, shape) in extrusions.into_iter().enumerate() {
-        selectables.push(
-            commands
+        let id = commands
                 .spawn((
                     Mesh3d(shape),
                     MeshMaterial3d(materials.add(Color::WHITE)),
@@ -162,14 +162,18 @@ fn setup_scene(
                     Shape,
                     Paint::default(),
                 ))
-                .observe(update_color_on::<Pointer<Over>>(hover_color.clone()))
-                .observe(update_color_on::<Pointer<Out>>(None))
-                .observe(update_color_on::<Pointer<Down>>(pressed_color.clone()))
-                .observe(update_color_on::<Pointer<Up>>(hover_color.clone()))
-                .observe(select)
-                .observe(rotate_on_drag)
-                .id());
+                .id();
+        selectables.push(id);
     }
+    // Observers
+    for mut observer in observers {
+        for id in &selectables {
+            observer.watch_entity(*id);
+        }
+        commands.spawn(observer);
+    }
+
+    // Selectables
     commands.insert_resource(Selectables(selectables));
 
     // Ground

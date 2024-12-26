@@ -112,7 +112,9 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .add_plugins(crate::view::plugin)
             .add_plugins(crate::acts::plugin)
             .add_plugins(AskyPlugin)
-            .add_plugins(InputSequencePlugin::empty().run_in_set(Update, InputSequenceSet))
+            .add_plugins(InputSequencePlugin::empty()
+                         .match_button(false)
+                         .run_in_set(Update, InputSequenceSet))
             .init_state::<MinibufferState>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
@@ -131,9 +133,6 @@ impl bevy::app::Plugin for MinibufferPlugin {
                 InputSequenceSet.after(MinibufferSet::Input),
                 InputSequenceSet.run_if(in_state(MinibufferState::Inactive)),
             ))
-            .add_observer(crate::event::dispatch_trigger)
-            .add_observer(crate::event::run_acts_trigger)
-            .add_observer(crate::event::run_acts_by_name_trigger)
             .add_systems(Update,
                          ((run_acts_by_name, run_acts, prompt::set_minibuffer_state).chain(),
                           (dispatch_events, lookup_events).chain())

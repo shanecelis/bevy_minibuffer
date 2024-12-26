@@ -1,5 +1,6 @@
 //! Events
 use crate::{
+    ui::MinibufferRoot,
     Error,
     acts::{Act, ActRef, ActFlags, RunAct, ActSystem, RunActMap, tape::{TapeRecorder, Tape}},
     input::{KeyChord, Hotkey},
@@ -31,19 +32,19 @@ pub(crate) fn plugin(app: &mut App) {
     app.add_event::<DispatchEvent>()
         .add_event::<RunActEvent>()
         .add_event::<RunActByNameEvent>()
-        // .add_systems(Startup, setup_observers)
+        .add_systems(Startup, setup_observers)
         .init_resource::<LastRunAct>();
 }
 
-// fn setup_observers(root: Res<MinibufferRoot>,
-//                    mut commands: Commands) {
-//     commands.entity(root.0)
-//         .with_children(|parent| {
-//             parent.spawn(Observer::new(crate::event::dispatch_trigger));
-//             parent.spawn(Observer::new(crate::event::run_acts_trigger));
-//             parent.spawn(Observer::new(crate::event::run_acts_by_name_trigger));
-//         });
-// }
+fn setup_observers(root: Res<MinibufferRoot>,
+                   mut commands: Commands) {
+    commands.entity(root.0)
+        .with_children(|parent| {
+            parent.spawn(Observer::new(crate::event::dispatch_trigger));
+            parent.spawn(Observer::new(crate::event::run_acts_trigger));
+            parent.spawn(Observer::new(crate::event::run_acts_by_name_trigger));
+        });
+}
 
 pub type Input = Arc<dyn Any + 'static + Send + Sync>;
 

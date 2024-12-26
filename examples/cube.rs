@@ -36,6 +36,7 @@ fn main() {
             common::VideoCapturePlugin::new("cube").background(Srgba::hex("390099").unwrap()),
             plugin,
         ))
+        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
         .run();

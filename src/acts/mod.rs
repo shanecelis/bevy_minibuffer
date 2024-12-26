@@ -1,5 +1,5 @@
 //! Acts and their flags, builders, and collections
-use crate::{event::RunActEvent, input::Hotkey};
+use crate::{event::RunActEvent, input::Hotkey, ui::ActContainer};
 use bevy::{
     ecs::{system::{EntityCommand, RegisteredSystemError, SystemId}, world::CommandQueue},
     prelude::*,
@@ -46,7 +46,18 @@ pub(crate) fn plugin(app: &mut App) {
         .add_plugins(universal::plugin)
         .add_plugins(cache::plugin)
         .add_plugins(run_act::plugin)
+        .add_systems(PostStartup, reparent_acts)
         ;
+}
+
+fn reparent_acts(acts: Query<Entity, With<Act>>, act_container: Query<Entity, With<ActContainer>>, mut commands: Commands) {
+    let Ok(act_container) = act_container.get_single() else {
+        warn!("No ActContainer");
+        return;
+    };
+    for id in &acts {
+        commands.entity(id).set_parent(act_container);
+    }
 }
 
 // impl<'w, 's> AddActs for Commands<'w, 's> {

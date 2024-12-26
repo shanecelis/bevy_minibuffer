@@ -34,6 +34,9 @@ pub struct IconContainer;
 #[derive(Component)]
 pub(crate) struct CompletionContainer;
 
+#[derive(Component)]
+pub(crate) struct ActContainer;
+
 /// Autocomplete scrolling state
 #[derive(Component, Default)]
 pub(crate) struct ScrollingList {
@@ -59,7 +62,7 @@ pub(crate) fn plugin(app: &mut App) {
 /// Create the UI layout.
 fn spawn_layout(mut commands: Commands) {
     let root = commands
-        .spawn(Node {
+                .spawn((Node {
             // visibility: Visibility::Hidden,
             position_type: PositionType::Absolute,
             // top: Val::Px(0.0),
@@ -67,14 +70,16 @@ fn spawn_layout(mut commands: Commands) {
             right: Val::Px(0.0),
             left: Val::Px(0.0),
             flex_direction: FlexDirection::Column,
-
             // align_items: AlignItems::FlexEnd,
             // justify_content:
             ..Default::default()
-        })
-        .insert(Name::new("minibuffer"))
-        .insert(MinibufferNode)
+        },
+                Name::new("minibuffer"),
+                MinibufferNode
+            ))
         .with_children(|builder| {
+            builder.spawn((Name::new("acts"),
+                        ActContainer));
             builder
                 .spawn((
                     Node {

@@ -1,6 +1,7 @@
 //! Acts and their flags, builders, and collections
 use crate::{
     acts::{Act, ActFlags, ActSystem, ActWithInputSystem, RunActMap},
+    ui::ActContainer,
     input::Hotkey,
 };
 use bevy::{
@@ -228,7 +229,10 @@ impl Command for ActBuilder {
         for keyseq_id in keyseqs {
             world.entity_mut(keyseq_id).set_parent(id);
         }
-        // world.entity_mut(system_entity).set_parent(id);
+        let mut query = world.query_filtered::<Entity, With<ActContainer>>();
+        if let Ok(act_container) = query.get_single(world) {
+            world.entity_mut(id).set_parent(act_container);
+        }
     }
 }
 

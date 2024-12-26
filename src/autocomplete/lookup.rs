@@ -74,10 +74,10 @@ impl Lookup for SrgbaHexLookup {
     fn lookup(&self, input: &str) -> Result<(), LookupError> {
         Srgba::hex(input).map(|_| ()).map_err(|e| LookupError::Message(format!("{e}").into()))
     }
-    fn longest_prefix(&self, input: &str) -> Option<String> {
+    fn longest_prefix(&self, _input: &str) -> Option<String> {
         None
     }
-    fn all_lookups(&self, input: &str) -> Vec<String> {
+    fn all_lookups(&self, _input: &str) -> Vec<String> {
         Vec::new()
     }
 }

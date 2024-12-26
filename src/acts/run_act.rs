@@ -74,11 +74,11 @@ impl RunAct for ActSystem {
         Ok(())
     }
 
-    fn run_with_input(&self, system_entity: Entity, input: &dyn Any, commands: &mut Commands) -> Result<(), RunActError> {
+    fn run_with_input(&self, _system_entity: Entity, _input: &dyn Any, _commands: &mut Commands) -> Result<(), RunActError> {
         Err(RunActError::CannotAcceptInput)
     }
 
-    fn debug_string(&self, input: &dyn Any) -> Option<String> {
+    fn debug_string(&self, _input: &dyn Any) -> Option<String> {
         None
     }
 }

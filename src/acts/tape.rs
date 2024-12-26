@@ -1,12 +1,12 @@
 use crate::{
-    acts::{Act, Acts, ActsPlugin, ActFlags, RunAct, RunActMap,
+    acts::{Act, Acts, ActsPlugin, ActFlags, RunActMap,
            universal::UniversalArg},
     ui::IconContainer,
     input::{KeyChord, keyseq},
     event::{RunActEvent, KeyChordEvent, LastRunAct},
     Minibuffer,
 };
-use std::{fmt::{self, Debug, Write}, sync::Arc, collections::HashMap, any::Any, borrow::Cow};
+use std::{fmt::{self, Debug, Write}, sync::Arc, collections::HashMap, borrow::Cow};
 use bevy::prelude::*;
 #[cfg(feature = "clipboard")]
 use copypasta::{ClipboardContext, ClipboardProvider};
@@ -185,14 +185,14 @@ pub struct LastPlayed(Option<KeyChord>);
 
 fn easing(amp: f32, duration: f32, func: EaseFunction) -> Option<LinearReparamCurve<f32, EasingCurve<f32>>> {
     let domain = Interval::new(0.0, duration).ok()?;
-    EasingCurve::new(0.0, amp, EaseFunction::Steps(3)).reparametrize_linear(domain).ok()
+    EasingCurve::new(0.0, amp, func).reparametrize_linear(domain).ok()
 }
 
 fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>, universal: Res<UniversalArg>, mut animate: ResMut<TapeAnimate>) {
     *animate = TapeAnimate::curve(easing(-3.0, 4.0, EaseFunction::Steps(3)).unwrap());//.map(|x| -x));
     let append = universal.is_some();
     match &*minibuffer.tape_recorder {
-        TapeRecorder::Off { one_off }=> {
+        TapeRecorder::Off { one_off: _ }=> {
             minibuffer.message("Record tape: ");
             minibuffer.get_chord()
                 .observe(move |mut trigger: Trigger<KeyChordEvent>,
@@ -424,9 +424,8 @@ pub fn play_tape_sys(InRef(tape): InRef<Tape>,
             warn!("Could not get act for {:?}", e.act.id);
             continue;
         };
-        let act = acts.get(e.act.id).ok();
-        let run_act_map = act.as_ref().and_then(|a| a.input.as_ref().and_then(|x| run_act_map.get(x).map(|y| &**y)));
-        crate::event::run_act_raw(e, act, run_act_map, &mut next_prompt_state, &mut last_act, &mut commands, None);
+        let run_act = act.input.as_ref().and_then(|x| run_act_map.get(x).map(|y| &**y));
+        crate::event::run_act_raw(e, Some(act), run_act, &mut next_prompt_state, &mut last_act, &mut commands, None);
     }
     let _ = std::mem::replace(&mut *tape_recorder, old);
 }

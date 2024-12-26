@@ -198,7 +198,6 @@ pub(crate) fn dispatch_events(
     mut dispatch_events: EventReader<DispatchEvent>,
     mut lookup_events: EventWriter<LookupEvent>,
     mut minibuffer: Minibuffer,
-    acts: Query<&Act>,
 ) {
     use crate::event::DispatchEvent::*;
     for e in dispatch_events.read() {

@@ -201,7 +201,7 @@ impl From<&mut ActBuilder> for ActBuilder {
         let taken: Cow<'static, str> = "*TAKEN*".into();
         Self {
             name: std::mem::replace(&mut builder.name, taken.clone()),
-            register_system: std::mem::replace(&mut builder.register_system, Box::new(|world: &mut World| {
+            register_system: std::mem::replace(&mut builder.register_system, Box::new(|_world: &mut World| {
                 warn!("Tried to register a depleted ActBuilder.");
                 Entity::PLACEHOLDER
             })),
@@ -219,7 +219,6 @@ impl Command for ActBuilder {
     fn apply(self, world: &mut World) {
         let (act, id) = self.build(world);
         let name = Name::new(act.name.clone());
-        let system_entity = act.system_id;
         let keyseqs = act.build_keyseqs(id, world);
         world.entity_mut(id)
              .insert(act)

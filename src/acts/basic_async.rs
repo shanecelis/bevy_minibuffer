@@ -1,7 +1,6 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    acts::{basic::BasicActs, cache::HotkeyActCache, ActFlags, ActsPlugin},
-    autocomplete::LookupMap,
+    acts::{basic::BasicActs, cache::{HotkeyActCache, NameActCache}, ActRef, ActFlags, ActsPlugin},
     event::LastRunAct,
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
@@ -12,42 +11,40 @@ use bevy::prelude::*;
 use bevy_defer::AsyncWorld;
 use futures::Future;
 use std::{
+    collections::HashMap,
     borrow::Cow,
     fmt::{Debug, Write},
 };
-use trie_rs::map::{Trie, TrieBuilder};
+use trie_rs::map::Trie;
 
 /// Execute an act by name. Similar to Emacs' `M-x` or vim's `:` key binding.
 pub fn run_act(
     mut minibuffer: MinibufferAsync,
-    acts: Query<&Act>,
+    mut act_cache: ResMut<NameActCache>,
+    mut acts: Query<(Entity, &Act)>,
     last_act: Res<LastRunAct>,
 ) -> impl Future<Output = Result<(), crate::Error>> {
-    let mut builder = TrieBuilder::new();
-    for act in acts.iter() {
-        if act.flags.contains(ActFlags::RunAct | ActFlags::Active) {
-            builder.push(act.name(), act.clone());
-        }
-    }
-    let acts: Trie<u8, Act> = builder.build();
+    let acts_trie = act_cache.trie(acts.iter(),
+                                   ActFlags::RunAct | ActFlags::Active).clone();
     let prompt: Cow<'static, str> = last_act
-        .hotkey()
-        .map(|hotkey| format!("{} ", hotkey).into())
-        .unwrap_or("run_act".into());
+        .hotkey(&mut acts.transmute_lens::<&Act>())
+        .map(|hotkey| {
+            // We're hardcoding this little vim-ism. We feel slightly vandalous
+            // _and_ good about it.
+            if hotkey.alias.as_ref().map(|x| x == ":").unwrap_or(false) {
+                // All it does is remove the space after the prompt.
+                ":".into()
+            } else {
+                format!("{} ", hotkey).into()
+            }
+        })
+        .unwrap_or("run_act: ".into());
     async move {
-        match minibuffer.prompt_lookup(prompt, acts.clone()).await {
+        match minibuffer.prompt_map(prompt, acts_trie).await {
             // TODO: Get rid of clone.
-            Ok(act_name) => match acts.resolve_res(&act_name) {
-                Ok(act) => {
-                    AsyncWorld::new().send_event(RunActEvent::new(act))?;
-                }
-                Err(e) => {
-                    minibuffer.message(format!(
-                        "Error: Could not resolve act named {:?}: {}",
-                        act_name, e
-                    ));
-                }
-            },
+            Ok(act_ref) => {
+                AsyncWorld::new().send_event(RunActEvent::new(act_ref))?;
+            }
             Err(e) => {
                 minibuffer.message(format!("Error: {e}"));
             }
@@ -58,28 +55,28 @@ pub fn run_act(
 
 /// Input a key sequence. This will tell you what it does.
 pub fn describe_key(
-    acts: Query<&Act>,
+    acts: Query<(Entity, &Act)>,
     mut cache: ResMut<HotkeyActCache>,
     mut minibuffer: MinibufferAsync,
 ) -> impl Future<Output = Result<(), crate::Error>> {
     use trie_rs::inc_search::Answer;
+    let act_names: HashMap<Entity, Cow<'static, str>> = acts.iter().map(|(id, act)| (id, act.name.clone())).collect();
     let trie: Trie<_, _> = cache.trie(acts.iter()).clone();
     async move {
         let mut search = trie.inc_search();
         let prompt = "Press key: ";
         let mut accum = String::new();
-
         loop {
             minibuffer.message(format!("{}{}", prompt, accum));
             let chord = minibuffer.get_chord().await?;
             match search.query(&chord) {
                 Some(x) => {
                     let _ = write!(accum, "{} ", chord);
-                    let v = search.value();
+                    let name: Option<&Cow<'static, str>> = search.value().and_then(|act_ref: &ActRef| act_names.get(&act_ref.id));
                     let msg = match x {
-                        Answer::Match => format!("{}is bound to {}", accum, v.unwrap().name),
+                        Answer::Match => format!("{}is bound to {}", accum, name.as_deref().unwrap_or(&"???".into())),
                         Answer::PrefixAndMatch => {
-                            format!("{}is bound to {} and more", accum, v.unwrap().name)
+                            format!("{}is bound to {} and more", accum, name.as_deref().unwrap_or(&"???".into()))
                         }
                         Answer::Prefix => accum.clone(),
                     };

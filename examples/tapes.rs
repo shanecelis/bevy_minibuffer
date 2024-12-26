@@ -88,7 +88,6 @@ fn setup_scene(
     mut minibuffer: Minibuffer,
 ) {
     // Set up the materials.
-    let white_matl = Color::WHITE;
     let ground_color: Color = Srgba::hex("6A994E").unwrap().into();
     let hover_color = Some(Color::from(CYAN_300));
     let pressed_color = Some(Color::from(YELLOW_300));
@@ -230,7 +229,7 @@ mod unscriptable {
                                mut paints: Query<&mut Paint>,
                                mut commands: Commands, mut minibuffer: Minibuffer,
                                selectables: Res<Selectables>| {
-                                   if let Completed::Unhandled { result, input } = trigger.event_mut().take() {
+                                   if let Completed::Unhandled { result, input: _ } = trigger.event_mut().take() {
                                        match result {
                                            Ok(color) => {
                                                goto_next_selectable(selection, &selectables, &mut selected);
@@ -277,7 +276,7 @@ pub(crate) fn set_color(In(input): In<Option<Srgba>>,
                                 mut commands: Commands,
                                 mut minibuffer: Minibuffer,
                                 selectables: Res<Selectables>| {
-                                    if let Completed::Unhandled { result, input } = trigger.event_mut().take() {
+                                    if let Completed::Unhandled { result, input: _ } = trigger.event_mut().take() {
                                         match result {
                                             Ok(color) => {
                                                 minibuffer.log_input(&Some(color));
@@ -315,7 +314,6 @@ fn goto_next_selectable(selection: Entity,
 
 fn select(trigger: Trigger<Pointer<Click>>,
           mut selected: ResMut<Selected>,
-          paints: Query<&mut Paint>,
 ) {
     selected.set(Some(trigger.entity()));
 }

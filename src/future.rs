@@ -98,9 +98,9 @@ impl MinibufferAsync {
     /// corresponding act, it will return false.
     pub fn run_act(&mut self, act: impl Into<ActArg>) {
         match act.into() {
-            ActArg::Act(act) => {
+            ActArg::ActRef(act_ref) => {
                 self.trigger
-                    .send(DispatchEvent::RunActEvent(RunActEvent::new(act)));
+                    .send(DispatchEvent::RunActEvent(RunActEvent::new(act_ref)));
             }
             ActArg::Name(name) => {
                 self.trigger
@@ -298,7 +298,6 @@ impl MinibufferAsync {
                                 trigger
                                     .event_mut()
                                     .take()
-                                    .ok_or(Error::Message("no key chord".into())),
                             );
                         }
                         commands.entity(trigger.entity()).despawn();

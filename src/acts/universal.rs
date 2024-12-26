@@ -240,20 +240,22 @@ fn universal_arg_async(
     mut minibuffer: MinibufferAsync,
     multiplier: Res<Multiplier>,
     last_act: Res<LastRunAct>,
+    mut acts: Query<&Act>,
 ) -> impl Future<Output = ()> {
     use bevy::prelude::KeyCode::*;
 
     let mut bindkey: Option<KeyChord> = None;
     let multiplier: i32 = multiplier.0;
+
     let prompt: Cow<'static, str> = last_act
-        .hotkey()
+        .hotkey(&mut acts.as_query_lens())
         .map(|hotkey| {
             if hotkey.chords.len() == 1 {
                 bindkey = Some(hotkey.chords[0].clone());
             }
-            format!("{}", hotkey).into()
+            format!("{} ", hotkey).into()
         })
-        .unwrap_or("universal_arg".into());
+        .unwrap_or("univeral_arg: ".into());
     minibuffer.message(prompt.clone());
     async move {
         let mut accum = 0;

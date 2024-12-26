@@ -33,7 +33,7 @@ pub trait RunAct {
 
 #[derive(Clone, Debug)]
 pub struct ActSystem;
-/// An alternative implementation that works directly on the world. It's not currently used.
+// An alternative implementation that works directly on the world. It's not currently used.
 // mod world {
 //     use super::*;
 //     pub trait RunAct {

@@ -198,9 +198,11 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>, universal: 
                 .observe(move |mut trigger: Trigger<KeyChordEvent>,
                          tapes: Res<Tapes>,
                          mut commands: Commands,
-                         mut minibuffer: Minibuffer| {
+                         mut minibuffer: Minibuffer,
+                         mut animate: ResMut<TapeAnimate>| {
                     match trigger.event_mut().take() {
                         Ok(chord) => {
+                            *animate = TapeAnimate::Speed(1.0);
                             if append {
                                 if let Some(tape) = tapes.get(&chord) {
                                     minibuffer.message(format!("Recording tape {}", &chord));

@@ -2,7 +2,7 @@
 use crate::{
     ui::MinibufferRoot,
     Error,
-    acts::{Act, ActRef, ActFlags, RunAct, ActSystem, RunActMap, tape::{TapeRecorder, Tape}},
+    acts::{Act, ActRef, ActFlags, RunAct, ActSystem, RunActMap, tape::TapeRecorder},
     input::{KeyChord, Hotkey},
     prompt::PromptState,
     Minibuffer
@@ -19,7 +19,7 @@ use bevy::{
 use bevy_channel_trigger::ChannelTriggerApp;
 // #[cfg(feature = "async")]
 // use bevy_crossbeam_event::CrossbeamEventApp;
-use std::{borrow::Cow, fmt::{self, Debug}, any::Any, sync::Arc};
+use std::{borrow::Cow, fmt::{Debug}, any::Any, sync::Arc};
 
 pub(crate) fn plugin(app: &mut App) {
     // #[cfg(feature = "async")]
@@ -100,7 +100,7 @@ impl RunActEvent {
     }
 
     pub fn from_act(act: &Act, id: Entity) -> Self {
-        Self { act: ActRef { id, flags: act.flags.clone() }, hotkey: None, input: None}
+        Self { act: ActRef { id, flags: act.flags }, hotkey: None, input: None}
     }
 
     pub fn new_with_input<I: 'static + Send + Sync + Debug>(act: ActRef, input: I) -> Self {
@@ -108,7 +108,7 @@ impl RunActEvent {
     }
 
     pub fn from_act_with_input<I: 'static + Send + Sync + Debug>(act: &Act, id: Entity, input: I) -> Self {
-        Self { act: ActRef { id, flags: act.flags.clone() }, hotkey: None, input: Some(Arc::new(input))}
+        Self { act: ActRef { id, flags: act.flags }, hotkey: None, input: Some(Arc::new(input))}
     }
 
     // pub fn from_name(name: impl Into<Cow<'static, str>>) -> Self {
@@ -282,8 +282,8 @@ impl KeyChordEvent {
 pub fn run_act_raw(e: &RunActEvent,
                    act: Option<&Act>,
                    run_act: Option<&(dyn RunAct + Send + Sync)>,
-                   mut next_prompt_state: &mut NextState<PromptState>,
-                   mut last_act: &mut LastRunAct,
+                   next_prompt_state: &mut NextState<PromptState>,
+                   last_act: &mut LastRunAct,
                    commands: &mut Commands,
                    tape_recorder: Option<&mut TapeRecorder>,
 ) {
@@ -301,10 +301,8 @@ pub fn run_act_raw(e: &RunActEvent,
         if let Err(error) = run_act.run_with_input(act.system_id, &*input, commands) {
             warn!("Error running act with input '{}': {:?}", act.name, error);
         }
-    } else {
-        if let Err(error) = run_act.run(act.system_id, commands) {
-            warn!("Error running act '{}': {:?}", act.name, error);
-        }
+    } else if let Err(error) = run_act.run(act.system_id, commands) {
+        warn!("Error running act '{}': {:?}", act.name, error);
     }
     if let Some(tape_recorder) = tape_recorder {
         tape_recorder.process_event(e);
@@ -413,7 +411,7 @@ mod test {
     fn test_arc_typeid() {
         let boxed: Arc<dyn Any> = Arc::new(2.0f32);
 
-        let actual_id = (&*boxed).type_id();
+        let actual_id = (*boxed).type_id();
         let boxed_id = boxed.type_id();
 
         assert_eq!(actual_id, TypeId::of::<f32>());

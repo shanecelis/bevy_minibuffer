@@ -2,7 +2,7 @@
 //!
 //! It uses triggers rather than promises.
 use crate::{
-    acts::{ActArg, RunActMap, tape::TapeRecorder},
+    acts::{ActArg, tape::TapeRecorder},
     autocomplete::{AutoComplete, Completed, Lookup, LookupMap, RequireMatch},
     event::{RunActByNameEvent, RunActEvent},
     prompt::{GetKeyChord, PromptState},
@@ -148,11 +148,8 @@ impl Minibuffer<'_, '_> {
 
     pub fn log_input<I: Debug + Clone + Send + Sync + 'static>(&mut self, input: &I) {
         self.tape_recorder.process_input(input);
-        match *self.tape_recorder {
-            TapeRecorder::Record { ref mut tape, .. } => {
-                tape.ammend_input(input.clone());
-            }
-            _ => ()
+        if let TapeRecorder::Record { ref mut tape, .. } = *self.tape_recorder {
+            tape.ammend_input(input.clone());
         }
     }
 

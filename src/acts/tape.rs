@@ -1,16 +1,13 @@
 use crate::{
-    acts::{Act, Acts, ActsPlugin, AddActs, ActFlags, RunAct, RunActMap,
+    acts::{Act, Acts, ActsPlugin, ActFlags, RunAct, RunActMap,
            universal::UniversalArg},
     ui::IconContainer,
     input::{KeyChord, keyseq},
     event::{RunActEvent, KeyChordEvent, LastRunAct},
     Minibuffer,
 };
-use std::{fmt::{self, Debug, Write}, sync::Arc, collections::HashMap, any::{Any, TypeId}, borrow::Cow};
-use bevy::{
-    ui::widget::NodeImageMode,
-    prelude::*
-};
+use std::{fmt::{self, Debug, Write}, sync::Arc, collections::HashMap, any::Any, borrow::Cow};
+use bevy::prelude::*;
 #[cfg(feature = "clipboard")]
 use copypasta::{ClipboardContext, ClipboardProvider};
 
@@ -118,7 +115,7 @@ fn setup_icon(mut commands: Commands, query: Query<Entity, With<IconContainer>>,
 
 fn animate_icon(mut query: Query<&mut Transform, With<TapeIcon>>,
                 mut animate: ResMut<TapeAnimate>,
-                mut last_speed: Local<Option<f32>>,
+                last_speed: Local<Option<f32>>,
                 time: Res<Time>) {
     let speed = match *animate {
         TapeAnimate::Speed(speed) => Some(speed),
@@ -207,14 +204,14 @@ fn record_tape(mut minibuffer: Minibuffer, mut tapes: ResMut<Tapes>, universal: 
                             if append {
                                 if let Some(tape) = tapes.get(&chord) {
                                     minibuffer.message(format!("Recording tape {}", &chord));
-                                    *minibuffer.tape_recorder = TapeRecorder::Record { tape: tape.clone(), chord: chord };
+                                    *minibuffer.tape_recorder = TapeRecorder::Record { tape: tape.clone(), chord };
                                 } else {
                                     minibuffer.message(format!("No prior tape. Recording new tape {}", &chord));
-                                    *minibuffer.tape_recorder = TapeRecorder::Record { tape: Tape::default(), chord: chord };
+                                    *minibuffer.tape_recorder = TapeRecorder::Record { tape: Tape::default(), chord };
                                 }
                             } else {
                                 minibuffer.message(format!("Recording new tape {}", &chord));
-                                *minibuffer.tape_recorder = TapeRecorder::Record { tape: Tape::default(), chord: chord };
+                                *minibuffer.tape_recorder = TapeRecorder::Record { tape: Tape::default(), chord };
                             }
                         }
                         Err(e) => {
@@ -327,18 +324,15 @@ fn copy_tape(mut minibuffer: Minibuffer) {
 
 fn repeat(tape_recorder: Res<TapeRecorder>, universal_arg: Res<UniversalArg>, mut commands: Commands) {
     let count = universal_arg.unwrap_or(1);
-    match *tape_recorder {
-        TapeRecorder::Off { ref one_off } => {
-            let tape = one_off.clone();
-            commands.queue(move |world: &mut World| {
-                for _ in 0..count {
-                    if let Err(e) = world.run_system_cached_with(play_tape_sys, &tape) {
-                        warn!("Error playing tape: {e:?}");
-                    }
+    if let TapeRecorder::Off { ref one_off } = *tape_recorder {
+        let tape = one_off.clone();
+        commands.queue(move |world: &mut World| {
+            for _ in 0..count {
+                if let Err(e) = world.run_system_cached_with(play_tape_sys, &tape) {
+                    warn!("Error playing tape: {e:?}");
                 }
-            });
-        }
-        _ => ()
+            }
+        });
     }
 }
 
@@ -370,7 +364,7 @@ impl Tape {
             let Ok(act) = acts.get(event.act.id) else { continue; };
             match event.input {
                 Some(ref input) => {
-                    let type_id = (&**input).type_id();
+                    let type_id = (**input).type_id();
                     // info!("try to get type_id out {type_id:?}");
                     let input_string: Cow<'static, str> = match run_act_map.get(&type_id) {
                         Some(run_act) => {
@@ -440,7 +434,7 @@ pub fn play_tape_sys(InRef(tape): InRef<Tape>,
 #[cfg(test)]
 mod test {
     use super::*;
-    use bevy::ecs::system::SystemParam;
+    
 
     #[test]
     fn test_curve_api() {

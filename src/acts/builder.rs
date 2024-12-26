@@ -1,12 +1,12 @@
 //! Acts and their flags, builders, and collections
 use crate::{
-    acts::{Act, ActFlags, ActSystem, ActWithInputSystem, RunActMap},
+    acts::{Act, ActFlags, ActWithInputSystem, RunActMap},
     ui::ActContainer,
     input::Hotkey,
 };
 use bevy::{
     ecs::{
-        system::{BoxedSystem, EntityCommand},
+        system::EntityCommand,
         world::Command,
     },
     prelude::*,
@@ -127,7 +127,7 @@ impl ActBuilder {
     }
 
     /// Build [Act].
-    pub fn build(mut self, world: &mut World) -> (Act, Entity) {
+    pub fn build(self, world: &mut World) -> (Act, Entity) {
         let name = self.name;
         // let id = (self.make_act_runner)(world);
         let system_id = (self.register_system)(world);

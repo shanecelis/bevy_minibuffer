@@ -9,7 +9,7 @@
 //!
 use std::f32::consts::PI;
 
-use bevy::{color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*};
+use bevy::{color::palettes::tailwind::*, prelude::*};
 use bevy_minibuffer::prelude::*;
 
 #[path = "common/lib.rs"]
@@ -17,7 +17,7 @@ mod common;
 
 fn plugin(app: &mut App) {
     app
-        .add_plugins((MinibufferPlugins))
+        .add_plugins(MinibufferPlugins)
         .add_acts((BasicActs::default(),
                    UniversalArgActs::default(),
                    TapeActs::default(),
@@ -119,11 +119,11 @@ fn setup_scene(
 
     let mut selectables = vec![];
 
-    let mut observers = vec![
-        Observer::new(update_color_on::<Pointer<Over>>(hover_color.clone())),
+    let observers = vec![
+        Observer::new(update_color_on::<Pointer<Over>>(hover_color)),
         Observer::new(update_color_on::<Pointer<Out>>(None)),
-        Observer::new(update_color_on::<Pointer<Down>>(pressed_color.clone())),
-        Observer::new(update_color_on::<Pointer<Up>>(hover_color.clone())),
+        Observer::new(update_color_on::<Pointer<Down>>(pressed_color)),
+        Observer::new(update_color_on::<Pointer<Up>>(hover_color)),
         Observer::new(select),
         Observer::new(rotate_on_drag)];
     // Spawn the shapes. The meshes will be pickable by default.
@@ -222,7 +222,6 @@ mod unscriptable {
     pub(crate) fn set_color(mut minibuffer: Minibuffer, selected: Res<Selected>) {
         if selected.curr.is_none() {
             minibuffer.message("Select a shape first.");
-            return;
         } else {
             let selection = selected.curr.unwrap();
             minibuffer.prompt_map("Hex color: ", bevy_minibuffer::autocomplete::SrgbaHexLookup)
@@ -234,7 +233,7 @@ mod unscriptable {
                                    if let Completed::Unhandled { result, input } = trigger.event_mut().take() {
                                        match result {
                                            Ok(color) => {
-                                               goto_next_selectable(selection, &*selectables, &mut *selected);
+                                               goto_next_selectable(selection, &selectables, &mut selected);
                                                if let Ok(mut paint) = paints.get_mut(selection) {
                                                    minibuffer.message(format!("Set color to {:?}", &color));
                                                    paint.base = color.into();
@@ -261,11 +260,10 @@ pub(crate) fn set_color(In(input): In<Option<Srgba>>,
                 selectables: Res<Selectables>) {
     if selected.curr.is_none() {
         minibuffer.message("Select a shape first.");
-        return;
     } else {
         let selection = selected.curr.unwrap();
         if let Some(color) = input {
-            goto_next_selectable(selection, &*selectables, &mut *selected);
+            goto_next_selectable(selection, &selectables, &mut selected);
             if let Ok(mut paint) = paints.get_mut(selection) {
                 minibuffer.message(format!("{:?}", &color));
                 paint.base = color.into();
@@ -283,7 +281,7 @@ pub(crate) fn set_color(In(input): In<Option<Srgba>>,
                                         match result {
                                             Ok(color) => {
                                                 minibuffer.log_input(&Some(color));
-                                                goto_next_selectable(selection, &*selectables, &mut *selected);
+                                                goto_next_selectable(selection, &selectables, &mut selected);
                                                 if let Ok(mut paint) = paints.get_mut(selection) {
                                                     minibuffer.message(format!("Set color to {:?}", &color));
                                                     paint.base = color.into();
@@ -305,7 +303,7 @@ pub(crate) fn set_color(In(input): In<Option<Srgba>>,
 
 fn goto_next_selectable(selection: Entity,
                         selectables: &Selectables,
-                        mut selected: &mut Selected,
+                        selected: &mut Selected,
 ) {
     selected.curr = selectables.0.iter()
                                  .position(|x| *x == selection)
@@ -317,7 +315,7 @@ fn goto_next_selectable(selection: Entity,
 
 fn select(trigger: Trigger<Pointer<Click>>,
           mut selected: ResMut<Selected>,
-          mut paints: Query<&mut Paint>,
+          paints: Query<&mut Paint>,
 ) {
     selected.set(Some(trigger.entity()));
 }
@@ -344,7 +342,7 @@ fn update_color(
 
 ) {
     for (mut mesh_material, paint) in &mut query {
-        if let Some(mut material) = materials.get_mut(&mut mesh_material.0) {
+        if let Some(material) = materials.get_mut(&mut mesh_material.0) {
             material.base_color = match paint.tone {
                 Some((tone, k)) => paint.base.mix(&tone, k),
                 None => paint.base

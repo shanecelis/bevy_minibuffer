@@ -1,7 +1,6 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
     acts::{ActRef, cache::{HotkeyActCache, NameActCache}, ActFlags, ActsPlugin},
-    autocomplete::LookupMap,
     event::LastRunAct,
     input::{Hotkey, KeyChord},
     prelude::*,
@@ -12,11 +11,11 @@ use crate::{
 
 use std::{borrow::Cow, fmt::Debug};
 
-use crate::{autocomplete::RequireMatch, event::KeyChordEvent};
+use crate::event::KeyChordEvent;
 use bevy::{prelude::*, window::RequestRedraw};
 use tabular::{Row, Table};
 use trie_rs::inc_search::IncSearch;
-use trie_rs::map::{Trie, TrieBuilder};
+use trie_rs::map::Trie;
 
 /// Run an act by name.
 ///

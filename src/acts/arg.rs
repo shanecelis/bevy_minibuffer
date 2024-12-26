@@ -1,4 +1,4 @@
-use super::{Act, ActRef};
+use super::ActRef;
 use std::borrow::Cow;
 /// An act argument by name or value.
 #[derive(Debug, Clone)]

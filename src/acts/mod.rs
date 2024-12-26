@@ -1,7 +1,7 @@
 //! Acts and their flags, builders, and collections
 use crate::{event::RunActEvent, input::Hotkey, ui::ActContainer};
 use bevy::{
-    ecs::{system::{EntityCommand, RegisteredSystemError, SystemId}, world::CommandQueue},
+    ecs::system::EntityCommand,
     prelude::*,
 };
 use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
@@ -14,8 +14,7 @@ use std::{
         Display,
         // Write
     },
-    any::{Any, TypeId},
-    sync::Arc,
+    any::TypeId,
 };
 
 mod collection;
@@ -108,7 +107,7 @@ impl ActRef {
     pub fn from_act(act: &Act, act_id: Entity) -> Self {
         ActRef {
             id: act_id,
-            flags: act.flags.clone(),
+            flags: act.flags,
         }
     }
 }

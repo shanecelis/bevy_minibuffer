@@ -1,5 +1,4 @@
 use crate::{
-    acts,
     autocomplete::LookupError,
     event::{dispatch_events, run_acts, run_acts_by_name, KeyChordEvent, LookupEvent},
     prompt::{

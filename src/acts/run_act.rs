@@ -1,23 +1,16 @@
 //! Acts and their flags, builders, and collections
-use crate::{event::RunActEvent, input::Hotkey};
 use bevy::{
-    ecs::{system::{EntityCommand, RegisteredSystemError, SystemId}, world::CommandQueue},
+    ecs::system::SystemId,
     prelude::*,
 };
-use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
-use bitflags::bitflags;
 use std::{
     collections::HashMap,
     marker::PhantomData,
-    borrow::Cow,
     fmt::{
-        self,
         Debug,
-        Display,
         // Write
     },
     any::{Any, TypeId},
-    sync::Arc,
 };
 
 #[derive(Debug)]
@@ -92,6 +85,12 @@ impl RunAct for ActSystem {
 
 #[derive(Clone, Debug)]
 pub struct ActWithInputSystem<I: 'static>(PhantomData<fn(I)>);
+
+impl<I: 'static> Default for ActWithInputSystem<I> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<I: 'static> ActWithInputSystem<I> {
     pub fn new() -> Self {

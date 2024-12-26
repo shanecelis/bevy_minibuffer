@@ -13,6 +13,7 @@ use bevy::{
     },
     prelude::*,
 };
+
 #[cfg(feature = "async")]
 use bevy_channel_trigger::ChannelTriggerApp;
 // #[cfg(feature = "async")]
@@ -279,7 +280,7 @@ impl KeyChordEvent {
 
 pub fn run_act_raw(e: &RunActEvent,
                    act: Option<&Act>,
-                   run_act: Option<&dyn RunAct>,
+                   run_act: Option<&(dyn RunAct + Send + Sync)>,
                    mut next_prompt_state: &mut NextState<PromptState>,
                    mut last_act: &mut LastRunAct,
                    commands: &mut Commands,
@@ -293,14 +294,14 @@ pub fn run_act_raw(e: &RunActEvent,
         return;
     };
     last_act.0 = Some(e.clone());
-    let run_act = run_act.unwrap_or(ActSystem);
+    let run_act = run_act.unwrap_or(&ActSystem);
     if let Some(ref input) = e.input {
         let input = input.clone();
-        if let Err(error) = run_act.run_with_input(&*input, commands) {
+        if let Err(error) = run_act.run_with_input(act.system_id, &*input, commands) {
             warn!("Error running act with input '{}': {:?}", act.name, error);
         }
     } else {
-        if let Err(error) = run_act.run(commands) {
+        if let Err(error) = run_act.run(act.system_id, commands) {
             warn!("Error running act '{}': {:?}", act.name, error);
         }
     }
@@ -325,11 +326,13 @@ pub(crate) fn run_acts(
     mut last_act: ResMut<LastRunAct>,
     mut tape: ResMut<TapeRecorder>,
     acts: Query<&Act>,
-    run_act: Res<RunActMap>,
+    run_act_map: Res<RunActMap>,
 ) {
     for e in events.read() {
         let act = acts.get(e.act.id).ok();
-        let run_act = act.as_ref().and_then(|a|run_act.get(a.system_id).ok());
+
+        let run_act = act.as_ref().and_then(|a| a.input.as_ref().and_then(|x| run_act_map.get(x).map(|y| &**y)));
+        // let run_act = act.as_ref().and_then(|a|run_act.get(a.system_id).ok());
         run_act_raw(e, act, run_act, &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
     }
 }
@@ -340,13 +343,13 @@ pub(crate) fn run_acts_trigger(
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
-    run_act: Res<RunActMap>,
+    run_act_map: Res<RunActMap>,
     acts: Query<&Act>,
     mut tape: ResMut<TapeRecorder>,
 ) {
     let e = trigger.event();
     let act = acts.get(e.act.id).ok();
-    let run_act = act.as_ref().and_then(|a|run_act.get(a.system_id).ok());
+    let run_act = act.as_ref().and_then(|a| a.input.as_ref().and_then(|x| run_act_map.get(x).map(|y| &**y)));
     run_act_raw(e, act, run_act, &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
 }
 
@@ -356,7 +359,7 @@ pub(crate) fn run_acts_by_name(
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
-    run_act: Res<RunActMap>,
+    run_act_map: Res<RunActMap>,
     acts: Query<(Entity, &Act)>,
     mut tape: ResMut<TapeRecorder>,
 ) {
@@ -366,7 +369,8 @@ pub(crate) fn run_acts_by_name(
                 Some(input) => RunActEvent { act: ActRef::from_act(act, id), hotkey: None, input: Some(input.clone())},
                 None => RunActEvent::from_act(act, id),
             };
-            let run_act = run_act.get(act.system_id).ok();
+
+            let run_act = act.input.as_ref().and_then(|x| run_act_map.get(x).map(|y| &**y));
             run_act_raw(&e, Some(act), run_act, &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
         } else {
             warn!("No act named '{}' found.", e.name);
@@ -379,7 +383,7 @@ pub(crate) fn run_acts_by_name_trigger(
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
     mut last_act: ResMut<LastRunAct>,
-    run_act: Res<RunActMap>,
+    run_act_map: Res<RunActMap>,
     acts: Query<(Entity, &Act)>,
     mut tape: ResMut<TapeRecorder>,
 ) {
@@ -389,7 +393,7 @@ pub(crate) fn run_acts_by_name_trigger(
             Some(input) => RunActEvent { act: ActRef::from_act(act, id), hotkey: None, input: Some(input.clone())},
             None => RunActEvent::from_act(act, id),
         };
-        let run_act = run_act.get(act.system_id).ok();
+        let run_act = act.input.as_ref().and_then(|x| run_act_map.get(x).map(|y| &**y));
         run_act_raw(&e, Some(act), run_act, &mut next_prompt_state, &mut last_act, &mut commands, Some(&mut tape));
     } else {
         warn!("No act named '{}' found.", e.name);

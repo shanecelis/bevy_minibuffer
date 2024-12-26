@@ -22,13 +22,13 @@ use std::{
 };
 
 /// Builds an [Act]
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct ActBuilder {
     pub name: Cow<'static, str>,
     /// Hotkeys
     pub hotkeys: Vec<Hotkey>,
     system_name: Cow<'static, str>,
-    // make_act_runner: Box<dyn FnOnce(&mut World) -> Entity + 'static + Send + Sync>,
+    register_system: Box<dyn FnOnce(&mut World) -> Entity + 'static + Send + Sync>,
     // pub(crate) system: Option<BoxedSystem>,
     /// Flags for this act
     pub flags: ActFlags,
@@ -37,17 +37,17 @@ pub struct ActBuilder {
     input: Option<TypeId>,
 }
 
-// impl fmt::Debug for ActBuilder {
-//     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         fmt.debug_struct("ActBuilder")
-//             .field("name", &self.name)
-//             .field("hotkeys", &self.hotkeys)
-//             .field("make_act_runner", &"Box<dyn FnOnce(&mut World) -> Entity { ... }")
-//             .field("flags", &self.flags)
-//             .field("shorten_name", &self.shorten_name)
-//             .finish()
-//     }
-// }
+impl fmt::Debug for ActBuilder {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("ActBuilder")
+            .field("name", &self.name)
+            .field("hotkeys", &self.hotkeys)
+            .field("register_system", &"Box<dyn FnOnce(&mut World) -> Entity { ... }")
+            .field("flags", &self.flags)
+            .field("shorten_name", &self.shorten_name)
+            .finish()
+    }
+}
 
 impl ActBuilder {
     /// Create a new [Act].
@@ -61,6 +61,10 @@ impl ActBuilder {
         ActBuilder {
             name,
             system_name,
+            register_system: Box::new(move |world: &mut World| {
+                let system_id = world.register_system(system);
+                system_id.entity()
+            }),
             hotkeys: Vec::new(),
             flags: ActFlags::default(),
             shorten_name: true,
@@ -78,25 +82,21 @@ impl ActBuilder {
         ActBuilder {
             name,
             system_name,
+            register_system: Box::new(move |world: &mut World| {
+                let mut run_act_map = world.resource_mut::<RunActMap>();
+                let type_id = TypeId::of::<I>();
+                run_act_map.entry(type_id).or_insert_with(|| {
+                    Box::new(ActWithInputSystem::<I>::new())
+                });
+                let system_id = world.register_system(system);
+                system_id.entity()
+            }),
             hotkeys: Vec::new(),
             flags: ActFlags::default(),
             shorten_name: true,
             input: Some(TypeId::of::<I>())
         }
     }
-
-    // pub fn new_with_input<S, I, P>(system: S) -> Self
-    //     where S: IntoSystem<In<Option<I>>,(), P> + 'static,
-    // I: 'static
-    //     {
-    //     ActBuilder {
-    //         name: None,
-    //         hotkeys: Vec::new(),
-    //         system: Some(Box::new(IntoSystem::into_system(system))),
-    //         flags: ActFlags::Active | ActFlags::RunAct,
-    //         shorten_name: true,
-    //     }
-    // }
 
     fn name_for_system<S: System>(system: &S, shorten_name: bool) -> Cow<'static, str> {
         let mut n = system.name();
@@ -126,20 +126,21 @@ impl ActBuilder {
     }
 
     /// Build [Act].
-    pub fn build(mut self, world: &mut World) -> Act {
+    pub fn build(mut self, world: &mut World) -> (Act, Entity) {
         let name = self.name;
         // let id = (self.make_act_runner)(world);
-        let system_id = world.register_boxed_system(self.system.take().expect("system"));
+        let system_id = (self.register_system)(world);
         // let id = system_id.entity();
         // world.get_entity_mut(id).expect("entity for system_id")
         //     .insert(RunActMap::new(ActSystem(system_id)));
-        Act {
+        (Act {
             name,
             hotkeys: self.hotkeys,
             flags: self.flags,
             system_id,
             system_name: self.system_name,
-        }
+            input: self.input,
+        }, system_id)
     }
 
     /// Name the act.
@@ -199,24 +200,25 @@ impl From<&mut ActBuilder> for ActBuilder {
         let taken: Cow<'static, str> = "*TAKEN*".into();
         Self {
             name: std::mem::replace(&mut builder.name, taken.clone()),
-            // make_act_runner: std::mem::replace(&mut builder.make_act_runner, Box::new(|world: &mut World| { Entity::PLACEHOLDER })),
+            register_system: std::mem::replace(&mut builder.register_system, Box::new(|world: &mut World| {
+                warn!("Tried to register a depleted ActBuilder.");
+                Entity::PLACEHOLDER
+            })),
             // system: builder.system.take(),
             hotkeys: std::mem::take(&mut builder.hotkeys),
             flags: builder.flags,
             shorten_name: builder.shorten_name,
-            system_name: std::mem::replace(&mut builder.system_name, taken)
+            system_name: std::mem::replace(&mut builder.system_name, taken),
+            input: builder.input.take(),
         }
     }
 }
 
 impl Command for ActBuilder {
     fn apply(self, world: &mut World) {
-        let act = self.build(world);
+        let (act, id) = self.build(world);
         let name = Name::new(act.name.clone());
         let system_entity = act.system_id;
-        let id = {
-            world.spawn_empty().id()
-        };
         let keyseqs = act.build_keyseqs(id, world);
         world.entity_mut(id)
              .insert(act)
@@ -226,18 +228,19 @@ impl Command for ActBuilder {
         for keyseq_id in keyseqs {
             world.entity_mut(keyseq_id).set_parent(id);
         }
-        world.entity_mut(system_entity).set_parent(id);
+        // world.entity_mut(system_entity).set_parent(id);
     }
 }
 
 impl EntityCommand for ActBuilder {
     fn apply(self, id: Entity, world: &mut World) {
-        let act = self.build(world);
+        let (act, system_id) = self.build(world);
         let keyseqs = act.build_keyseqs(id, world);
         let mut entity = world.get_entity_mut(id).unwrap();
         entity.insert(act);
         for keyseq_id in keyseqs {
             world.entity_mut(keyseq_id).set_parent(id);
         }
+        world.entity_mut(system_id).set_parent(id);
     }
 }

@@ -1,5 +1,6 @@
 use crate::{
-    acts::{Act, Acts, ActsPlugin, AddActs, ActFlags, RunAct, RunActMap, universal::UniversalArg},
+    acts::{Act, Acts, ActsPlugin, AddActs, ActFlags, RunAct, RunActMap,
+           universal::UniversalArg},
     ui::IconContainer,
     input::{KeyChord, keyseq},
     event::{RunActEvent, KeyChordEvent, LastRunAct},
@@ -17,7 +18,7 @@ pub(crate) fn plugin(app: &mut App) {
     app
         .init_resource::<TapeRecorder>()
         .init_resource::<TapeAnimate>()
-        .init_resource::<ActRunMap>();
+        .init_resource::<RunActMap>();
 }
 
 pub struct TapeActs {
@@ -83,7 +84,7 @@ fn setup_icon(mut commands: Commands, query: Query<Entity, With<IconContainer>>,
     let icon_container = query.single();
     commands.entity(icon_container)
         .with_children(|parent| {
-            parent.spawn((ImageNode::new(asset_loader.load("tape-2.png")),
+            parent.spawn((ImageNode::new(asset_loader.load("tape.png")),
                           Node {
                               width: Val::Px(25.0),
                               height: Val::Px(25.0),
@@ -181,9 +182,6 @@ impl TapeRecorder {
 
 #[derive(Resource, Debug, Default, Deref, DerefMut)]
 pub struct Tapes(HashMap<KeyChord, Tape>);
-
-#[derive(Resource, Default, Deref, DerefMut)]
-pub struct ActRunMap(HashMap<TypeId, Box<dyn RunAct + 'static + Send + Sync>>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct LastPlayed(Option<KeyChord>);
@@ -290,7 +288,7 @@ fn copy_tape(mut minibuffer: Minibuffer) {
                          Ok(chord) => 'press: {
                              if let Some(tape) = tapes.get(&chord) {
 
-                                 let script = match tape.script(&acts, &run_act_map, &minibuffer.act_run_map) {
+                                 let script = match tape.script(&acts, &run_act_map) {
                                      Ok(s) => s,
                                      Err(e) => {
                                          minibuffer.message(format!("Could not generate script: {e}"));
@@ -370,11 +368,6 @@ impl Tape {
         writeln!(f, "fn tape(mut commands: Commands) {{")?;
         for event in &self.content {
             let Ok(act) = acts.get(event.act.id) else { continue; };
-            let Ok(act_runner) = run_act_map.get(act.system_id) else {
-                warn!("Cannot add act {:?} to script: no act run_act_map.", &act.name);
-                writeln!(f, "    // Skipping {:?}; no act run_act_map.", &act.name)?;
-                continue;
-            };
             match event.input {
                 Some(ref input) => {
                     let type_id = (&**input).type_id();
@@ -438,7 +431,7 @@ pub fn play_tape_sys(InRef(tape): InRef<Tape>,
             continue;
         };
         let act = acts.get(e.act.id).ok();
-        let run_act_map = act.as_ref().and_then(|a|run_act_map.get(a.system_id).ok());
+        let run_act_map = act.as_ref().and_then(|a| a.input.as_ref().and_then(|x| run_act_map.get(x).map(|y| &**y)));
         crate::event::run_act_raw(e, act, run_act_map, &mut next_prompt_state, &mut last_act, &mut commands, None);
     }
     let _ = std::mem::replace(&mut *tape_recorder, old);
@@ -464,35 +457,4 @@ mod test {
         assert_eq!(curve.sample(-1.0), None);
     }
 
-    #[test]
-    fn chaos_katt() {
-
-        fn new<S, P>(system: S) -> S::System
-        where
-            S: IntoSystem<(), (), P> + 'static,
-        {
-            IntoSystem::into_system(system)
-        }
-        // fn create_problem() -> impl FnMut(Commands) {
-        //     move |_| {
-        //     }
-        // }
-
-        // let system = IntoSystem::<(),(), _>::into_system(|commands: Commands, query: Query<Entity>| {});
-        // let system = IntoSystem::<(),(), _>::into_system(create_problem(|q: &Query<Entity>| { }));
-        let system = IntoSystem::into_system(create_problem(|q: &Query<Entity>| {
-        }));
-        // let system = IntoSystem::into_system(create_problem::<Query<Entity>>());
-        // let system = new(create_problem::<Option<Res<TapeAnimate>>>());
-        // let system = new(create_problem::<Query<Entity>>());
-        // let system = new(
-        // let system = new(create_problem());
-    }
-
 }
-    use bevy::ecs::system::SystemParam;
-    fn create_problem<P: SystemParam + 'static + Send + Sync>(f: impl Fn(&P)) -> impl Fn(P) {
-        move |p| {
-            f(&p);
-        }
-    }

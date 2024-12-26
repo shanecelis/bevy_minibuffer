@@ -4,8 +4,8 @@
 use crate::{
     acts::ActArg,
     autocomplete::{AutoComplete, Completed, Lookup, LookupMap},
-    event::{DispatchEvent, RunActByNameEvent, RunActEvent},
-    prompt::{GetKeyChord, KeyChordEvent, PromptState},
+    event::{DispatchEvent, KeyChordEvent, RunActByNameEvent, RunActEvent},
+    prompt::{GetKeyChord, PromptState},
     ui::PromptContainer,
     view::View,
     Error, Minibuffer,

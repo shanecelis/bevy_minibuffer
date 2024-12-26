@@ -7,6 +7,7 @@ use bevy::{
 use bevy_input_sequence::{action, input_sequence::KeySequence, KeyChord};
 use bitflags::bitflags;
 use std::{
+    collections::HashMap,
     marker::PhantomData,
     borrow::Cow,
     fmt::{
@@ -26,11 +27,15 @@ pub enum RunActError {
     CannotConvertInput,
 }
 
+pub(crate) fn plugin(app: &mut App) {
+    app
+        .init_resource::<RunActMap>();
+}
+
 pub trait RunAct {
     fn run(&self, system_entity: Entity, world: &mut Commands) -> Result<(), RunActError>;
     fn run_with_input(&self, system_entity: Entity, input: &dyn Any, world: &mut Commands) -> Result<(), RunActError>;
     fn debug_string(&self, input: &dyn Any) -> Option<String>;
-    // fn system_name(&self) -> Cow<'static, str>;
 }
 
 #[derive(Clone, Debug)]
@@ -83,14 +88,10 @@ impl RunAct for ActSystem {
     fn debug_string(&self, input: &dyn Any) -> Option<String> {
         None
     }
-
-    // fn system_name(&self) -> Cow<'static, str> {
-    //     self.1.clone()
-    // }
 }
 
 #[derive(Clone, Debug)]
-pub struct ActWithInputSystem<I: 'static>(PhantomData<Fn(I)>);
+pub struct ActWithInputSystem<I: 'static>(PhantomData<fn(I)>);
 
 impl<I: 'static> ActWithInputSystem<I> {
     pub fn new() -> Self {
@@ -126,20 +127,10 @@ impl<I> RunAct for ActWithInputSystem<I> where I: Clone + Default + Debug + Send
         }
     }
 
-    // fn system_name(&self) -> Cow<'static, str> {
-    //     self.1.clone()
-    // }
-
     fn debug_string(&self, input: &dyn Any) -> Option<String> {
         input.downcast_ref::<I>().map(|input: &I| format!("{:?}", input))
     }
 }
 
-#[derive(Resource, Deref, DerefMut)]
-pub struct RunActMap(Box<dyn RunAct + Send + Sync>);
-
-impl RunActMap {
-    pub fn new(runner: impl RunAct + Send + Sync + 'static) -> Self {
-        Self(Box::new(runner))
-    }
-}
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct RunActMap(HashMap<TypeId, Box<dyn RunAct + 'static + Send + Sync>>);

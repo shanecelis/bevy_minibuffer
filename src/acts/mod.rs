@@ -42,11 +42,10 @@ pub mod tape;
 pub(crate) fn plugin(app: &mut App) {
     app
         .register_type::<Act>()
-        .register_type::<RunActMap>()
-        .init_resource::<RunActMap>()
         .add_plugins(tape::plugin)
         .add_plugins(universal::plugin)
         .add_plugins(cache::plugin)
+        .add_plugins(run_act::plugin)
         ;
 }
 
@@ -114,8 +113,6 @@ pub struct Act {
     // What system runs when act is called
     // #[reflect(ignore)]
     pub(crate) system_id: Entity,
-    // #[reflect(ignore)]
-    // pub run_act: Box<dyn RunAct + Send + Sync>,
     /// Flags for this act
     #[reflect(ignore)]
     pub flags: ActFlags,

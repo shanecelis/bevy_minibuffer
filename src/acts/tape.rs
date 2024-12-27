@@ -9,6 +9,7 @@ use bevy::prelude::*;
 #[cfg(feature = "clipboard")]
 use copypasta::{ClipboardContext, ClipboardProvider};
 use std::{
+    time::Duration,
     borrow::Cow,
     collections::HashMap,
     fmt::{self, Debug, Write},
@@ -17,8 +18,12 @@ use std::{
 
 pub(crate) fn plugin(app: &mut App) {
     app.init_resource::<TapeRecorder>()
-        .init_resource::<TapeAnimate>()
-        .init_resource::<RunActMap>();
+        .init_resource::<RunActMap>()
+        .init_state::<SoundState>()
+        ;
+#[cfg(feature = "fun")]
+    app
+        .add_plugins(fun::plugin);
 }
 
 pub struct TapeActs {
@@ -45,50 +50,236 @@ impl Default for TapeActs {
     }
 }
 
-#[derive(Resource, Default)]
-enum TapeAnimate {
-    Speed(f32),
-    Curve {
-        curve: Box<dyn Curve<f32> + 'static + Send + Sync>,
-        pos: f32,
-    }, // then: Option<Box<TapeAnimate>> },
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, States)]
+enum SoundState {
     #[default]
-    Hide,
+    Off,
+    Stop,
+    Record,
+    Play,
+    Rewind,
+    Load,
+    Unload,
 }
 
-impl TapeAnimate {
-    fn curve(curve: impl Curve<f32> + Send + Sync + 'static) -> Self {
-        Self::Curve {
-            curve: Box::new(curve),
-            pos: 0.0,
-        } //, then: None }
+#[cfg(feature = "fun")]
+mod fun {
+    use super::*;
+
+    pub(super) fn plugin(app: &mut App) {
+        app.init_resource::<TapeSoundSource>()
+            .init_resource::<TapeAnimate>()
+            .add_systems(Startup, setup_icon)
+            .add_systems(Update, (after, play_for))
+            .add_systems(OnEnter(SoundState::Record), record)
+            .add_systems(OnEnter(SoundState::Stop), (stop_all_sound, stop).chain())
+            .add_systems(OnEnter(SoundState::Load), load)
+            .add_systems(OnEnter(SoundState::Play), play)
+            .add_systems(OnEnter(SoundState::Rewind), rewind)
+            .add_systems(Update, animate_icon);
+            ;
+    }
+
+    #[derive(Resource, Default)]
+    enum TapeAnimate {
+        Speed(f32),
+        Curve {
+            curve: Box<dyn Curve<f32> + 'static + Send + Sync>,
+            pos: f32,
+        }, // then: Option<Box<TapeAnimate>> },
+        #[default]
+        Hide,
+    }
+
+    impl TapeAnimate {
+        fn curve(curve: impl Curve<f32> + Send + Sync + 'static) -> Self {
+            Self::Curve {
+                curve: Box::new(curve),
+                pos: 0.0,
+            }
+        }
+    }
+
+    fn load(mut animate: ResMut<TapeAnimate>, mut commands: Commands, tape_sound: Res<TapeSoundSource>) {
+        *animate = TapeAnimate::curve(easing(-3.0, 4.0, EaseFunction::Steps(3)).unwrap()); //.map(|x| -x));
+        commands.spawn((AudioPlayer::new(tape_sound.load.clone_weak()),
+                        TapeSoundSink));
+    }
+
+    fn rewind(mut animate: ResMut<TapeAnimate>, mut commands: Commands, tape_sound: Res<TapeSoundSource>) {
+        commands.spawn((AudioPlayer::new(tape_sound.rewind.clone_weak()),
+                        TapeSoundSink,
+                        PlayFor(Timer::new(Duration::from_secs_f32(2.0), TimerMode::Once), After::State(SoundState::Stop))));
+        *animate = TapeAnimate::Speed(-4.0);
+    }
+
+    fn play(mut commands: Commands, tape_sound: Res<TapeSoundSource>, mut animate: ResMut<TapeAnimate>) {
+        commands.spawn((AudioPlayer::new(tape_sound.play.clone_weak()),
+                        TapeSoundSink,
+                        After::State(SoundState::Stop),
+                        PlaybackSettings::DESPAWN));
+
+        *animate = TapeAnimate::Speed(1.0);
+    }
+
+    fn record(mut commands: Commands, tape_sound: Res<TapeSoundSource>, mut animate: ResMut<TapeAnimate>) {
+        commands.spawn((AudioPlayer::new(tape_sound.record_start.clone_weak()),
+                        PlayNext::new(AudioBundle {
+                            source: AudioPlayer::new(tape_sound.record_loop.clone_weak()),
+                            settings: PlaybackSettings::LOOP,
+                        }),
+                        TapeSoundSink,
+                        PlaybackSettings::ONCE));
+
+        *animate = TapeAnimate::Speed(1.0);
+    }
+
+    fn stop_all_sound(query: Query<Entity, With<TapeSoundSink>>, mut commands: Commands) {
+        for id in &query {
+            commands.entity(id).despawn();
+        }
+    }
+
+    fn stop(mut commands: Commands, tape_sound: Res<TapeSoundSource>, mut animate: ResMut<TapeAnimate>) {
+        commands.spawn((AudioPlayer::new(tape_sound.record_stop.clone_weak()),
+                        TapeSoundSink,
+                        PlaybackSettings::DESPAWN));
+
+        *animate = TapeAnimate::Speed(0.0);
+    }
+
+
+    #[derive(Component)]
+    struct TapeSoundSink;
+
+    #[derive(Component, Default)]
+    enum After {
+        #[default]
+        Done,
+        State(SoundState),
+        Play(AudioBundle)
+    }
+
+    #[derive(Component)]
+    struct PlayFor(Timer, After);
+
+    #[derive(Component)]
+    struct PlayNext(Option<AudioBundle>);
+    impl PlayNext {
+        fn new(bundle: AudioBundle) -> Self {
+            Self(Some(bundle))
+        }
+    }
+
+    fn play_for(mut query: Query<(Entity, &AudioSink, &mut PlayFor), With<TapeSoundSink>>, mut commands: Commands, time: Res<Time>,
+                 mut tape_state: ResMut<NextState<SoundState>>) {
+        for (id, sink, mut play_for) in &mut query {
+            let PlayFor(ref mut timer, ref mut after) = *play_for;
+            timer.tick(time.delta());
+            if timer.just_finished() {
+                match std::mem::take(after) {
+                    After::Done => {
+                        warn!("After::DONE unexpected.");
+                    },
+                    After::Play(bundle) => {
+                        commands.spawn((bundle,
+                                        TapeSoundSink));
+                        commands.entity(id).despawn();
+                    }
+                    After::State(state) => {
+                        tape_state.set(state);
+                        commands.entity(id).despawn();
+                    }
+                }
+            }
+        }
+    }
+
+    fn after(mut query: Query<(Entity, &AudioSink, &mut After), With<TapeSoundSink>>, mut commands: Commands, time: Res<Time>,
+                 mut tape_state: ResMut<NextState<SoundState>>) {
+        for (id, sink, mut after) in &mut query {
+            if sink.empty() {
+                match std::mem::take(&mut *after) {
+                    After::Done => {
+                        warn!("After::DONE unexpected.");
+                    },
+                    After::Play(bundle) => {
+                        commands.spawn((bundle,
+                                        TapeSoundSink));
+                        commands.entity(id).despawn();
+                    }
+                    After::State(state) => {
+                        tape_state.set(state);
+                        commands.entity(id).despawn();
+                    }
+                }
+            }
+        }
+    }
+
+fn animate_icon(
+    mut query: Query<&mut Transform, With<TapeIcon>>,
+    mut animate: ResMut<TapeAnimate>,
+    last_speed: Local<Option<f32>>,
+    time: Res<Time>,
+) {
+    let speed = match *animate {
+        TapeAnimate::Speed(speed) => Some(speed),
+        TapeAnimate::Hide => None,
+        TapeAnimate::Curve {
+            ref curve,
+            ref mut pos,
+        } => {
+            let r = curve.sample(*pos);
+            *pos += time.delta_secs();
+            // This could be none. Should do something at that point.
+            r.or_else(|| *last_speed)
+        }
+    };
+    // *last_speed = speed;
+
+    if let Some(speed) = speed {
+        for mut transform in &mut query {
+            transform.rotate_local_z(speed * time.delta_secs());
+        }
     }
 }
 
-// struct TapeAnimator(Vec<TapeAnimate>);
+    // fn react_on_removal(mut removed: RemovedComponents<PlayNext>, mut commands: Commands) {
+    //     for after in removed.read() {
+    //         if let Some(bundle) = after.0.take() {
+    //             commands.spawn(bundle);
+    //         }
+    //     }
+    // }
+
+    #[derive(Resource)]
+    pub(super) struct TapeSoundSource {
+        pub(super) record_start: Handle<AudioSource>,
+        pub(super) record_loop: Handle<AudioSource>,
+        pub(super) record_stop: Handle<AudioSource>,
+        pub(super) play: Handle<AudioSource>,
+        pub(super) rewind: Handle<AudioSource>,
+        pub(super) load: Handle<AudioSource>,
+    }
+
+    impl FromWorld for TapeSoundSource {
+        fn from_world(world: &mut World) -> Self {
+            let asset_server = world.resource::<AssetServer>();
+            Self {
+                record_start: asset_server.load("record-start.ogg"),
+                record_loop: asset_server.load("record-loop.ogg"),
+                record_stop: asset_server.load("record-stop.ogg"),
+                play: asset_server.load("tape-play.ogg"),
+                rewind: asset_server.load("tape-rewind.ogg"),
+                load: asset_server.load("tape-load.ogg"),
+            }
+        }
+    }
 
 #[derive(Component)]
 struct TapeIcon;
 
-impl Plugin for TapeActs {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<Tapes>()
-            .init_resource::<LastPlayed>()
-            .add_systems(Startup, setup_icon)
-            .add_systems(Update, animate_icon);
-
-        self.warn_on_unused_acts();
-    }
-}
-
-impl ActsPlugin for TapeActs {
-    fn acts(&self) -> &Acts {
-        &self.acts
-    }
-    fn acts_mut(&mut self) -> &mut Acts {
-        &mut self.acts
-    }
-}
 const PADDING: Val = Val::Px(5.0);
 
 fn setup_icon(
@@ -118,6 +309,26 @@ fn setup_icon(
     });
 }
 
+}
+
+impl Plugin for TapeActs {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<Tapes>()
+            .init_resource::<LastPlayed>();
+
+        self.warn_on_unused_acts();
+    }
+}
+
+impl ActsPlugin for TapeActs {
+    fn acts(&self) -> &Acts {
+        &self.acts
+    }
+    fn acts_mut(&mut self) -> &mut Acts {
+        &mut self.acts
+    }
+}
+
 // fn play_icon(mut query: Query<&mut Transform, With<TapeIcon>>, recorder: Res<TapeRecorder>, time: Res<Time>) {
 //     let speed = match *recorder {
 //         TapeRecorder::Off { .. } => None,
@@ -131,34 +342,6 @@ fn setup_icon(
 //         }
 //     }
 // }
-
-fn animate_icon(
-    mut query: Query<&mut Transform, With<TapeIcon>>,
-    mut animate: ResMut<TapeAnimate>,
-    last_speed: Local<Option<f32>>,
-    time: Res<Time>,
-) {
-    let speed = match *animate {
-        TapeAnimate::Speed(speed) => Some(speed),
-        TapeAnimate::Hide => None,
-        TapeAnimate::Curve {
-            ref curve,
-            ref mut pos,
-        } => {
-            let r = curve.sample(*pos);
-            *pos += time.delta_secs();
-            // This could be none. Should do something at that point.
-            r.or_else(|| *last_speed)
-        }
-    };
-    // *last_speed = speed;
-
-    if let Some(speed) = speed {
-        for mut transform in &mut query {
-            transform.rotate_local_z(speed * time.delta_secs());
-        }
-    }
-}
 
 #[derive(Resource, Debug)]
 pub enum TapeRecorder {
@@ -234,9 +417,9 @@ fn record_tape(
     mut minibuffer: Minibuffer,
     mut tapes: ResMut<Tapes>,
     universal: Res<UniversalArg>,
-    mut animate: ResMut<TapeAnimate>,
+    mut tape_state: ResMut<NextState<SoundState>>,
 ) {
-    *animate = TapeAnimate::curve(easing(-3.0, 4.0, EaseFunction::Steps(3)).unwrap()); //.map(|x| -x));
+    tape_state.set(SoundState::Load);
     let append = universal.is_some();
     match &*minibuffer.tape_recorder {
         TapeRecorder::Off { one_off: _ } => {
@@ -246,10 +429,10 @@ fn record_tape(
                       tapes: Res<Tapes>,
                       mut commands: Commands,
                       mut minibuffer: Minibuffer,
-                      mut animate: ResMut<TapeAnimate>| {
+                mut tape_state: ResMut<NextState<SoundState>>| {
                     match trigger.event_mut().take() {
                         Ok(chord) => {
-                            *animate = TapeAnimate::Speed(1.0);
+                            tape_state.set(SoundState::Record);
                             if append {
                                 if let Some(tape) = tapes.get(&chord) {
                                     minibuffer.message(format!("Recording tape {}", &chord));
@@ -289,6 +472,7 @@ fn record_tape(
             else {
                 unreachable!();
             };
+            tape_state.set(SoundState::Stop);
             minibuffer.message(format!("Stop recording tape {}", &chord));
             tapes.insert(chord, tape);
         }
@@ -303,7 +487,9 @@ fn play_tape(
     mut acts: Query<&Act>,
     last_act: Res<LastRunAct>,
     universal_arg: Res<UniversalArg>,
+    mut tape_state: ResMut<NextState<SoundState>>,
 ) {
+    tape_state.set(SoundState::Load);
     let this_keychord = last_act.hotkey(&mut acts.as_query_lens());
     let count = universal_arg.unwrap_or(1);
     minibuffer.message("Play tape: ");
@@ -312,6 +498,7 @@ fn play_tape(
               mut commands: Commands,
               tapes: Res<Tapes>,
               mut minibuffer: Minibuffer,
+        mut tape_state: ResMut<NextState<SoundState>>,
               mut last_played: ResMut<LastPlayed>| {
             match trigger.event_mut().take() {
                 Ok(mut chord) => 'body: {
@@ -331,6 +518,7 @@ fn play_tape(
                     }
                     if let Some(tape) = tapes.get(&chord) {
                         let tape = tape.clone();
+                        tape_state.set(SoundState::Play);
                         commands.queue(move |world: &mut World| {
                             for _ in 0..count {
                                 if let Err(e) = world.run_system_cached_with(play_tape_sys, &tape) {
@@ -340,6 +528,7 @@ fn play_tape(
                         });
                         **last_played = Some(chord);
                     } else {
+                        tape_state.set(SoundState::Load);
                         minibuffer.message(format!("No tape for {}", &chord));
                     }
                 }
@@ -352,7 +541,9 @@ fn play_tape(
     );
 }
 
-fn copy_tape(mut minibuffer: Minibuffer) {
+fn copy_tape(mut minibuffer: Minibuffer,
+    mut tape_state: ResMut<NextState<SoundState>>) {
+    tape_state.set(SoundState::Load);
     minibuffer.message("Copy tape for key: ");
     minibuffer.get_chord().observe(
         |mut trigger: Trigger<KeyChordEvent>,
@@ -360,6 +551,7 @@ fn copy_tape(mut minibuffer: Minibuffer) {
          tapes: Res<Tapes>,
          mut minibuffer: Minibuffer,
          run_act_map: Res<RunActMap>,
+        mut tape_state: ResMut<NextState<SoundState>>,
          acts: Query<&Act>| {
             match trigger.event_mut().take() {
                 Ok(chord) => 'press: {
@@ -371,6 +563,7 @@ fn copy_tape(mut minibuffer: Minibuffer) {
                                 break 'press;
                             }
                         };
+                        tape_state.set(SoundState::Rewind);
                         info!("{}", script);
                         #[cfg(feature = "clipboard")]
                         {

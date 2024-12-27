@@ -33,6 +33,7 @@ copypasta = { version = "0.10.1", optional = true }
 
 [features]
 async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_trigger" ]
+fun = [ "bevy/bevy_audio" ]
 dev-capture = []
 clipboard = ["dep:copypasta"]
 

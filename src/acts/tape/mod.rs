@@ -65,20 +65,30 @@ enum SoundState {
 #[cfg(feature = "fun")]
 mod fun {
     use super::*;
+    use bevy::asset::embedded_asset;
+    use crate::prompt::show;
 
     pub(super) fn plugin(app: &mut App) {
+        embedded_asset!(app, "tape.png");
+        embedded_asset!(app, "record-start.ogg");
+        embedded_asset!(app, "record-loop.ogg");
+        embedded_asset!(app, "record-stop.ogg");
+        embedded_asset!(app, "tape-play.ogg");
+        embedded_asset!(app, "tape-rewind.ogg");
+        embedded_asset!(app, "tape-load.ogg");
         app.init_resource::<TapeSoundSource>()
             .init_resource::<TapeAnimate>()
             .add_systems(Startup, setup_icon)
             .add_systems(Update, (after, play_for))
             .add_systems(OnEnter(SoundState::Record), record)
             .add_systems(OnEnter(SoundState::Stop), (stop_all_sound, stop).chain())
-            .add_systems(OnEnter(SoundState::Load), load)
+            .add_systems(OnEnter(SoundState::Load), (load, show::<TapeIcon>))
             .add_systems(OnEnter(SoundState::Play), play)
             .add_systems(OnEnter(SoundState::Rewind), rewind)
             .add_systems(Update, animate_icon);
             ;
     }
+
 
     #[derive(Resource, Default)]
     enum TapeAnimate {
@@ -124,7 +134,7 @@ mod fun {
 
     fn record(mut commands: Commands, tape_sound: Res<TapeSoundSource>, mut animate: ResMut<TapeAnimate>) {
         commands.spawn((AudioPlayer::new(tape_sound.record_start.clone_weak()),
-                        PlayNext::new(AudioBundle {
+                        After::Play(AudioBundle {
                             source: AudioPlayer::new(tape_sound.record_loop.clone_weak()),
                             settings: PlaybackSettings::LOOP,
                         }),
@@ -267,12 +277,12 @@ fn animate_icon(
         fn from_world(world: &mut World) -> Self {
             let asset_server = world.resource::<AssetServer>();
             Self {
-                record_start: asset_server.load("record-start.ogg"),
-                record_loop: asset_server.load("record-loop.ogg"),
-                record_stop: asset_server.load("record-stop.ogg"),
-                play: asset_server.load("tape-play.ogg"),
-                rewind: asset_server.load("tape-rewind.ogg"),
-                load: asset_server.load("tape-load.ogg"),
+                record_start: asset_server.load("embedded://bevy_minibuffer/acts/tape/record-start.ogg"),
+                record_loop: asset_server.load("embedded://bevy_minibuffer/acts/tape/record-loop.ogg"),
+                record_stop: asset_server.load("embedded://bevy_minibuffer/acts/tape/record-stop.ogg"),
+                play: asset_server.load("embedded://bevy_minibuffer/acts/tape/tape-play.ogg"),
+                rewind: asset_server.load("embedded://bevy_minibuffer/acts/tape/tape-rewind.ogg"),
+                load: asset_server.load("embedded://bevy_minibuffer/acts/tape/tape-load.ogg"),
             }
         }
     }
@@ -290,7 +300,8 @@ fn setup_icon(
     let icon_container = query.single();
     commands.entity(icon_container).with_children(|parent| {
         parent.spawn((
-            ImageNode::new(asset_loader.load("tape.png")),
+            ImageNode::new(asset_loader.load("embedded://bevy_minibuffer/acts/tape/tape.png")),
+            Visibility::Hidden,
             Node {
                 width: Val::Px(25.0),
                 height: Val::Px(25.0),

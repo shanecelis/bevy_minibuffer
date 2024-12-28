@@ -37,7 +37,7 @@ impl Default for TapeActs {
                 Act::new(record_tape)
                     .bind(keyseq! { Q })
                     .sub_flags(ActFlags::Record),
-                Act::new(play_tape)
+                Act::new_with_input(play_tape)
                     .bind_aliased(keyseq! { Shift-2 }, "@")
                     .sub_flags(ActFlags::Record),
                 // Act::new(repeat).bind(keyseq! { Period }).sub_flags(ActFlags::Record | ActFlags::RunAct),
@@ -59,6 +59,7 @@ enum SoundState {
     Play,
     Rewind,
     Load,
+    Squeak,
     Unload,
 }
 
@@ -73,9 +74,10 @@ mod fun {
         embedded_asset!(app, "record-start.ogg");
         embedded_asset!(app, "record-loop.ogg");
         embedded_asset!(app, "record-stop.ogg");
-        embedded_asset!(app, "tape-play.ogg");
+        embedded_asset!(app, "play-loop.ogg");
         embedded_asset!(app, "tape-rewind.ogg");
         embedded_asset!(app, "tape-load.ogg");
+        embedded_asset!(app, "squeak.ogg");
         app.init_resource::<TapeSoundSource>()
             .init_resource::<TapeAnimate>()
             .add_systems(Startup, setup_icon)
@@ -83,8 +85,9 @@ mod fun {
             .add_systems(OnEnter(SoundState::Record), record)
             .add_systems(OnEnter(SoundState::Stop), (stop_all_sound, stop).chain())
             .add_systems(OnEnter(SoundState::Load), (load, show::<TapeIcon>))
-            .add_systems(OnEnter(SoundState::Play), play)
+            .add_systems(OnEnter(SoundState::Play), (stop_all_sound, play).chain())
             .add_systems(OnEnter(SoundState::Rewind), rewind)
+            .add_systems(OnEnter(SoundState::Squeak), squeak)
             .add_systems(Update, animate_icon);
             ;
     }
@@ -110,15 +113,24 @@ mod fun {
         }
     }
 
+    fn squeak(mut animate: ResMut<TapeAnimate>, mut commands: Commands, tape_sound: Res<TapeSoundSource>) {
+        *animate = TapeAnimate::curve(easing(-3.0, 0.5, EaseFunction::Steps(3)).unwrap()); //.map(|x| -x));
+        commands.spawn((AudioPlayer::new(tape_sound.squeak.clone_weak()),
+                        PlaybackSettings::DESPAWN,
+                        TapeSoundSink));
+    }
+
     fn load(mut animate: ResMut<TapeAnimate>, mut commands: Commands, tape_sound: Res<TapeSoundSource>) {
         *animate = TapeAnimate::curve(easing(-3.0, 4.0, EaseFunction::Steps(3)).unwrap()); //.map(|x| -x));
         commands.spawn((AudioPlayer::new(tape_sound.load.clone_weak()),
+                        PlaybackSettings::DESPAWN,
                         TapeSoundSink));
     }
 
     fn rewind(mut animate: ResMut<TapeAnimate>, mut commands: Commands, tape_sound: Res<TapeSoundSource>) {
         commands.spawn((AudioPlayer::new(tape_sound.rewind.clone_weak()),
                         TapeSoundSink,
+                        PlaybackSettings::LOOP,
                         PlayFor(Timer::new(Duration::from_secs_f32(2.0), TimerMode::Once), After::State(SoundState::Stop))));
         *animate = TapeAnimate::Speed(-4.0);
     }
@@ -126,8 +138,9 @@ mod fun {
     fn play(mut commands: Commands, tape_sound: Res<TapeSoundSource>, mut animate: ResMut<TapeAnimate>) {
         commands.spawn((AudioPlayer::new(tape_sound.play.clone_weak()),
                         TapeSoundSink,
-                        After::State(SoundState::Stop),
-                        PlaybackSettings::DESPAWN));
+                        PlayFor(Timer::new(Duration::from_secs_f32(2.0), TimerMode::Once), After::State(SoundState::Stop)),
+                        // After::State(SoundState::Stop),
+                        PlaybackSettings::LOOP));
 
         *animate = TapeAnimate::Speed(1.0);
     }
@@ -271,6 +284,7 @@ fn animate_icon(
         pub(super) play: Handle<AudioSource>,
         pub(super) rewind: Handle<AudioSource>,
         pub(super) load: Handle<AudioSource>,
+        pub(super) squeak: Handle<AudioSource>,
     }
 
     impl FromWorld for TapeSoundSource {
@@ -280,9 +294,10 @@ fn animate_icon(
                 record_start: asset_server.load("embedded://bevy_minibuffer/acts/tape/record-start.ogg"),
                 record_loop: asset_server.load("embedded://bevy_minibuffer/acts/tape/record-loop.ogg"),
                 record_stop: asset_server.load("embedded://bevy_minibuffer/acts/tape/record-stop.ogg"),
-                play: asset_server.load("embedded://bevy_minibuffer/acts/tape/tape-play.ogg"),
+                play: asset_server.load("embedded://bevy_minibuffer/acts/tape/play-loop.ogg"),
                 rewind: asset_server.load("embedded://bevy_minibuffer/acts/tape/tape-rewind.ogg"),
                 load: asset_server.load("embedded://bevy_minibuffer/acts/tape/tape-load.ogg"),
+                squeak: asset_server.load("embedded://bevy_minibuffer/acts/tape/squeak.ogg"),
             }
         }
     }
@@ -428,9 +443,9 @@ fn record_tape(
     mut minibuffer: Minibuffer,
     mut tapes: ResMut<Tapes>,
     universal: Res<UniversalArg>,
-    mut tape_state: ResMut<NextState<SoundState>>,
+    mut next_tape_state: ResMut<NextState<SoundState>>,
 ) {
-    tape_state.set(SoundState::Load);
+    next_tape_state.set(SoundState::Load);
     let append = universal.is_some();
     match &*minibuffer.tape_recorder {
         TapeRecorder::Off { one_off: _ } => {
@@ -470,6 +485,7 @@ fn record_tape(
                             }
                         }
                         Err(e) => {
+                            tape_state.set(SoundState::Squeak);
                             minibuffer.message(format!("{e}"));
                         }
                     }
@@ -483,7 +499,7 @@ fn record_tape(
             else {
                 unreachable!();
             };
-            tape_state.set(SoundState::Stop);
+            next_tape_state.set(SoundState::Stop);
             minibuffer.message(format!("Stop recording tape {}", &chord));
             tapes.insert(chord, tape);
         }
@@ -493,14 +509,39 @@ fn record_tape(
     }
 }
 
-fn play_tape(
+fn play_tape(In(chord): In<Option<KeyChord>>,
     mut minibuffer: Minibuffer,
     mut acts: Query<&Act>,
     last_act: Res<LastRunAct>,
     universal_arg: Res<UniversalArg>,
-    mut tape_state: ResMut<NextState<SoundState>>,
+             tapes: Res<Tapes>,
+    mut next_tape_state: ResMut<NextState<SoundState>>,
+    tape_state: Res<State<SoundState>>,
+             mut commands: Commands,
 ) {
-    tape_state.set(SoundState::Load);
+    // Non-interactive case
+    if let Some(chord) = chord {
+        if let Some(tape) = tapes.get(&chord) {
+            let tape = tape.clone();
+            let count = 1; // TODO: Need to store universal somewhere.
+            // next_tape_state.set(SoundState::Play);
+            commands.queue(move |world: &mut World| {
+                for _ in 0..count {
+                    if let Err(e) = world.run_system_cached_with(play_tape_sys, &tape) {
+                        warn!("Error playing tape: {e:?}");
+                    }
+                }
+            });
+        } else {
+            // next_tape_state.set(SoundState::Load);
+            minibuffer.message(format!("No tape for {}", &chord));
+        }
+        return;
+    }
+    // Interactive case
+    if *tape_state.get() != SoundState::Play {
+        next_tape_state.set(SoundState::Load);
+    }
     let this_keychord = last_act.hotkey(&mut acts.as_query_lens());
     let count = universal_arg.unwrap_or(1);
     minibuffer.message("Play tape: ");
@@ -527,6 +568,7 @@ fn play_tape(
                             break 'body;
                         }
                     }
+                    minibuffer.log_input(&Some(chord.clone()));
                     if let Some(tape) = tapes.get(&chord) {
                         let tape = tape.clone();
                         tape_state.set(SoundState::Play);
@@ -545,6 +587,7 @@ fn play_tape(
                 }
                 Err(e) => {
                     minibuffer.message(format!("{e}"));
+                    tape_state.set(SoundState::Squeak);
                 }
             }
             commands.entity(trigger.entity()).despawn_recursive();
@@ -602,6 +645,7 @@ fn copy_tape(mut minibuffer: Minibuffer,
                     }
                 }
                 Err(e) => {
+                    tape_state.set(SoundState::Squeak);
                     minibuffer.message(format!("{e}"));
                 }
             }

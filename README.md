@@ -501,9 +501,11 @@ what is required. It is a "pull" model of interaction versus a "push" model.
 [^2]: Although one could implement keyboard macros, which are a form of interactive scripting. Pull requests are welcome.
 
 # TODO
-- [ ] Make it possible to have vim-like prompt (no space after ":").
+- [x] Make it possible to have vim-like prompt (no space after ":").
 - [ ] Use a "real" cursor/selection highlight.
 - [ ] Add case-insensitive tab-completion example.
+- [ ] Make a tape recording recursable.
+- [ ] Record universal args on tape.
 - [x] Add `HashMap<String,V>` completer.
 - [x] Make universal-arg work without async.
 - [x] Re-write [asky](https://github.com/axelvc/asky) to be [bevy native](https://github.com/shanecelis/bevy_asky).

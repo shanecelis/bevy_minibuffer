@@ -216,6 +216,7 @@ fn setup_scene(
     minibuffer.set_visible(true);
 }
 
+#[allow(dead_code)]
 mod unscriptable {
     pub(crate) use super::*;
 

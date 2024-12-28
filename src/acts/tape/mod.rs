@@ -2,14 +2,12 @@ use crate::{
     acts::{universal::UniversalArg, Act, ActFlags, Acts, ActsPlugin, RunActMap},
     event::{KeyChordEvent, LastRunAct, RunActEvent},
     input::{keyseq, KeyChord},
-    ui::IconContainer,
     Minibuffer,
 };
 use bevy::prelude::*;
 #[cfg(feature = "clipboard")]
 use copypasta::{ClipboardContext, ClipboardProvider};
 use std::{
-    time::Duration,
     borrow::Cow,
     collections::HashMap,
     fmt::{self, Debug, Write},
@@ -60,14 +58,18 @@ enum SoundState {
     Rewind,
     Load,
     Squeak,
-    Unload,
+    // Unload,
 }
 
 #[cfg(feature = "fun")]
 mod fun {
     use super::*;
     use bevy::asset::embedded_asset;
-    use crate::prompt::show;
+    use crate::{
+        ui::IconContainer,
+        prompt::show,
+    };
+    use std::time::Duration;
 
     pub(super) fn plugin(app: &mut App) {
         embedded_asset!(app, "tape.png");
@@ -335,6 +337,18 @@ fn setup_icon(
     });
 }
 
+fn easing(
+    amp: f32,
+    duration: f32,
+    func: EaseFunction,
+) -> Option<LinearReparamCurve<f32, EasingCurve<f32>>> {
+    let domain = Interval::new(0.0, duration).ok()?;
+    EasingCurve::new(0.0, amp, func)
+        .reparametrize_linear(domain)
+        .ok()
+}
+
+
 }
 
 impl Plugin for TapeActs {
@@ -427,17 +441,6 @@ pub struct Tapes(HashMap<KeyChord, Tape>);
 
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct LastPlayed(Option<KeyChord>);
-
-fn easing(
-    amp: f32,
-    duration: f32,
-    func: EaseFunction,
-) -> Option<LinearReparamCurve<f32, EasingCurve<f32>>> {
-    let domain = Interval::new(0.0, duration).ok()?;
-    EasingCurve::new(0.0, amp, func)
-        .reparametrize_linear(domain)
-        .ok()
-}
 
 fn record_tape(
     mut minibuffer: Minibuffer,

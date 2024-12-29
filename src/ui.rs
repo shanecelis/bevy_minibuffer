@@ -20,10 +20,15 @@ pub(crate) struct MinibufferRoot(pub Entity);
 #[derive(Component)]
 struct MinibufferNode;
 
+/// Minibuffer bottom bar
+#[derive(Component)]
+pub(crate) struct BottomBar;
+
 /// Minibuffer prompt parent
 #[derive(Component)]
 pub(crate) struct PromptContainer;
 
+/// A column to the right of the prompt, can have icons
 #[derive(Component)]
 pub struct IconContainer;
 // /// Mode line
@@ -143,7 +148,10 @@ fn spawn_layout(mut commands: Commands) {
                         });
                 });
             builder
-                .spawn((Node::default(), BackgroundColor(Color::BLACK)))
+                .spawn((Node::default(),
+                        BackgroundColor(Color::BLACK),
+                        Visibility::Hidden,
+                        BottomBar))
                 .with_children(|parent| {
                     parent
                         .spawn((
@@ -159,7 +167,6 @@ fn spawn_layout(mut commands: Commands) {
                                 },
                                 ..Default::default()
                             },
-                            Visibility::Hidden,
                         ))
                         .insert(Name::new("buffer"))
                         .insert(PromptContainer);

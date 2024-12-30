@@ -22,6 +22,8 @@ impl Acts {
     }
 
     /// Configure an act.
+    ///
+    /// Returns true if there was such an act to configure false otherwise.
     pub fn configure<F: Fn(&mut ActBuilder)>(&mut self, act_name: &str, f: F) -> bool {
         if let Some(ref mut builder) = self.0.get_mut(act_name) {
             f(builder);

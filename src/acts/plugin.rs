@@ -1,4 +1,4 @@
-use super::Acts;
+use super::{Acts, ActBuilder};
 use bevy::prelude::*;
 
 /// A [Plugin] with a collection of [Acts]
@@ -38,6 +38,19 @@ pub trait ActsPlugin: Plugin {
             );
         }
     }
+
+    /// Configure an act.
+    ///
+    /// Will panic if no act with that name is available.
+    fn configure<F: Fn(&mut ActBuilder)>(mut self, act_name: &str, f: F) -> Self where Self: Sized {
+        if let Some(ref mut builder) = self.acts_mut().get_mut(act_name) {
+            f(builder);
+        } else {
+            panic!("No act named {:?} to configure.", act_name);
+        }
+        self
+    }
+
 }
 
 /// A [Plugin] with a collection of [Acts]
@@ -76,5 +89,17 @@ pub trait ActsPluginGroup: PluginGroup {
                 if count == 1 { " that was" } else { "s that were" }
             );
         }
+    }
+
+    /// Configure an act.
+    ///
+    /// Will panic if no act with that name is available.
+    fn configure<F: Fn(&mut ActBuilder)>(mut self, act_name: &str, f: F) -> Self where Self: Sized {
+        if let Some(ref mut builder) = self.acts_mut().get_mut(act_name) {
+            f(builder);
+        } else {
+            panic!("No act named {:?} to configure.", act_name);
+        }
+        self
     }
 }

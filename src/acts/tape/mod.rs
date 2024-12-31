@@ -30,17 +30,17 @@ impl Default for TapeActs {
     fn default() -> Self {
         Self {
             acts: Acts::new([
-                Act::new(record_tape)
+                Act::new(tape_record)
                     .bind(keyseq! { Q })
                     .sub_flags(ActFlags::Record),
-                Act::new_with_input(play_tape)
+                Act::new_with_input(tape_play)
                     .bind_aliased(keyseq! { Shift-2 }, "@")
                     .sub_flags(ActFlags::Record),
                 // Act::new(repeat).bind(keyseq! { Period }).sub_flags(ActFlags::Record | ActFlags::RunAct),
                 Act::new(repeat)
                     .bind(keyseq! { Period })
                     .sub_flags(ActFlags::Record),
-                &mut Act::new(copy_tape),
+                &mut Act::new(tape_copy),
             ]),
         }
     }
@@ -492,7 +492,7 @@ pub struct Tapes(HashMap<KeyChord, Tape>);
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct LastPlayed(Option<KeyChord>);
 
-fn record_tape(
+fn tape_record(
     mut minibuffer: Minibuffer,
     mut tapes: ResMut<Tapes>,
     universal: Res<UniversalArg>,
@@ -563,7 +563,7 @@ fn record_tape(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn play_tape(
+fn tape_play(
     In(chord): In<Option<KeyChord>>,
     mut minibuffer: Minibuffer,
     mut acts: Query<&Act>,
@@ -650,7 +650,7 @@ fn play_tape(
     );
 }
 
-fn copy_tape(mut minibuffer: Minibuffer, mut tape_state: ResMut<NextState<SoundState>>) {
+fn tape_copy(mut minibuffer: Minibuffer, mut tape_state: ResMut<NextState<SoundState>>) {
     tape_state.set(SoundState::Load);
     minibuffer.message("Copy tape for key: ");
     minibuffer.get_chord().observe(

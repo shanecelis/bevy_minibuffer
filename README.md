@@ -382,10 +382,10 @@ There are a series of pipe-able systems in the `sink` module:
 
 # Acts and Plugins
 
-An `ActsPlugin` is a `Plugin` that contains `Act`s. Two `ActsPlugin`s are
-available in this crate: `BasicActs` and `UniversalArgActs`.
+An `ActsPlugin` is a `Plugin` that contains `Act`s. Three `ActsPlugin`s are
+available in this crate: `BasicActs`, `UniversalArgActs`, and `TapeActs`.
 
-## BasicActs
+## Basic acts
 
 `BasicActs` has the bare necessities of acts: 
 - run_act
@@ -424,11 +424,11 @@ fn plugin(app: &mut App) {
 }
 ```
 
-## `UniversalArgActs`
+## Universal argument acts
 <img align="right" src="https://github.com/user-attachments/assets/a227b529-ba66-403d-a984-5f4c7ac1d5b2"/>
 
-Provides a univeral argument that acts can use by accessing the
-`Res<UniveralArg>`. It simply holds an option of a signed number.
+`UniversalArgActs` provides a univeral argument that acts can use by accessing
+the resource `Res<UniveralArg>`. It simply holds an option of a signed number.
 
 ``` rust ignore
 pub struct UniversalArg(pub Option<i32>);
@@ -440,7 +440,6 @@ One uses it like so, type `Ctrl-U 1 0` and this would place 10 into the
 ``` sh
 cargo run --example universal-arg
 ```
-
 ### How is a number universal?
 
 Although universal argument accepts a number, one can use it as an on or off
@@ -471,6 +470,55 @@ fn open_door(universal_arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
     }
 }
 ```
+
+### What if `UniversalActs` is not added?
+
+The resource `Res<UniversalArg>` is present even if `UniversalActs` has not been
+added. Without `UniveralActs` it will not do anything but exist. It is present
+so that any act may opt-in to using univeral arguments while still allowing the
+user to opt-out of `UniversalActs`.
+
+## Tape acts
+
+`TapeActs` provides interactive scriptability to Minibuffer. It provides a
+"tape" one can record their actions to. One can think of tapes like keyboard
+macros but they do not record key presses and replay them. Instead the acts that
+are run are recorded. These can be replayed, or they can generate a script
+one can integrate back into their application.
+
+### tape_record
+The 'tape_record' act starts a tape recording. It requests a "name" for the tape
+which is a key or key chord of your choice. Once recording starts, it will
+continue until one runs 'tape_record' again.
+
+### tape_play
+The 'tape_play' act requests a key and plays that tape if it exists.
+
+### tape_copy
+The 'tape_copy' act prints a function that replicates what the tape does. If the
+feature "clipboard" is present, it will also copy it to the clipboard.
+
+```rust ignore
+fn tape(mut commands: Commands) {
+    commands.run_system_cached_with(tapes::set_color, 
+        Some(Srgba { red: 0.0, green: 0.8666667, blue: 0.0, alpha: 1.0 }))
+}
+```
+
+### repeat
+The 'repeat' act is bound to the '.' key and does not require a tape. It merely
+repeats the last act one invoked. This is similar to vi's repeat last change
+command.
+
+For fun these tape acts have sound effects of an analog tape deck if the "fun"
+feature for bevy_minibuffer is enabled. It is off by default.
+
+# Features
+- "async" makes `MinibufferAsync` available.
+- "clipboard" makes clipboard accessible. Used by 'tape_copy' act.
+- "fun" adds an tape icon and tape sounds to tape acts.
+- "dev-capture" is not for general use and is for generating videos as shown in
+  this README.
 
 # FAQ
 

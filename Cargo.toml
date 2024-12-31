@@ -1,7 +1,7 @@
 [package]
 name = "bevy_minibuffer"
 description = "A gamedev console inspired by classic Unix text editors"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Shane Celis <shane.celis@gmail.com>"]
 keywords = [

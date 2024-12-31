@@ -570,6 +570,7 @@ This is an unresolved issue.
 
 | bevy_minibuffer | bevy |
 |-----------------|------|
+| 0.3.0           | 0.15 |
 | 0.2.0           | 0.15 |
 | 0.1.0           | 0.14 |
 

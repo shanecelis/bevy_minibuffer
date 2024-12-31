@@ -104,7 +104,7 @@ impl ActBuilder {
         let mut n = system.name();
         // Take name out of pipe.
         //
-        // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result_sink<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"
+        // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"
         // -> "cube_async::speed"
         n = n
             .find('(')

@@ -75,10 +75,10 @@ fn plugin(app: &mut App) {
         // for the act that's necessary.
         //
         // Act::new(hello_name_vec),
-        (hello_name_vec.pipe(future_result_sink)),
-        (hello_name_hash_map.pipe(future_result_sink)),
-        (hello_name_trie.pipe(future_result_sink)),
-        (hello_name_trie_map.pipe(future_result_sink)),
+        (hello_name_vec.pipe(sink::future_result)),
+        (hello_name_hash_map.pipe(sink::future_result)),
+        (hello_name_trie.pipe(sink::future_result)),
+        (hello_name_trie_map.pipe(sink::future_result)),
     ));
 }
 
@@ -104,7 +104,7 @@ fn main() -> ExitCode {
         })
         .add_systems(
             Startup,
-            (move || argument.clone()).pipe(choose_completion.pipe(future_result_sink)),
+            (move || argument.clone()).pipe(choose_completion.pipe(sink::future_result)),
         )
         .run();
     ExitCode::SUCCESS

@@ -20,7 +20,7 @@ fn plugin(app: &mut App) {
             BasicActs::default(),
             // Add commands.
             Act::new(stop).bind(keyseq! { A }),
-            Act::new(speed.pipe(future_result_sink)).bind(keyseq! { S }),
+            Act::new(speed.pipe(sink::future_result)).bind(keyseq! { S }),
             Act::new(start).bind(keyseq! { D }),
         ))
         .add_systems(Startup, |mut minibuffer: Minibuffer| {

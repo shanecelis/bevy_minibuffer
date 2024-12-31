@@ -27,10 +27,10 @@ async fn ask_age(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
         .add_acts((
-            Act::new(ask_name.pipe(future_result_sink))
+            Act::new(ask_name.pipe(sink::future_result))
                 .named("ask_name")
                 .bind(keyseq!(N)),
-            Act::new(ask_age.pipe(future_result_sink))
+            Act::new(ask_age.pipe(sink::future_result))
                 .named("ask_age")
                 .bind(keyseq!(A)),
             // Add a basic act but just one of them.

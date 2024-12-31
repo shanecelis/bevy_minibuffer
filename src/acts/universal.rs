@@ -8,7 +8,7 @@ use crate::{
     Minibuffer,
 };
 #[cfg(feature = "async")]
-use crate::{prelude::future_sink, MinibufferAsync};
+use crate::{sink, MinibufferAsync};
 use bevy::prelude::*;
 #[cfg(feature = "async")]
 use bevy_defer::{AsyncAccess, AsyncWorld};
@@ -49,7 +49,7 @@ impl Default for UniversalArgActs {
     fn default() -> Self {
         Self {
             acts: Acts::new(vec![
-                // Act::new(universal_arg.pipe(future_sink))
+                // Act::new(universal_arg.pipe(sink::future))
                 Act::new(universal_arg)
                     .named("universal_arg")
                     .bind(keyseq! { Ctrl-U })
@@ -78,7 +78,7 @@ impl UniversalArgActs {
     /// or "async" framework.
     pub fn use_async(mut self) -> Self {
         self.acts.push(
-            Act::new(universal_arg_async.pipe(future_sink))
+            Act::new(universal_arg_async.pipe(sink::future))
                 .named("universal_arg")
                 .bind(keyseq! { Ctrl-U })
                 .sub_flags(ActFlags::RunAct),

@@ -18,7 +18,7 @@ where
 
 // TODO: Rename these to no sink suffix. Use the sink module name.
 /// Show error if any in minibuffer.
-pub fn future_result_sink<
+pub fn future_result<
     T: 'static,
     E: 'static + Display,
     F: Future<Output = Result<T, E>> + 'static,
@@ -35,7 +35,7 @@ pub fn future_result_sink<
 }
 
 /// Execute a future.
-pub fn future_sink<F: Future<Output = ()> + 'static>(
+pub fn future<F: Future<Output = ()> + 'static>(
     In(future): In<F>,
     exec: NonSend<AsyncExecutor>,
 ) {

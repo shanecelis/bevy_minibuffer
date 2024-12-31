@@ -87,7 +87,7 @@ async fn demo(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
 
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
-        .add_systems(Startup, demo.pipe(future_result_sink));
+        .add_systems(Startup, demo.pipe(sink::future_result));
 }
 
 fn main() {
@@ -106,7 +106,7 @@ fn main() {
             // Add basic commands.
             BasicActs::default(),
             UniversalArgActs::default(),
-            Act::new(demo.pipe(future_result_sink)).bind(keyseq!(D)),
+            Act::new(demo.pipe(sink::future_result)).bind(keyseq!(D)),
         ))
         .run();
 }

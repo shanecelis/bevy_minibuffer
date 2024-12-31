@@ -10,7 +10,7 @@ use crate::{
     prelude::{keyseq, ActBuilder, Acts},
 };
 
-use crate::sink::future_result_sink;
+use crate::sink;
 use bevy::prelude::*;
 use bevy_defer::AsyncWorld;
 use futures::Future;
@@ -146,13 +146,13 @@ impl Default for BasicAsyncActs {
     fn default() -> Self {
         Self {
             acts: Acts::new([
-                ActBuilder::new(run_act.pipe(future_result_sink))
+                ActBuilder::new(run_act.pipe(sink::future_result))
                     .named("run_act")
                     .bind_aliased(keyseq! { Shift-; }, ":")
                     .bind(keyseq! { Alt-X })
                     .add_flags(ActFlags::Adverb)
                     .sub_flags(ActFlags::RunAct),
-                ActBuilder::new(describe_key.pipe(future_result_sink))
+                ActBuilder::new(describe_key.pipe(sink::future_result))
                     .named("describe_key")
                     .bind(keyseq! { Ctrl-H K }),
             ]),

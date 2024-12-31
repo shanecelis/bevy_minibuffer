@@ -62,9 +62,19 @@ enum SoundState {
 #[cfg(feature = "fun")]
 mod fun {
     use super::*;
-    use crate::{prompt::show, ui::IconContainer};
-    use bevy::asset::embedded_asset;
+    use crate::ui::IconContainer;
+    use bevy::{window::RequestRedraw, asset::embedded_asset};
     use std::time::Duration;
+
+    fn show<T: Component>(
+        mut redraw: EventWriter<RequestRedraw>,
+        mut query: Query<&mut Visibility, With<T>>,
+    ) {
+        if let Ok(mut visibility) = query.get_single_mut() {
+            *visibility = Visibility::Inherited;
+            redraw.send(RequestRedraw);
+        }
+    }
 
     pub(super) fn plugin(app: &mut App) {
         embedded_asset!(app, "tape.png");

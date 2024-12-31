@@ -69,16 +69,12 @@ fn spawn_layout(mut commands: Commands) {
     let root = commands
         .spawn((
             Node {
-                // visibility: Visibility::Hidden,
                 position_type: PositionType::Absolute,
-                // top: Val::Px(0.0),
                 bottom: Val::Px(0.0),
                 right: Val::Px(0.0),
                 left: Val::Px(0.0),
                 flex_direction: FlexDirection::Column,
-                // align_items: AlignItems::FlexEnd,
-                // justify_content:
-                ..Default::default()
+                ..default()
             },
             Name::new("minibuffer"),
             MinibufferNode,
@@ -130,7 +126,6 @@ fn spawn_layout(mut commands: Commands) {
                                     },
                                     BackgroundColor(Color::BLACK),
                                     ScrollingList::default(),
-                                    // CompletionList(vec![]),
                                     AccessibilityNode(Accessible::new(Role::List)),
                                 ))
                                 // .with_children(|parent| {
@@ -151,6 +146,7 @@ fn spawn_layout(mut commands: Commands) {
                 .spawn((Node::default(),
                         BackgroundColor(Color::BLACK),
                         Visibility::Hidden,
+                        Name::new("bar"),
                         BottomBar))
                 .with_children(|parent| {
                     parent
@@ -165,14 +161,16 @@ fn spawn_layout(mut commands: Commands) {
                                     right: PADDING,
                                     bottom: PADDING,
                                 },
-                                ..Default::default()
+                                ..default()
                             },
-                        ))
-                        .insert(Name::new("buffer"))
-                        .insert(PromptContainer);
+                        Name::new("buffer"),
+                        PromptContainer));
                     parent.spawn((
                         Node {
-                            // max_height: Val::Px(20.0),
+                            // TODO: How do I get the height of our default
+                            // font? It appears to be 30, but I'd like to do
+                            // better than hard coded.
+                            height: Val::Px(30.0),
                             ..default()
                         },
                         Name::new("icons"),

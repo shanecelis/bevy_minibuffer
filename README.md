@@ -369,16 +369,18 @@ async fn ask_name(mut minibuffer: MinibufferAsync) -> Result<(), Error> {
 }
 
 fn plugin(app: &mut App) {
-    app.add_acts(ask_name.pipe(future_result_sink));
+    app.add_acts(ask_name.pipe(sink::future_result));
 }
 ```
 The preceding async function `ask_name()` returns a future, technically a `impl Future<Output
 = Result<(), Error>>`. That has to go somewhere so that it will be evaluated.
 There are a series of pipe-able systems in the `sink` module:
 
-- `future_sink` accepts any future and runs it.
-- `future_result_sink` accepts any future that returns a result and runs it but
-  on result is an error, it reports that error to the minibuffer.
+- `sink::result` accepts any result and runs it. If there is an error, reports
+  it to minibuffer.
+- `sink::future` accepts any future and runs it.
+- `sink::future_result` accepts any future that returns a result and runs it but
+  if the result is an error, it reports that error to the minibuffer.
 
 # Acts and Plugins
 
@@ -487,6 +489,10 @@ macros but they do not record key presses and replay them. Instead the acts that
 are run are recorded. These can be replayed, or they can generate a script
 one can integrate back into their application.
 
+``` sh
+cargo run --example tapes --features=fun,clipboard
+```
+
 ### tape_record
 The 'tape_record' act starts a tape recording. It requests a "name" for the tape
 which is a key or key chord of your choice. Once recording starts, it will
@@ -512,7 +518,8 @@ repeats the last act one invoked. This is similar to vi's repeat last change
 command.
 
 For fun these tape acts have sound effects of an analog tape deck if the "fun"
-feature for bevy_minibuffer is enabled. It is off by default.
+feature for bevy_minibuffer is enabled. It is off by default. Click on the movie
+above to hear the sounds.
 
 # Features
 - "async" makes `MinibufferAsync` available.
@@ -550,11 +557,11 @@ what is required. It is a "pull" model of interaction versus a "push" model.
 [^2]: Although one could implement keyboard macros, which are a form of interactive scripting. Pull requests are welcome.
 
 # TODO
-- [x] Make it possible to have vim-like prompt (no space after ":").
 - [ ] Use a "real" cursor/selection highlight.
 - [ ] Add case-insensitive tab-completion example.
 - [ ] Make a tape recording recursable.
 - [ ] Record universal args on tape.
+- [x] Make it possible to have vim-like prompt (no space after ":").
 - [x] Add `HashMap<String,V>` completer.
 - [x] Make universal-arg work without async.
 - [x] Re-write [asky](https://github.com/axelvc/asky) to be [bevy native](https://github.com/shanecelis/bevy_asky).

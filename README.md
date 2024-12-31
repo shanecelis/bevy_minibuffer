@@ -479,6 +479,7 @@ so that any act may opt-in to using univeral arguments while still allowing the
 user to opt-out of `UniversalActs`.
 
 ## Tape acts
+<img align="right" src="https://github.com/user-attachments/assets/39cee20e-44f9-4352-a9b4-fdbe94a98634"/>
 
 `TapeActs` provides interactive scriptability to Minibuffer. It provides a
 "tape" one can record their actions to. One can think of tapes like keyboard

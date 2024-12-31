@@ -48,16 +48,12 @@ pub fn run_act(
             .event_mut()
             .take()
         {
-            Completed::Unhandled { result, input } => match result {
+            Completed::Unhandled { result, input: _ } => match result {
                 Ok(act) => {
                     minibuffer.run_act(act);
                 }
                 Err(e) => {
-                    minibuffer.message(format!(
-                        "Error: Could not resolve act named {:?}: {}",
-                        input.as_deref().unwrap_or("???"),
-                        e
-                    ));
+                    minibuffer.message(format!("{e}"));
                 }
             },
             Completed::Handled => {
@@ -197,7 +193,6 @@ pub fn describe_key(
             let chord: KeyChord = trigger.event_mut().take().expect("key chord");
             match search.query(&chord) {
                 Some(x) => {
-                    // let _ = write!(accum, "{} ", chord);
                     accum.chords.push(chord);
                     let v = search.value();
                     let msg = match x {
@@ -220,7 +215,6 @@ pub fn describe_key(
                     minibuffer.message(msg);
                     if matches!(x, Answer::Match) {
                         commands.entity(trigger.entity()).despawn_recursive();
-                        // break;
                     }
                 }
                 None => {
@@ -228,7 +222,6 @@ pub fn describe_key(
                     let msg = format!("{} is unbound", &accum);
                     minibuffer.message(msg);
                     commands.entity(trigger.entity()).despawn_recursive();
-                    // break;
                 }
             }
             position = search.into();

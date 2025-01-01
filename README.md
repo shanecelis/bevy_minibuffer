@@ -334,7 +334,9 @@ I _believe_ a project with a "minibuffer" feature flag and rust conditional
 compilation facilities ought to make it easy and practical to exclude it from a
 release build. But I'd like to affirm that in practice before considering this goal achieved.
 
-``` rust ignore
+``` rust no_run
+# use bevy::prelude::*;
+# use bevy_minibuffer::prelude::*;
 #[cfg(feature = "minibuffer")]
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
@@ -434,7 +436,7 @@ fn plugin(app: &mut App) {
 `UniversalArgActs` provides a univeral argument that acts can use by accessing
 the resource `Res<UniveralArg>`. It simply holds an option of a signed number.
 
-``` rust ignore
+``` rust no_run
 pub struct UniversalArg(pub Option<i32>);
 ```
 

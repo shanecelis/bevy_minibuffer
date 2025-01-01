@@ -49,7 +49,6 @@ pub struct Minibuffer<'w, 's> {
     next_prompt_state: ResMut<'w, NextState<PromptState>>,
     /// macro state
     pub(crate) tape_recorder: ResMut<'w, TapeRecorder>,
-    // pub(crate) run_act_map: ResMut<'w, RunActMap>,
 }
 
 /// An [EntityCommands] extension trait

@@ -1,9 +1,9 @@
 //! Events
 use crate::{
+    ui::MinibufferNode,
     acts::{Act, ActFlags, ActRef, ActSystem, RunActMap},
     input::{Hotkey, KeyChord},
     prompt::PromptState,
-    ui::MinibufferRoot,
     Error, Minibuffer,
 };
 use bevy::{
@@ -35,14 +35,21 @@ pub(crate) fn plugin(app: &mut App) {
         .init_resource::<LastRunAct>();
 }
 
-fn setup_observers(root: Res<MinibufferRoot>, mut commands: Commands) {
-    commands.entity(root.0).with_children(|parent| {
-        parent.spawn(Observer::new(dispatch_trigger));
-        parent.spawn(Observer::new(run_acts_obs));
-        parent.spawn(Observer::new(run_acts_by_name_obs));
-        parent.spawn(Observer::new(set_visible_on_flag));
-        parent.spawn(Observer::new(crate::acts::tape::process_event));
-    });
+fn setup_observers(query: Query<Entity, With<MinibufferNode>>, mut commands: Commands) {
+    match query.get_single() {
+        Ok(root) => {
+            commands.entity(root).with_children(|parent| {
+                parent.spawn(Observer::new(dispatch_trigger));
+                parent.spawn(Observer::new(run_acts_obs));
+                parent.spawn(Observer::new(run_acts_by_name_obs));
+                parent.spawn(Observer::new(set_visible_on_flag));
+                parent.spawn(Observer::new(crate::acts::tape::process_event));
+            });
+        }
+        Err(e) => {
+            error!("Can not setup minibuffer observers: {e}");
+        }
+    }
 }
 
 /// Requests an act to be run

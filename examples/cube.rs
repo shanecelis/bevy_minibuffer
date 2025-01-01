@@ -21,7 +21,6 @@ fn plugin(app: &mut App) {
             Act::new(speed).bind(keyseq! { S }),
             Act::new(start).bind(keyseq! { D }),
             Act::new_with_input(speed_scriptable).bind(keyseq! { F }),
-            // Act::new(call_speed_scriptable).bind(keyseq! { G }),
         ))
         .add_systems(Startup, |mut minibuffer: Minibuffer| {
             minibuffer.message("Hit A, S, or D to change cube speed. Hit 'Ctrl-H B' for keys.");
@@ -89,10 +88,6 @@ fn speed_scriptable(
         );
     }
 }
-
-// fn call_speed_scriptable(mut minibuffer: Minibuffer) {
-//     minibuffer.run_act_with_input("speed_scriptable", Some(2.0f32));
-// }
 
 fn setup(
     mut commands: Commands,

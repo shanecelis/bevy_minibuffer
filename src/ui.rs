@@ -11,14 +11,9 @@ use accesskit::{Node as Accessible, Role};
 const PADDING: Val = Val::Px(3.);
 const LEFT_PADDING: Val = Val::Px(6.);
 
-/// The Minibuffer root entity resource.
-#[derive(Debug, Resource, Reflect)]
-#[reflect(Resource)]
-pub(crate) struct MinibufferRoot(pub Entity);
-
 /// Root minibuffer node
 #[derive(Component)]
-struct MinibufferNode;
+pub struct MinibufferNode;
 
 /// Minibuffer bottom bar
 #[derive(Component)]
@@ -60,13 +55,12 @@ pub(crate) fn completion_item(label: String) -> (Text, Label, AccessibilityNode)
 }
 
 pub(crate) fn plugin(app: &mut App) {
-    app.register_type::<MinibufferRoot>()
-        .add_systems(PreStartup, spawn_layout);
+    app.add_systems(PreStartup, spawn_layout);
 }
 
 /// Create the UI layout.
 fn spawn_layout(mut commands: Commands) {
-    let root = commands
+    commands
         .spawn((
             Node {
                 position_type: PositionType::Absolute,
@@ -179,9 +173,7 @@ fn spawn_layout(mut commands: Commands) {
                         IconContainer,
                     ));
                 });
-        })
-        .id();
-    commands.insert_resource(MinibufferRoot(root));
+        });
 }
 
 // Scroll the auto complete panel with mouse.

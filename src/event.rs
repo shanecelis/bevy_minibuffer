@@ -1,9 +1,9 @@
 //! Events
 use crate::{
-    ui::MinibufferNode,
     acts::{Act, ActFlags, ActRef, ActSystem, RunActMap},
     input::{Hotkey, KeyChord},
     prompt::PromptState,
+    ui::MinibufferNode,
     Error, Minibuffer,
 };
 use bevy::{

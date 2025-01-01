@@ -1,6 +1,5 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
-    sink,
     acts::{
         cache::{HotkeyActCache, NameActCache},
         ActFlags, ActRef, ActsPlugin,
@@ -10,7 +9,7 @@ use crate::{
     prelude::*,
     prelude::{keyseq, ActBuilder, Acts},
     prompt::{CompletionState, PromptState},
-    Minibuffer,
+    sink, Minibuffer,
 };
 
 use std::{borrow::Cow, fmt::Debug};
@@ -92,7 +91,6 @@ pub fn list_acts(acts: Query<&Act>) -> String {
     }
     format!("{}", table)
 }
-
 
 /// List key bindings available.
 pub fn list_key_bindings(acts: Query<&Act>) -> String {

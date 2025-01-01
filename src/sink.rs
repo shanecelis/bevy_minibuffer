@@ -41,11 +41,14 @@ pub fn option_string(In(msg): In<Option<String>>, mut minibuffer: Minibuffer) {
 #[cfg(feature = "async")]
 mod future {
     use super::*;
+    use crate::MinibufferAsync as Minibuffer;
     use bevy_defer::{AsyncExecutor, NonSend};
     use std::future::Future;
-    use crate::MinibufferAsync as Minibuffer;
     /// Execute a future.
-    pub fn future<F: Future<Output = ()> + 'static>(In(future): In<F>, exec: NonSend<AsyncExecutor>) {
+    pub fn future<F: Future<Output = ()> + 'static>(
+        In(future): In<F>,
+        exec: NonSend<AsyncExecutor>,
+    ) {
         exec.spawn_any(future);
     }
 

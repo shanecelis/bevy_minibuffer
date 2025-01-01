@@ -1,6 +1,6 @@
 //! Events
 use crate::{
-    acts::{tape::TapeRecorder, Act, ActFlags, ActRef, ActSystem, RunAct, RunActMap},
+    acts::{Act, ActFlags, ActRef, ActSystem, RunActMap},
     input::{Hotkey, KeyChord},
     prompt::PromptState,
     ui::MinibufferRoot,
@@ -18,7 +18,7 @@ use bevy::{
 use bevy_channel_trigger::ChannelTriggerApp;
 // #[cfg(feature = "async")]
 // use bevy_crossbeam_event::CrossbeamEventApp;
-use std::{any::Any, borrow::Cow, fmt::Debug, sync::Arc};
+use std::{borrow::Cow, fmt::Debug};
 
 pub(crate) fn plugin(app: &mut App) {
     // #[cfg(feature = "async")]
@@ -37,10 +37,10 @@ pub(crate) fn plugin(app: &mut App) {
 
 fn setup_observers(root: Res<MinibufferRoot>, mut commands: Commands) {
     commands.entity(root.0).with_children(|parent| {
-        parent.spawn(Observer::new(crate::event::dispatch_trigger));
-        parent.spawn(Observer::new(crate::event::run_acts_trigger));
-        parent.spawn(Observer::new(crate::event::run_acts_by_name_trigger));
-        parent.spawn(Observer::new(crate::event::set_visible_on_flag));
+        parent.spawn(Observer::new(dispatch_trigger));
+        parent.spawn(Observer::new(run_acts_obs));
+        parent.spawn(Observer::new(run_acts_by_name_obs));
+        parent.spawn(Observer::new(set_visible_on_flag));
         parent.spawn(Observer::new(crate::acts::tape::process_event));
     });
 }
@@ -52,8 +52,6 @@ pub struct RunActEvent {
     pub(crate) act: ActRef,
     /// Which if any of its hotkeys started it
     pub hotkey: Option<usize>,
-    // pub(crate) input: Option<Input>,
-    // pub(crate) universal_arg: Option<i32>,
 }
 
 /// Requests an act by name to be run
@@ -61,7 +59,6 @@ pub struct RunActEvent {
 pub struct RunActByNameEvent {
     /// Name of the act to run
     pub name: Cow<'static, str>,
-    // input: Option<Input>,
 }
 
 impl RunActByNameEvent {
@@ -72,16 +69,6 @@ impl RunActByNameEvent {
             // input: None,
         }
     }
-
-    // pub fn new_with_input<I: 'static + Send + Sync + Debug>(
-    //     name: impl Into<Cow<'static, str>>,
-    //     input: I,
-    // ) -> Self {
-    //     Self {
-    //         name: name.into(),
-    //         input: Some(Arc::new(input)),
-    //     }
-    // }
 }
 
 /// This holds the last act run.
@@ -126,33 +113,6 @@ impl RunActEvent {
             // input: None,
         }
     }
-
-    // pub fn new_with_input<I: 'static + Send + Sync + Debug>(act: ActRef, input: I) -> Self {
-    //     Self {
-    //         act,
-    //         hotkey: None,
-    //         input: Some(Arc::new(input)),
-    //     }
-    // }
-
-    // pub fn from_act_with_input<I: 'static + Send + Sync + Debug>(
-    //     act: &Act,
-    //     id: Entity,
-    //     input: I,
-    // ) -> Self {
-    //     Self {
-    //         act: ActRef {
-    //             id,
-    //             flags: act.flags,
-    //         },
-    //         hotkey: None,
-    //         input: Some(Arc::new(input)),
-    //     }
-    // }
-
-    // pub fn from_name(name: impl Into<Cow<'static, str>>) -> Self {
-    //     Self { act: ActArg::from(name.into()), hotkey: None }
-    // }
 
     /// Set the hotkey index.
     pub fn with_hotkey(mut self, index: usize) -> Self {
@@ -266,7 +226,7 @@ pub(crate) fn dispatch_events(
     }
 }
 
-pub(crate) fn dispatch_trigger(
+fn dispatch_trigger(
     mut dispatch_events: Trigger<DispatchEvent>,
     mut lookup_events: EventWriter<LookupEvent>,
     mut minibuffer: Minibuffer,
@@ -328,7 +288,7 @@ pub(crate) fn run_acts(
 }
 
 /// Run act for any [RunActEvent].
-pub(crate) fn run_acts_trigger(
+fn run_acts_obs(
     trigger: Trigger<RunActEvent>,
     mut commands: Commands,
     run_act_map: Res<RunActMap>,
@@ -365,14 +325,10 @@ pub(crate) fn run_acts_by_name(
     }
 }
 
-pub(crate) fn run_acts_by_name_trigger(
+fn run_acts_by_name_obs(
     trigger: Trigger<RunActByNameEvent>,
-    mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
-    mut last_act: ResMut<LastRunAct>,
-    run_act_map: Res<RunActMap>,
     acts: Query<(Entity, &Act)>,
-    mut tape: ResMut<TapeRecorder>,
 ) {
     let e = trigger.event();
     if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
@@ -402,7 +358,6 @@ mod test {
 
         assert_eq!(actual_id, TypeId::of::<f32>());
         assert_eq!(boxed_id, TypeId::of::<Arc<dyn Any>>());
-        // assert_eq!(actual_id, boxed_id);
     }
 
     #[test]

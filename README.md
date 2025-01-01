@@ -575,8 +575,8 @@ does not run the command; it runs a bash function.
 # TODO
 - [ ] Use a "real" cursor/selection highlight.
 - [ ] Add case-insensitive tab-completion example.
-- [ ] Make a tape recording recursable.
-- [ ] Record universal args on tape.
+- [x] Make a tape recording recursable.
+- [x] Record universal args on tape.
 - [x] Make it possible to have vim-like prompt (no space after ":").
 - [x] Add `HashMap<String,V>` completer.
 - [x] Make universal-arg work without async.

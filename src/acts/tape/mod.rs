@@ -852,9 +852,7 @@ impl Tape {
 
 pub fn play_tape_sys(
     InRef(tape): InRef<Tape>,
-    mut next_prompt_state: ResMut<NextState<crate::prompt::PromptState>>,
     mut commands: Commands,
-    mut last_act: ResMut<crate::event::LastRunAct>,
     mut tape_recorder: ResMut<TapeRecorder>,
     acts: Query<&Act>,
     run_act_map: Res<crate::acts::RunActMap>,

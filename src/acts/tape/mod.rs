@@ -1,5 +1,7 @@
 use crate::{
-    acts::{universal::UniversalArg, Act, ActFlags, Acts, ActsPlugin, RunActMap, ActRef, ActSystem},
+    acts::{
+        universal::UniversalArg, Act, ActFlags, ActRef, ActSystem, Acts, ActsPlugin, RunActMap,
+    },
     event::{KeyChordEvent, LastRunAct, RunActEvent},
     input::{keyseq, KeyChord},
     Minibuffer,
@@ -72,9 +74,8 @@ impl Default for TapeActs {
                 Act::new(tape_record)
                     .bind(keyseq! { Q })
                     .sub_flags(ActFlags::Record),
-                Act::new_with_input(tape_play)
-                    .bind_aliased(keyseq! { Shift-2 }, "@"),
-                    // .sub_flags(ActFlags::Record),
+                Act::new_with_input(tape_play).bind_aliased(keyseq! { Shift-2 }, "@"),
+                // .sub_flags(ActFlags::Record),
                 // Act::new(repeat).bind(keyseq! { Period }).sub_flags(ActFlags::Record | ActFlags::RunAct),
                 Act::new(repeat)
                     .bind(keyseq! { Period })
@@ -102,7 +103,7 @@ enum SoundState {
 mod fun {
     use super::*;
     use crate::ui::IconContainer;
-    use bevy::{window::RequestRedraw, asset::embedded_asset};
+    use bevy::{asset::embedded_asset, window::RequestRedraw};
     use std::time::Duration;
 
     fn show<T: Component>(
@@ -494,7 +495,11 @@ impl Default for TapeRecorder {
     }
 }
 
-pub(crate) fn process_event(trigger: Trigger<RunActEvent>, mut recorder: ResMut<TapeRecorder>, universal_arg: Res<UniversalArg>) {
+pub(crate) fn process_event(
+    trigger: Trigger<RunActEvent>,
+    mut recorder: ResMut<TapeRecorder>,
+    universal_arg: Res<UniversalArg>,
+) {
     let event = trigger.event();
     if event.act.flags.contains(ActFlags::Record) {
         match *recorder {
@@ -779,7 +784,8 @@ fn repeat(
 
 impl Tape {
     pub fn append_run(&mut self, act: &RunActEvent, universal_arg: &UniversalArg) {
-        self.content.push(RunActRecord::from(act).with_universal(universal_arg));
+        self.content
+            .push(RunActRecord::from(act).with_universal(universal_arg));
     }
 
     pub fn ammend_input<I: Clone + 'static + Send + Sync + Debug>(&mut self, input: I) {
@@ -861,28 +867,28 @@ pub fn play_tape_sys(
     let count = universal_arg.take().unwrap_or(1);
     let old = std::mem::replace(&mut *tape_recorder, TapeRecorder::Play);
     for _ in 0..count {
-    for e in &tape.content {
-        let Ok(act) = acts.get(e.act.id) else {
-            warn!("Could not get act for {:?}", e.act.id);
-            // XXX: Shouldn't I break here?
-            continue;
-        };
-        let run_act = act
-            .input
-            .as_ref()
-            .and_then(|x| run_act_map.get(x).map(|y| &**y));
+        for e in &tape.content {
+            let Ok(act) = acts.get(e.act.id) else {
+                warn!("Could not get act for {:?}", e.act.id);
+                // XXX: Shouldn't I break here?
+                continue;
+            };
+            let run_act = act
+                .input
+                .as_ref()
+                .and_then(|x| run_act_map.get(x).map(|y| &**y));
 
-        let run_act = run_act.unwrap_or(&ActSystem);
-        *universal_arg = e.universal.clone();
-        if let Some(ref input) = e.input {
-            let input = input.clone();
-            if let Err(error) = run_act.run_with_input(act.system_id, &*input, &mut commands) {
-                warn!("Error running act with input '{}': {:?}", act.name, error);
+            let run_act = run_act.unwrap_or(&ActSystem);
+            *universal_arg = e.universal.clone();
+            if let Some(ref input) = e.input {
+                let input = input.clone();
+                if let Err(error) = run_act.run_with_input(act.system_id, &*input, &mut commands) {
+                    warn!("Error running act with input '{}': {:?}", act.name, error);
+                }
+            } else if let Err(error) = run_act.run(act.system_id, &mut commands) {
+                warn!("Error running act '{}': {:?}", act.name, error);
             }
-        } else if let Err(error) = run_act.run(act.system_id, &mut commands) {
-            warn!("Error running act '{}': {:?}", act.name, error);
         }
-    }
     }
     let _ = std::mem::replace(&mut *tape_recorder, old);
 }

@@ -14,7 +14,6 @@ pub use plugin::Config;
 pub use plugin::Error;
 pub use plugin::MinibufferPlugin;
 pub use plugin::MinibufferPlugins;
-#[cfg(feature = "async")]
 pub mod sink;
 pub mod view;
 #[cfg(feature = "async")]
@@ -44,13 +43,13 @@ pub mod prelude {
     pub use super::event::RunActEvent;
     pub use super::input::{key, keyseq, KeyChord, Modifiers};
     pub use super::prompt::*;
+    #[cfg(feature = "async")]
+    pub use super::sink;
     pub use super::sync::MinibufferCommands;
     pub use super::Config;
     pub use super::Minibuffer;
-    pub use super::{Error, MinibufferPlugin, MinibufferPlugins};
-    pub use std::time::Duration;
     #[cfg(feature = "async")]
     pub use super::MinibufferAsync;
-    #[cfg(feature = "async")]
-    pub use super::sink;
+    pub use super::{Error, MinibufferPlugin, MinibufferPlugins};
+    pub use std::time::Duration;
 }

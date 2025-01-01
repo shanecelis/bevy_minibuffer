@@ -143,28 +143,30 @@ fn spawn_layout(mut commands: Commands) {
                         });
                 });
             builder
-                .spawn((Node::default(),
-                        BackgroundColor(Color::BLACK),
-                        Visibility::Hidden,
-                        Name::new("bar"),
-                        BottomBar))
+                .spawn((
+                    Node::default(),
+                    BackgroundColor(Color::BLACK),
+                    Visibility::Hidden,
+                    Name::new("bar"),
+                    BottomBar,
+                ))
                 .with_children(|parent| {
-                    parent
-                        .spawn((
-                            Node {
-                                flex_wrap: FlexWrap::Wrap,
-                                flex_direction: FlexDirection::Row,
-                                flex_grow: 1.,
-                                padding: UiRect {
-                                    top: PADDING,
-                                    left: LEFT_PADDING,
-                                    right: PADDING,
-                                    bottom: PADDING,
-                                },
-                                ..default()
+                    parent.spawn((
+                        Node {
+                            flex_wrap: FlexWrap::Wrap,
+                            flex_direction: FlexDirection::Row,
+                            flex_grow: 1.,
+                            padding: UiRect {
+                                top: PADDING,
+                                left: LEFT_PADDING,
+                                right: PADDING,
+                                bottom: PADDING,
                             },
+                            ..default()
+                        },
                         Name::new("buffer"),
-                        PromptContainer));
+                        PromptContainer,
+                    ));
                     parent.spawn((
                         Node {
                             // TODO: How do I get the height of our default

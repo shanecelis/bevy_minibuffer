@@ -85,9 +85,10 @@ impl LastRunAct {
     }
 }
 
-
-fn set_visible_on_flag(trigger: Trigger<RunActEvent>,
-                       mut next_prompt_state: ResMut<NextState<PromptState>>) {
+fn set_visible_on_flag(
+    trigger: Trigger<RunActEvent>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
+) {
     if trigger.event().act.flags.contains(ActFlags::ShowMinibuffer) {
         next_prompt_state.set(PromptState::Visible);
     }
@@ -278,10 +279,7 @@ impl KeyChordEvent {
 }
 
 /// Run act for any [RunActEvent].
-pub(crate) fn run_acts(
-    mut events: EventReader<RunActEvent>,
-    mut commands: Commands,
-) {
+pub(crate) fn run_acts(mut events: EventReader<RunActEvent>, mut commands: Commands) {
     for e in events.read() {
         commands.trigger(*e);
     }
@@ -293,7 +291,7 @@ fn run_acts_obs(
     mut commands: Commands,
     run_act_map: Res<RunActMap>,
     acts: Query<&Act>,
-    mut last: ResMut<LastRunAct>
+    mut last: ResMut<LastRunAct>,
 ) {
     let e = trigger.event();
     let act = match acts.get(e.act.id) {
@@ -303,10 +301,10 @@ fn run_acts_obs(
             return;
         }
     };
-    let run_act =
-        act.input
-            .as_ref()
-            .and_then(|x| run_act_map.get(x).map(|y| &**y));
+    let run_act = act
+        .input
+        .as_ref()
+        .and_then(|x| run_act_map.get(x).map(|y| &**y));
 
     let run_act = run_act.unwrap_or(&ActSystem);
     last.0 = Some(*trigger.event());
@@ -316,10 +314,7 @@ fn run_acts_obs(
 }
 
 /// Lookup and run act for any [RunActByNameEvent].
-pub(crate) fn run_acts_by_name(
-    mut events: EventReader<RunActByNameEvent>,
-    mut commands: Commands,
-) {
+pub(crate) fn run_acts_by_name(mut events: EventReader<RunActByNameEvent>, mut commands: Commands) {
     for e in events.read() {
         commands.trigger(e.clone());
     }
@@ -333,8 +328,8 @@ fn run_acts_by_name_obs(
     let e = trigger.event();
     if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
         let new_event = RunActEvent {
-                act: ActRef::from_act(act, id),
-                hotkey: None,
+            act: ActRef::from_act(act, id),
+            hotkey: None,
         };
         commands.trigger(new_event);
     } else {

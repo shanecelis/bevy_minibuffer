@@ -1,5 +1,6 @@
 //! Bare minimum of acts for a useable and discoverable console
 use crate::{
+    sink,
     acts::{
         cache::{HotkeyActCache, NameActCache},
         ActFlags, ActRef, ActsPlugin,
@@ -92,22 +93,6 @@ pub fn list_acts(acts: Query<&Act>) -> String {
     format!("{}", table)
 }
 
-/// Can pipe any string to the message buffer.
-///
-/// The minibuffer might not be visible when this is called. Consider adding
-/// [ActFlags::ShowMinibuffer] to the act's flags to ensure it will be shown.
-///
-/// Used internally by `list_acts` for instance
-///
-/// ```ignore
-/// ActBuilder::new(list_acts.pipe(to_message))
-///     .named("list_acts")
-///     .add_flags(ActFlags::ShowMinibuffer)
-///     .hotkey(keyseq! { Ctrl-H A }),
-/// ```
-pub fn to_message(In(msg): In<String>, mut minibuffer: Minibuffer) {
-    minibuffer.message(msg);
-}
 
 /// List key bindings available.
 pub fn list_key_bindings(acts: Query<&Act>) -> String {
@@ -248,12 +233,12 @@ impl Default for BasicActs {
     fn default() -> Self {
         Self {
             acts: Acts::new([
-                ActBuilder::new(list_acts.pipe(to_message))
+                ActBuilder::new(list_acts.pipe(sink::string))
                     .named("list_acts")
                     .add_flags(ActFlags::ShowMinibuffer)
                     .sub_flags(ActFlags::Record)
                     .bind(keyseq! { Ctrl-H A }),
-                ActBuilder::new(list_key_bindings.pipe(to_message))
+                ActBuilder::new(list_key_bindings.pipe(sink::string))
                     .named("list_key_bindings")
                     .add_flags(ActFlags::ShowMinibuffer)
                     .sub_flags(ActFlags::Record)

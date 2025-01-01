@@ -127,37 +127,34 @@ impl Minibuffer<'_, '_> {
         }
     }
 
-    /// Request an act be run.
-    ///
-    /// The input type cannot be determined at compile-time, so _you_ must
-    /// ensure it is correct. Consider using type suffixes for numerical
-    /// literals. For instance `Some(2.0)` is an `Option<f64>` without any
-    /// further indication not an `Option<f32>`; use `Some(2.0f32)` if you want
-    /// the latter.
-    pub fn run_act_with_input<I: Send + Sync + Debug + 'static>(
-        &mut self,
-        act: impl Into<ActArg>,
-        input: I,
-    ) {
-        match act.into() {
-            ActArg::ActRef(act) => {
-                self.commands
-                    .trigger(RunActEvent::new_with_input(act, input));
-            }
-            ActArg::Name(name) => {
-                self.commands
-                    .trigger(RunActByNameEvent::new_with_input(name, input));
-                // self.commands.send_event(RunActByNameEvent::new(name));
-                // self.lookup_and_run_act_event.send(RunActByNameEvent::new(name));
-            }
-        }
-    }
+    // /// Request an act be run.
+    // ///
+    // /// The input type cannot be determined at compile-time, so _you_ must
+    // /// ensure it is correct. Consider using type suffixes for numerical
+    // /// literals. For instance `Some(2.0)` is an `Option<f64>` without any
+    // /// further indication not an `Option<f32>`; use `Some(2.0f32)` if you want
+    // /// the latter.
+    // pub fn run_act_with_input<I: Send + Sync + Debug + 'static>(
+    //     &mut self,
+    //     act: impl Into<ActArg>,
+    //     input: I,
+    // ) {
+    //     match act.into() {
+    //         ActArg::ActRef(act) => {
+    //             self.commands
+    //                 .trigger(RunActEvent::new_with_input(act, input));
+    //         }
+    //         ActArg::Name(name) => {
+    //             self.commands
+    //                 .trigger(RunActByNameEvent::new_with_input(name, input));
+    //             // self.commands.send_event(RunActByNameEvent::new(name));
+    //             // self.lookup_and_run_act_event.send(RunActByNameEvent::new(name));
+    //         }
+    //     }
+    // }
 
     pub fn log_input<I: Debug + Clone + Send + Sync + 'static>(&mut self, input: &I) {
         self.tape_recorder.process_input(input);
-        if let TapeRecorder::Record { ref mut tape, .. } = *self.tape_recorder {
-            tape.ammend_input(input.clone());
-        }
     }
 
     /// Read input from user with autocomplete provided by a [Lookup].

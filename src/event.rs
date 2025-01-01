@@ -40,19 +40,19 @@ fn setup_observers(root: Res<MinibufferRoot>, mut commands: Commands) {
         parent.spawn(Observer::new(crate::event::dispatch_trigger));
         parent.spawn(Observer::new(crate::event::run_acts_trigger));
         parent.spawn(Observer::new(crate::event::run_acts_by_name_trigger));
+        parent.spawn(Observer::new(crate::event::set_visible_on_flag));
+        parent.spawn(Observer::new(crate::acts::tape::process_event));
     });
 }
 
-pub type Input = Arc<dyn Any + 'static + Send + Sync>;
-
 /// Requests an act to be run
-#[derive(Clone, Event, Debug)]
+#[derive(Clone, Event, Debug, Copy)]
 pub struct RunActEvent {
     /// The act to run
     pub(crate) act: ActRef,
     /// Which if any of its hotkeys started it
     pub hotkey: Option<usize>,
-    pub(crate) input: Option<Input>,
+    // pub(crate) input: Option<Input>,
     // pub(crate) universal_arg: Option<i32>,
 }
 
@@ -61,7 +61,7 @@ pub struct RunActEvent {
 pub struct RunActByNameEvent {
     /// Name of the act to run
     pub name: Cow<'static, str>,
-    input: Option<Input>,
+    // input: Option<Input>,
 }
 
 impl RunActByNameEvent {
@@ -69,19 +69,19 @@ impl RunActByNameEvent {
     pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
         Self {
             name: name.into(),
-            input: None,
+            // input: None,
         }
     }
 
-    pub fn new_with_input<I: 'static + Send + Sync + Debug>(
-        name: impl Into<Cow<'static, str>>,
-        input: I,
-    ) -> Self {
-        Self {
-            name: name.into(),
-            input: Some(Arc::new(input)),
-        }
-    }
+    // pub fn new_with_input<I: 'static + Send + Sync + Debug>(
+    //     name: impl Into<Cow<'static, str>>,
+    //     input: I,
+    // ) -> Self {
+    //     Self {
+    //         name: name.into(),
+    //         input: Some(Arc::new(input)),
+    //     }
+    // }
 }
 
 /// This holds the last act run.
@@ -98,13 +98,21 @@ impl LastRunAct {
     }
 }
 
+
+fn set_visible_on_flag(trigger: Trigger<RunActEvent>,
+                       mut next_prompt_state: ResMut<NextState<PromptState>>) {
+    if trigger.event().act.flags.contains(ActFlags::ShowMinibuffer) {
+        next_prompt_state.set(PromptState::Visible);
+    }
+}
+
 impl RunActEvent {
     /// Make a new run act event.
     pub fn new(act: ActRef) -> Self {
         Self {
             act,
             hotkey: None,
-            input: None,
+            // input: None,
         }
     }
 
@@ -115,32 +123,32 @@ impl RunActEvent {
                 flags: act.flags,
             },
             hotkey: None,
-            input: None,
+            // input: None,
         }
     }
 
-    pub fn new_with_input<I: 'static + Send + Sync + Debug>(act: ActRef, input: I) -> Self {
-        Self {
-            act,
-            hotkey: None,
-            input: Some(Arc::new(input)),
-        }
-    }
+    // pub fn new_with_input<I: 'static + Send + Sync + Debug>(act: ActRef, input: I) -> Self {
+    //     Self {
+    //         act,
+    //         hotkey: None,
+    //         input: Some(Arc::new(input)),
+    //     }
+    // }
 
-    pub fn from_act_with_input<I: 'static + Send + Sync + Debug>(
-        act: &Act,
-        id: Entity,
-        input: I,
-    ) -> Self {
-        Self {
-            act: ActRef {
-                id,
-                flags: act.flags,
-            },
-            hotkey: None,
-            input: Some(Arc::new(input)),
-        }
-    }
+    // pub fn from_act_with_input<I: 'static + Send + Sync + Debug>(
+    //     act: &Act,
+    //     id: Entity,
+    //     input: I,
+    // ) -> Self {
+    //     Self {
+    //         act: ActRef {
+    //             id,
+    //             flags: act.flags,
+    //         },
+    //         hotkey: None,
+    //         input: Some(Arc::new(input)),
+    //     }
+    // }
 
     // pub fn from_name(name: impl Into<Cow<'static, str>>) -> Self {
     //     Self { act: ActArg::from(name.into()), hotkey: None }
@@ -272,7 +280,6 @@ pub(crate) fn dispatch_trigger(
         RunActEvent(e) => {
             minibuffer.run_act(e.act);
         }
-
         RunActByNameEvent(e) => {
             minibuffer.run_act(e.name);
         }
@@ -310,140 +317,51 @@ impl KeyChordEvent {
     }
 }
 
-pub fn run_act_raw(
-    e: &RunActEvent,
-    act: Option<&Act>,
-    run_act: Option<&(dyn RunAct + Send + Sync)>,
-    next_prompt_state: &mut NextState<PromptState>,
-    last_act: &mut LastRunAct,
-    commands: &mut Commands,
-    tape_recorder: Option<&mut TapeRecorder>,
-) {
-    if e.act.flags.contains(ActFlags::ShowMinibuffer) {
-        next_prompt_state.set(PromptState::Visible);
-    }
-    let Some(act) = act else {
-        warn!("Could not find act at {:?}", e.act.id);
-        return;
-    };
-    last_act.0 = Some(e.clone());
-    let run_act = run_act.unwrap_or(&ActSystem);
-    if let Some(ref input) = e.input {
-        let input = input.clone();
-        if let Err(error) = run_act.run_with_input(act.system_id, &*input, commands) {
-            warn!("Error running act with input '{}': {:?}", act.name, error);
-        }
-    } else if let Err(error) = run_act.run(act.system_id, commands) {
-        warn!("Error running act '{}': {:?}", act.name, error);
-    }
-    if let Some(tape_recorder) = tape_recorder {
-        tape_recorder.process_event(e);
-    }
-    // } else {
-    //     warn!("Could not find RunActMap for act '{}'.", act.name);
-    // }
-}
-
-// fn act_and_runner(act_id: Entity, acts: &Query<&Act>, runners: &Query<&RunActMap>) -> Option<(&Act, &RunActMap)>{
-//     acts.get(act_id).ok().and_then(|act| runners.get(act.system_id).ok().map(|run_act| (act, run_act)))
-// }
-
 /// Run act for any [RunActEvent].
 pub(crate) fn run_acts(
     mut events: EventReader<RunActEvent>,
-    mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
-    mut last_act: ResMut<LastRunAct>,
-    mut tape: ResMut<TapeRecorder>,
-    acts: Query<&Act>,
-    run_act_map: Res<RunActMap>,
 ) {
     for e in events.read() {
-        let act = acts.get(e.act.id).ok();
-
-        let run_act = act.as_ref().and_then(|a| {
-            a.input
-                .as_ref()
-                .and_then(|x| run_act_map.get(x).map(|y| &**y))
-        });
-        // let run_act = act.as_ref().and_then(|a|run_act.get(a.system_id).ok());
-        run_act_raw(
-            e,
-            act,
-            run_act,
-            &mut next_prompt_state,
-            &mut last_act,
-            &mut commands,
-            Some(&mut tape),
-        );
+        commands.trigger(*e);
     }
 }
 
 /// Run act for any [RunActEvent].
 pub(crate) fn run_acts_trigger(
     trigger: Trigger<RunActEvent>,
-    mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
-    mut last_act: ResMut<LastRunAct>,
     run_act_map: Res<RunActMap>,
     acts: Query<&Act>,
-    mut tape: ResMut<TapeRecorder>,
+    mut last: ResMut<LastRunAct>
 ) {
     let e = trigger.event();
-    let act = acts.get(e.act.id).ok();
-    let run_act = act.as_ref().and_then(|a| {
-        a.input
+    let act = match acts.get(e.act.id) {
+        Ok(act) => act,
+        Err(e) => {
+            warn!("Could not find act: {e}");
+            return;
+        }
+    };
+    let run_act =
+        act.input
             .as_ref()
-            .and_then(|x| run_act_map.get(x).map(|y| &**y))
-    });
-    run_act_raw(
-        e,
-        act,
-        run_act,
-        &mut next_prompt_state,
-        &mut last_act,
-        &mut commands,
-        Some(&mut tape),
-    );
+            .and_then(|x| run_act_map.get(x).map(|y| &**y));
+
+    let run_act = run_act.unwrap_or(&ActSystem);
+    last.0 = Some(*trigger.event());
+    if let Err(error) = run_act.run(act.system_id, &mut commands) {
+        warn!("Error running act '{}': {:?}", act.name, error);
+    }
 }
 
 /// Lookup and run act for any [RunActByNameEvent].
 pub(crate) fn run_acts_by_name(
     mut events: EventReader<RunActByNameEvent>,
-    mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut commands: Commands,
-    mut last_act: ResMut<LastRunAct>,
-    run_act_map: Res<RunActMap>,
-    acts: Query<(Entity, &Act)>,
-    mut tape: ResMut<TapeRecorder>,
 ) {
     for e in events.read() {
-        if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
-            let e = match &e.input {
-                Some(input) => RunActEvent {
-                    act: ActRef::from_act(act, id),
-                    hotkey: None,
-                    input: Some(input.clone()),
-                },
-                None => RunActEvent::from_act(act, id),
-            };
-
-            let run_act = act
-                .input
-                .as_ref()
-                .and_then(|x| run_act_map.get(x).map(|y| &**y));
-            run_act_raw(
-                &e,
-                Some(act),
-                run_act,
-                &mut next_prompt_state,
-                &mut last_act,
-                &mut commands,
-                Some(&mut tape),
-            );
-        } else {
-            warn!("No act named '{}' found.", e.name);
-        }
+        commands.trigger(e.clone());
     }
 }
 
@@ -458,27 +376,11 @@ pub(crate) fn run_acts_by_name_trigger(
 ) {
     let e = trigger.event();
     if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
-        let e = match &e.input {
-            Some(input) => RunActEvent {
+        let new_event = RunActEvent {
                 act: ActRef::from_act(act, id),
                 hotkey: None,
-                input: Some(input.clone()),
-            },
-            None => RunActEvent::from_act(act, id),
         };
-        let run_act = act
-            .input
-            .as_ref()
-            .and_then(|x| run_act_map.get(x).map(|y| &**y));
-        run_act_raw(
-            &e,
-            Some(act),
-            run_act,
-            &mut next_prompt_state,
-            &mut last_act,
-            &mut commands,
-            Some(&mut tape),
-        );
+        commands.trigger(new_event);
     } else {
         warn!("No act named '{}' found.", e.name);
     }

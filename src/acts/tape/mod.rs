@@ -1,5 +1,5 @@
 use crate::{
-    acts::{universal::UniversalArg, Act, ActFlags, Acts, ActsPlugin, RunActMap},
+    acts::{universal::UniversalArg, Act, ActFlags, Acts, ActsPlugin, RunActMap, ActRef, ActSystem},
     event::{KeyChordEvent, LastRunAct, RunActEvent},
     input::{keyseq, KeyChord},
     Minibuffer,
@@ -8,6 +8,7 @@ use bevy::prelude::*;
 #[cfg(feature = "clipboard")]
 use copypasta::{ClipboardContext, ClipboardProvider};
 use std::{
+    any::Any,
     borrow::Cow,
     collections::HashMap,
     fmt::{self, Debug, Write},
@@ -22,6 +23,44 @@ pub(crate) fn plugin(app: &mut App) {
     app.add_plugins(fun::plugin);
 }
 
+#[derive(Resource, Debug, Default, Deref, DerefMut)]
+pub struct Tapes(HashMap<KeyChord, Tape>);
+
+#[derive(Resource, Default, Deref, DerefMut)]
+pub struct LastPlayed(Option<KeyChord>);
+
+#[derive(Debug, Clone)]
+pub struct RunActRecord {
+    pub act: ActRef,
+    // hotkey: Option<usize>,
+    pub input: Option<Input>,
+    pub universal: UniversalArg,
+}
+
+pub type Input = Arc<dyn Any + 'static + Send + Sync>;
+
+impl From<&RunActEvent> for RunActRecord {
+    fn from(e: &RunActEvent) -> Self {
+        Self {
+            act: e.act,
+            // hotkey: e.hotkey.clone(),
+            input: None,
+            universal: UniversalArg(None),
+        }
+    }
+}
+impl RunActRecord {
+    fn with_universal(mut self, universal_arg: &UniversalArg) -> Self {
+        self.universal = universal_arg.clone();
+        self
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct Tape {
+    pub content: Vec<RunActRecord>,
+}
+
 pub struct TapeActs {
     acts: Acts,
 }
@@ -34,8 +73,8 @@ impl Default for TapeActs {
                     .bind(keyseq! { Q })
                     .sub_flags(ActFlags::Record),
                 Act::new_with_input(tape_play)
-                    .bind_aliased(keyseq! { Shift-2 }, "@")
-                    .sub_flags(ActFlags::Record),
+                    .bind_aliased(keyseq! { Shift-2 }, "@"),
+                    // .sub_flags(ActFlags::Record),
                 // Act::new(repeat).bind(keyseq! { Period }).sub_flags(ActFlags::Record | ActFlags::RunAct),
                 Act::new(repeat)
                     .bind(keyseq! { Period })
@@ -455,23 +494,41 @@ impl Default for TapeRecorder {
     }
 }
 
-impl TapeRecorder {
-    pub fn process_event(&mut self, event: &RunActEvent) {
-        if event.act.flags.contains(ActFlags::Record) {
-            match self {
-                TapeRecorder::Off {
-                    one_off: ref mut tape,
-                } => {
-                    tape.content.clear();
-                    tape.append_run(event.clone());
-                }
-                TapeRecorder::Record { ref mut tape, .. } => {
-                    tape.append_run(event.clone());
-                }
-                _ => (),
+pub(crate) fn process_event(trigger: Trigger<RunActEvent>, mut recorder: ResMut<TapeRecorder>, universal_arg: Res<UniversalArg>) {
+    let event = trigger.event();
+    if event.act.flags.contains(ActFlags::Record) {
+        match *recorder {
+            TapeRecorder::Off {
+                one_off: ref mut tape,
+            } => {
+                tape.content.clear();
+                tape.append_run(event, &universal_arg);
             }
+            TapeRecorder::Record { ref mut tape, .. } => {
+                tape.append_run(event, &universal_arg);
+            }
+            _ => (),
         }
     }
+}
+
+impl TapeRecorder {
+    // pub fn process_event(&mut self, event: &RunActEvent) {
+    //     if event.act.flags.contains(ActFlags::Record) {
+    //         match self {
+    //             TapeRecorder::Off {
+    //                 one_off: ref mut tape,
+    //             } => {
+    //                 tape.content.clear();
+    //                 tape.append_run(event);
+    //             }
+    //             TapeRecorder::Record { ref mut tape, .. } => {
+    //                 tape.append_run(event);
+    //             }
+    //             _ => (),
+    //         }
+    //     }
+    // }
 
     pub fn process_input<I: Debug + Clone + Send + Sync + 'static>(&mut self, input: &I) {
         match self {
@@ -485,12 +542,6 @@ impl TapeRecorder {
         }
     }
 }
-
-#[derive(Resource, Debug, Default, Deref, DerefMut)]
-pub struct Tapes(HashMap<KeyChord, Tape>);
-
-#[derive(Resource, Default, Deref, DerefMut)]
-pub struct LastPlayed(Option<KeyChord>);
 
 fn tape_record(
     mut minibuffer: Minibuffer,
@@ -726,14 +777,9 @@ fn repeat(
     }
 }
 
-#[derive(Debug, Default, Clone)]
-pub struct Tape {
-    pub content: Vec<RunActEvent>,
-}
-
 impl Tape {
-    pub fn append_run(&mut self, act: RunActEvent) {
-        self.content.push(act);
+    pub fn append_run(&mut self, act: &RunActEvent, universal_arg: &UniversalArg) {
+        self.content.push(RunActRecord::from(act).with_universal(universal_arg));
     }
 
     pub fn ammend_input<I: Clone + 'static + Send + Sync + Debug>(&mut self, input: I) {
@@ -812,26 +858,33 @@ pub fn play_tape_sys(
     mut tape_recorder: ResMut<TapeRecorder>,
     acts: Query<&Act>,
     run_act_map: Res<crate::acts::RunActMap>,
+    mut universal_arg: ResMut<UniversalArg>,
 ) {
+    let count = universal_arg.take().unwrap_or(1);
     let old = std::mem::replace(&mut *tape_recorder, TapeRecorder::Play);
+    for _ in 0..count {
     for e in &tape.content {
         let Ok(act) = acts.get(e.act.id) else {
             warn!("Could not get act for {:?}", e.act.id);
+            // XXX: Shouldn't I break here?
             continue;
         };
         let run_act = act
             .input
             .as_ref()
             .and_then(|x| run_act_map.get(x).map(|y| &**y));
-        crate::event::run_act_raw(
-            e,
-            Some(act),
-            run_act,
-            &mut next_prompt_state,
-            &mut last_act,
-            &mut commands,
-            None,
-        );
+
+        let run_act = run_act.unwrap_or(&ActSystem);
+        *universal_arg = e.universal.clone();
+        if let Some(ref input) = e.input {
+            let input = input.clone();
+            if let Err(error) = run_act.run_with_input(act.system_id, &*input, &mut commands) {
+                warn!("Error running act with input '{}': {:?}", act.name, error);
+            }
+        } else if let Err(error) = run_act.run(act.system_id, &mut commands) {
+            warn!("Error running act '{}': {:?}", act.name, error);
+        }
+    }
     }
     let _ = std::mem::replace(&mut *tape_recorder, old);
 }

@@ -21,8 +21,7 @@ fn plugin(app: &mut App) {
             Act::new(speed).bind(keyseq! { S }),
             Act::new(start).bind(keyseq! { D }),
             Act::new_with_input(speed_scriptable).bind(keyseq! { F }),
-            Act::new(call_speed_scriptable).bind(keyseq! { G }),
-            Act::new(tape),
+            // Act::new(call_speed_scriptable).bind(keyseq! { G }),
         ))
         .add_systems(Startup, |mut minibuffer: Minibuffer| {
             minibuffer.message("Hit A, S, or D to change cube speed. Hit 'Ctrl-H B' for keys.");
@@ -36,7 +35,6 @@ fn main() {
             common::VideoCapturePlugin::new("cube").background(Srgba::hex("390099").unwrap()),
             plugin,
         ))
-        .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_systems(Startup, setup)
         .add_systems(Update, rotate_cube)
         .run();
@@ -67,14 +65,6 @@ fn speed(mut minibuffer: Minibuffer) {
     );
 }
 
-mod cube {
-    pub(crate) use super::*;
-}
-
-fn tape(mut commands: Commands) {
-    commands.run_system_cached_with(cube::speed_scriptable, Some(33.0))
-}
-
 /// Set the speed of the spinning cube with input.
 fn speed_scriptable(
     In(number_maybe): In<Option<f32>>,
@@ -100,9 +90,9 @@ fn speed_scriptable(
     }
 }
 
-fn call_speed_scriptable(mut minibuffer: Minibuffer) {
-    minibuffer.run_act_with_input("speed_scriptable", Some(2.0f32));
-}
+// fn call_speed_scriptable(mut minibuffer: Minibuffer) {
+//     minibuffer.run_act_with_input("speed_scriptable", Some(2.0f32));
+// }
 
 fn setup(
     mut commands: Commands,

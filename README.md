@@ -28,6 +28,7 @@ cargo run --example demo-async --features async
 - Write your own acts (acts are just systems)
   - Support for async acts behind "async" feature flag
 - Basic acts: `run_act`, `list_acts`, `list_key_bindings`, `toggle_visibility`, and `describe_key`.
+- Adds only one root entity named "minibuffer"
 
 # Goals
 - Easily opt-in to basic functionality
@@ -376,18 +377,19 @@ The preceding async function `ask_name()` returns a future, technically a `impl 
 = Result<(), Error>>`. That has to go somewhere so that it will be evaluated.
 There are a series of pipe-able systems in the `sink` module:
 
-- `sink::result` accepts any result and runs it. If there is an error, reports
-  it to minibuffer.
 - `sink::future` accepts any future and runs it.
 - `sink::future_result` accepts any future that returns a result and runs it but
   if the result is an error, it reports that error to the minibuffer.
+
+- `sink::result` accepts any result. If it is an error, it is reported on the
+  minibuffer.
 
 # Acts and Plugins
 
 An `ActsPlugin` is a `Plugin` that contains `Act`s. Three `ActsPlugin`s are
 available in this crate: `BasicActs`, `UniversalArgActs`, and `TapeActs`.
 
-## Basic acts
+## Basic acts of console-ness
 
 `BasicActs` has the bare necessities of acts: 
 - run_act
@@ -447,7 +449,7 @@ cargo run --example universal-arg
 Although universal argument accepts a number, one can use it as an on or off
 flag too. 'Ctrl-U' ends up functioning like an adverb.
 
-Suppose we had an act called 'open-door' but it only worked the cloest door.
+Suppose we had an act called 'open-door' but it only worked with the closest door.
 What if we also wanted to open all doors? We could write another act to do that
 'open-all-doors' and find another key binding but let us consider what this
 might look like with universal argument.
@@ -476,9 +478,9 @@ fn open_door(universal_arg: Res<UniversalArg>, mut minibuffer: Minibuffer) {
 ### What if `UniversalActs` is not added?
 
 The resource `Res<UniversalArg>` is present even if `UniversalActs` has not been
-added. Without `UniveralActs` it will not do anything but exist. It is present
-so that any act may opt-in to using univeral arguments while still allowing the
-user to opt-out of `UniversalActs`.
+added. Without `UniveralActs` lies inert. But it is present so that any act may
+opt-in to accepting univeral arguments while still allowing the user to opt-out
+of `UniversalActs`.
 
 ## Tape acts
 <img align="right" src="https://github.com/user-attachments/assets/39cee20e-44f9-4352-a9b4-fdbe94a98634"/>
@@ -523,8 +525,8 @@ above to hear the sounds.
 
 # Features
 - "async" makes `MinibufferAsync` available.
-- "clipboard" makes clipboard accessible. Used by 'tape_copy' act.
-- "fun" adds an tape icon and tape sounds to tape acts.
+- "clipboard" makes clipboard accessible, used by 'tape_copy' act.
+- "fun" adds a tape icon and tape decks sounds to tape acts.
 - "dev-capture" is not for general use and is for generating videos as shown in
   this README.
 
@@ -544,17 +546,31 @@ believe it represents the best interaction model for game developer consoles.
 
 A non-interactive Unix command requires one to provide the arguments it expects.
 Failure to do so results in an error message. Often one must consult the
-command's help or usage to determine the right arguments. This is
+command's help or documentation to determine the right arguments. This is
 tolerable partly because we can then script these interactions.
 
 In general the Unix shell trades interactive convenience for non-interactive
-scriptability, and it is a good trade because of its scriptability. Minibuffer
-does not provide interactive scriptability[^2] but that means we can make it a
-better interactive experience. For instance instead of being required to know
-the arguments for any given command, Minibuffer commands will query the user for
-what is required. It is a "pull" model of interaction versus a "push" model.
+scriptability, and it is a good trade. EDIT: What I
+had written next was this:
 
-[^2]: Although one could implement keyboard macros, which are a form of interactive scripting. Pull requests are welcome.
+> Minibuffer does not provide interactive scriptability but that means we can
+> make it a better interactive experience.
+
+I realized that is not true and wrote `TapeActs` to disprove myself.
+
+Instead of being required to know the arguments for any given command,
+Minibuffer acts ask the user for what is required. It is a "pull"
+model of interaction versus a "push" model.
+
+### Why doesn't the shell use a pull model?
+
+In some sense the shell can't use a pull model because its commands run in
+another process and it does not invoke commands to interrogate them. Imagine the
+danger if a shell invoked a command to interrogate it, e.g., user types
+'shutdown', hits Tab, and their computer turns off. [Bash programmable
+completions](https://www.gnu.org/software/bash/manual/html_node/A-Programmable-Completion-Example.html)
+broadens the scope of what is tab completable, but notice that the completion
+does not run the command; it runs a bash function.
 
 # TODO
 - [ ] Use a "real" cursor/selection highlight.

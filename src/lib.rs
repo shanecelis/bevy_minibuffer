@@ -9,7 +9,7 @@ mod future;
 mod plugin;
 pub mod prompt;
 mod sync;
-mod ui;
+pub mod ui;
 pub use plugin::Config;
 pub use plugin::Error;
 pub use plugin::MinibufferPlugin;

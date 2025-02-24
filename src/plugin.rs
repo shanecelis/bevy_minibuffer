@@ -25,7 +25,7 @@ use bevy::{
         condition::in_state,
     },
 };
-use bevy_asky::AskyPlugin;
+use bevy_asky::{AskySet, AskyPlugin};
 use bevy_input_sequence::InputSequencePlugin;
 use std::{borrow::Cow, time::Duration};
 
@@ -119,20 +119,14 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .insert_resource(self.config.clone())
             .add_event::<LookupEvent>()
             .add_event::<KeyChordEvent>()
-            .add_systems(Update,
-                         (hide_prompt_maybe,
-                          // acts::detect_additions,
-                          //asky::bevy::asky_system::<AutoComplete<asky::Text>>,
-                          listen_prompt_active)
-                         .in_set(MinibufferSet::Process))
-            .add_systems(Update, get_key_chords.in_set(MinibufferSet::Input))
             .configure_sets(Update, (
-                (MinibufferSet::Input, MinibufferSet::Process, MinibufferSet::Output).chain(),
-                InputSequenceSet.after(MinibufferSet::Input),
-                InputSequenceSet.run_if(in_state(MinibufferState::Inactive)),
+                (MinibufferSet::Input, MinibufferSet::Process.before(AskySet::Controller), MinibufferSet::Output.before(AskySet::View), InputSequenceSet.run_if(in_state(MinibufferState::Inactive))).chain(),
+                // InputSequenceSet.after(MinibufferSet::Output).run_if(|| false)
             ))
+            .add_systems(Update, get_key_chords.in_set(MinibufferSet::Input))
             .add_systems(Update,
-                         ((run_acts_by_name, run_acts, prompt::set_minibuffer_state).chain(),
+                         ((hide_prompt_maybe, listen_prompt_active),
+                          (run_acts_by_name, run_acts, prompt::set_minibuffer_state).chain(),
                           (dispatch_events, lookup_events).chain())
                          .in_set(MinibufferSet::Process))
             .add_systems(OnEnter(MinibufferState::Inactive),hide_delayed::<ui::BottomBar>)

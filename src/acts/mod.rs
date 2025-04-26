@@ -167,8 +167,7 @@ impl Act {
                         // action::trigger(RunActEvent::from_act(self, act_id).with_hotkey(i)),
                         hotkey.chords.clone(),
                     ),
-                    id,
-                    world,
+                    world.entity_mut(id)
                 );
                 id
             })

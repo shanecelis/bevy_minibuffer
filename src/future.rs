@@ -172,7 +172,7 @@ impl MinibufferAsync {
                                 .send(trigger.event_mut().take_result().map_err(Error::from))
                                 .expect("send");
                         }
-                        commands.entity(trigger.entity()).despawn_recursive();
+                        commands.entity(trigger.target()).despawn_recursive();
                     },
                 );
             });
@@ -227,7 +227,7 @@ impl MinibufferAsync {
                                 )
                                 .expect("send");
                         }
-                        commands.entity(trigger.entity()).despawn_recursive();
+                        commands.entity(trigger.target()).despawn_recursive();
                     },
                 );
                 state.apply(world);
@@ -296,7 +296,7 @@ impl MinibufferAsync {
                         if let Some(promise) = promise.take() {
                             let _ = promise.send(trigger.event_mut().take());
                         }
-                        commands.entity(trigger.entity()).despawn();
+                        commands.entity(trigger.target()).despawn();
                     },
                 );
             });

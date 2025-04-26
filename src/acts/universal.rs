@@ -230,7 +230,7 @@ fn universal_arg(
             };
             if abort {
                 minibuffer.clear();
-                commands.entity(trigger.entity()).despawn();
+                commands.entity(trigger.target()).despawn();
             }
         },
     );

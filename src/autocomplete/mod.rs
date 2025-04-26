@@ -1,7 +1,7 @@
 //! Tab completion functionality
 use crate::{event::LookupEvent, prelude::*};
 use bevy::{
-    core::FrameCount,
+    diagnostic::FrameCount,
     ecs::system::EntityCommands,
     input::{
         keyboard::{Key, KeyboardInput},
@@ -133,7 +133,7 @@ fn autocomplete_controller(
                         match e {
                             NoMatch => {
                                 lookup_events.send(LookupEvent::Hide);
-                                if let Some(mut ecommands) = commands.get_entity(id) {
+                                if let Some(mut ecommands) = commands.get_entity(id).ok() {
                                     ecommands.try_insert(Feedback::info(format!("{}", e)));
                                 }
                             }
@@ -153,7 +153,7 @@ fn autocomplete_controller(
                             }
                             Message(s) => {
                                 lookup_events.send(LookupEvent::Hide);
-                                if let Some(mut ecommands) = commands.get_entity(id) {
+                                if let Some(mut ecommands) = commands.get_entity(id).ok() {
                                     ecommands.try_insert(Feedback::info(s)); // Err(s),
                                 }
                             }
@@ -177,13 +177,13 @@ fn autocomplete_controller(
                             match e {
                                 NoMatch => {
                                     lookup_events.send(LookupEvent::Hide);
-                                    if let Some(mut ecommands) = commands.get_entity(id) {
+                                    if let Some(mut ecommands) = commands.get_entity(id).ok() {
                                         ecommands.try_insert(Feedback::info(format!("{}", e)));
                                     }
                                 }
                                 Message(s) => {
                                     lookup_events.send(LookupEvent::Hide);
-                                    if let Some(mut ecommands) = commands.get_entity(id) {
+                                    if let Some(mut ecommands) = commands.get_entity(id).ok() {
                                         ecommands.try_insert(Feedback::info(s));
                                     }
                                 }
@@ -192,7 +192,7 @@ fn autocomplete_controller(
                                     text_state.set_value(&s);
                                 }
                                 ManyMatches => {
-                                    if let Some(mut ecommands) = commands.get_entity(id) {
+                                    if let Some(mut ecommands) = commands.get_entity(id).ok() {
                                         ecommands.try_insert(Feedback::warn("require match"));
                                     }
                                     let matches = autocomplete.all_lookups(&text_state.value);
@@ -215,7 +215,7 @@ fn autocomplete_controller(
                 Key::Escape => {
                     commands
                         .trigger_targets(Submit::<String>::new(Err(bevy_asky::Error::Cancel)), id);
-                    if let Some(mut ecommands) = commands.get_entity(id) {
+                    if let Some(mut ecommands) = commands.get_entity(id).ok() {
                         ecommands.try_insert(Feedback::error("canceled"));
                     }
                     focus.block(id);

@@ -197,14 +197,14 @@ pub fn describe_key(
                     };
                     minibuffer.message(msg);
                     if matches!(x, Answer::Match) {
-                        commands.entity(trigger.entity()).despawn_recursive();
+                        commands.entity(trigger.target()).despawn_recursive();
                     }
                 }
                 None => {
                     accum.chords.push(chord);
                     let msg = format!("{} is unbound", &accum);
                     minibuffer.message(msg);
-                    commands.entity(trigger.entity()).despawn_recursive();
+                    commands.entity(trigger.target()).despawn_recursive();
                 }
             }
             position = search.into();

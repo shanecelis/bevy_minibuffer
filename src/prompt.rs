@@ -9,7 +9,9 @@ use bevy::{prelude::*, window::RequestRedraw};
 use bevy_asky::prelude::*;
 use bevy_input_sequence::{KeyChord, Modifiers};
 use std::collections::VecDeque;
-use std::fmt::Debug;
+use std::{fmt::Debug,
+          hash::{Hash, Hasher},
+};
 
 pub use bevy_asky::{prompt::*, Submit};
 
@@ -195,7 +197,7 @@ fn completion_set(
     commands.entity(completion).replace_children(&new_children);
     if let Some(children) = children {
         for child in children.iter() {
-            commands.entity(*child).despawn();
+            commands.entity(child).despawn();
         }
     }
 }
@@ -212,14 +214,17 @@ pub(crate) fn lookup_events(
         // info!("look up event: {e:?}");
         match e {
             LookupEvent::Completions(v) => {
-                let rnd_state = bevy::utils::RandomState::with_seed(0);
-                let hash = rnd_state.hash_one(v);
+                let mut rnd_state = bevy::platform::hash::DefaultHasher::with_seed(0, foldhash::SharedSeed::global_fixed());
+                v.hash(&mut rnd_state);
+                // let hash = rnd_state.hash_one(v);
+                let hash = rnd_state.finish();
                 // eprintln!("hash {hash}");
                 if last_hash.unwrap_or(0) != hash {
-                    let (completion_node, children) = completion.single();
-                    completion_set(completion_node, children, v.clone(), &mut commands);
-                    next_completion_state.set(CompletionState::Visible);
-                    redraw.send(RequestRedraw);
+                    if let Ok((completion_node, children)) = completion.single() {
+                        completion_set(completion_node, children, v.clone(), &mut commands);
+                        next_completion_state.set(CompletionState::Visible);
+                        redraw.send(RequestRedraw);
+                    }
                 }
                 *last_hash = Some(hash);
             }

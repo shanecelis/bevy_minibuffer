@@ -110,7 +110,7 @@ where
 {
     fn run(&self, system_entity: Entity, commands: &mut Commands) -> Result<(), RunActError> {
         let system_id = SystemId::<In<I>>::from_entity(system_entity);
-        commands.run_system_with_input(system_id, I::default());
+        commands.run_system_with(system_id, I::default());
         Ok(())
     }
 
@@ -132,7 +132,7 @@ where
             Some(input) => {
                 let system_id = SystemId::<In<I>>::from_entity(system_entity);
                 let input = input.clone();
-                commands.run_system_with_input(system_id, input);
+                commands.run_system_with(system_id, input);
                 Ok(())
             }
             None => Err(RunActError::CannotConvertInput),

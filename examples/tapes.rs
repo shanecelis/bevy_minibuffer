@@ -245,14 +245,14 @@ mod unscriptable {
                                         paint.base = color.into();
                                         paint.tone = None;
                                     }
-                                    commands.entity(trigger.entity()).despawn_recursive();
+                                    commands.entity(trigger.target()).despawn_recursive();
                                 }
                                 Err(e) => {
                                     warn!("set_color error: {e}");
                                 }
                             }
                         } else {
-                            commands.entity(trigger.entity()).despawn_recursive();
+                            commands.entity(trigger.target()).despawn_recursive();
                         }
                     },
                 );
@@ -300,14 +300,14 @@ pub(crate) fn set_color(
                                         paint.base = color.into();
                                         paint.tone = None;
                                     }
-                                    commands.entity(trigger.entity()).despawn_recursive();
+                                    commands.entity(trigger.target()).despawn_recursive();
                                 }
                                 Err(e) => {
                                     warn!("set_color error: {e}");
                                 }
                             }
                         } else {
-                            commands.entity(trigger.entity()).despawn_recursive();
+                            commands.entity(trigger.target()).despawn_recursive();
                         }
                     },
                 );
@@ -326,7 +326,7 @@ fn goto_next_selectable(selection: Entity, selectables: &Selectables, selected: 
 }
 
 fn select(trigger: Trigger<Pointer<Click>>, mut selected: ResMut<Selected>) {
-    selected.set(Some(trigger.entity()));
+    selected.set(Some(trigger.target()));
 }
 
 fn update_selected(selected: Res<Selected>, mut paints: Query<&mut Paint>) {
@@ -366,12 +366,12 @@ fn update_color_on<E>(
     move |trigger, mut query, selected| {
         if selected
             .curr
-            .map(|x| x == trigger.entity())
+            .map(|x| x == trigger.target())
             .unwrap_or(false)
         {
             return;
         }
-        if let Ok(mut paint) = query.get_mut(trigger.entity()) {
+        if let Ok(mut paint) = query.get_mut(trigger.target()) {
             paint.tone = color.map(|c| (c, 0.7));
         }
     }

@@ -11,13 +11,12 @@ use bevy::{
     app::{PluginGroupBuilder, Update},
     ecs::{
         schedule::{
-            IntoSystemSetConfigs,
+            IntoScheduleConfigs,
             SystemSet,
             // on_event,
         },
-        system::Resource,
     },
-    prelude::{IntoSystemConfigs, OnEnter, OnExit, PluginGroup},
+    prelude::{Resource, OnEnter, OnExit, PluginGroup},
     reflect::Reflect,
     state::{
         app::AppExtStates,

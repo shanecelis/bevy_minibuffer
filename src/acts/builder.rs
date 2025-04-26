@@ -5,7 +5,7 @@ use crate::{
     ui::ActContainer,
 };
 use bevy::{
-    ecs::{system::EntityCommand, world::Command},
+    ecs::{system::EntityCommand},
     prelude::*,
 };
 use bevy_input_sequence::KeyChord;
@@ -241,7 +241,10 @@ impl Command for ActBuilder {
 }
 
 impl EntityCommand for ActBuilder {
-    fn apply(self, id: Entity, world: &mut World) {
+    fn apply(self, mut entity_world: EntityWorldMut) {
+        let id = entity_world.id();
+
+        entity_world.world_scope(move |world: &mut World| {
         let (act, system_id) = self.build(world);
         let keyseqs = act.build_keyseqs(id, world);
         let mut entity = world.get_entity_mut(id).unwrap();
@@ -250,5 +253,6 @@ impl EntityCommand for ActBuilder {
             world.entity_mut(keyseq_id).set_parent(id);
         }
         world.entity_mut(system_id).set_parent(id);
+        });
     }
 }

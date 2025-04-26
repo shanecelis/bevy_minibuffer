@@ -19,8 +19,8 @@ use bevy::{
         system::{EntityCommands, Query, SystemParam},
     },
     prelude::{
-        default, DespawnRecursiveExt, LineBreak, NextState, Res, ResMut, State, Text, TextLayout,
-        Trigger,
+        default, LineBreak, NextState, Res, ResMut, State, Text, TextLayout,
+        Trigger, Children,
     },
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
@@ -85,7 +85,7 @@ impl Minibuffer<'_, '_> {
         <T as Construct>::Props: Send,
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
-        let dest = self.dest.single();
+        let dest = self.dest.single().expect("minibuffer dest");
         self.commands
             .prompt::<Add0<T, View>>(props, Dest::ReplaceChildren(dest))
     }
@@ -103,7 +103,7 @@ impl Minibuffer<'_, '_> {
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
         let msg = msg.into();
-        let dest = self.dest.single();
+        let dest = self.dest.single().expect("minibuffer dest");
         if let Some(mut commands) = Dest::ReplaceChildren(dest).get_entity(&mut self.commands) {
             commands.insert(Text::new(msg)).insert(TextLayout {
                 linebreak: LineBreak::WordOrCharacter,
@@ -165,7 +165,7 @@ impl Minibuffer<'_, '_> {
     where
         L: Lookup + Send + Sync + 'static,
     {
-        let dest = self.dest.single();
+        let dest = self.dest.single().expect("minibuffer dest");
         let commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);
         let autocomplete = AutoComplete::new(lookup);
         autocomplete.construct(commands, prompt)
@@ -183,7 +183,7 @@ impl Minibuffer<'_, '_> {
         L: Lookup + Clone + LookupMap + Send + Sync + 'static,
         <L as LookupMap>::Item: Sync + Debug,
     {
-        let dest = self.dest.single();
+        let dest = self.dest.single().expect("minibuffer dest");
         let commands = Dest::ReplaceChildren(dest).entity(&mut self.commands);
         let autocomplete = AutoComplete::new(lookup.clone());
         let mut ecommands = autocomplete.construct(commands, prompt);
@@ -203,7 +203,7 @@ impl Minibuffer<'_, '_> {
                             r
                         });
                     commands
-                        .trigger_targets(Completed::Unhandled { result, input }, trigger.entity());
+                        .trigger_targets(Completed::Unhandled { result, input }, trigger.target());
                 },
             );
         ecommands
@@ -211,8 +211,8 @@ impl Minibuffer<'_, '_> {
 
     /// Clear the minibuffer.
     pub fn clear(&mut self) {
-        let dest = self.dest.single();
-        self.commands.entity(dest).despawn_descendants();
+        let dest = self.dest.single().expect("minibuffer dest");
+        self.commands.entity(dest).despawn_related::<Children>();
     }
 
     /// Return the visible state.

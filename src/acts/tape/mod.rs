@@ -598,7 +598,7 @@ fn tape_record(
                             minibuffer.message(format!("{e}"));
                         }
                     }
-                    commands.entity(trigger.entity()).despawn_recursive();
+                    commands.entity(trigger.target()).despawn_recursive();
                 },
             );
         }
@@ -701,7 +701,7 @@ fn tape_play(
                     tape_state.set(SoundState::Squeak);
                 }
             }
-            commands.entity(trigger.entity()).despawn_recursive();
+            commands.entity(trigger.target()).despawn_recursive();
         },
     );
 }
@@ -759,7 +759,7 @@ fn tape_copy(mut minibuffer: Minibuffer, mut tape_state: ResMut<NextState<SoundS
                     minibuffer.message(format!("{e}"));
                 }
             }
-            commands.entity(trigger.entity()).despawn_recursive();
+            commands.entity(trigger.target()).despawn_recursive();
         },
     );
 }

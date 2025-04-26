@@ -8,8 +8,8 @@ mod sealed {
     use crate::acts::{ActBuilder, Acts, ActsPlugin, ActsPluginGroup};
     use bevy::{
         app::App,
-        ecs::world::{Command, World},
-        prelude::IntoSystem,
+        ecs::world::World,
+        prelude::{Command, IntoSystem},
     };
     pub struct ActsPluginMarker;
     pub struct ActsPluginGroupMarker;
@@ -117,7 +117,7 @@ mod sealed {
         }
     }
 
-    bevy::utils::all_tuples!(impl_plugins_tuples, 0, 15, P, S);
+    variadics_please::all_tuples!(impl_plugins_tuples, 0, 15, P, S);
 }
 
 /// An extension to App to add acts.

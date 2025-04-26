@@ -41,15 +41,17 @@ fn main() {
 
 /// Start the cube spinning.
 fn start(mut query: Query<&mut Rotatable>) {
-    let mut r = query.single_mut();
-    r.speed = 0.3;
+    if let Ok(mut r) = query.single_mut() {
+        r.speed = 0.3;
+    }
 }
 
 /// Stop the cube spinning. No input.
 fn stop(mut query: Query<&mut Rotatable>, mut minibuffer: Minibuffer) {
     minibuffer.clear();
-    let mut r = query.single_mut();
-    r.speed = 0.0;
+    if let Ok(mut r) = query.single_mut() {
+        r.speed = 0.0;
+    }
 }
 
 /// Set the speed of the spinning cube with input.

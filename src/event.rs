@@ -7,7 +7,7 @@ use crate::{
     Error, Minibuffer,
 };
 use bevy::{
-    core::FrameCount,
+    diagnostic::FrameCount,
     ecs::{
         event::{Event, EventReader},
         system::{Commands, QueryLens},

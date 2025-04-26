@@ -163,7 +163,7 @@ mod fun {
         mut commands: Commands,
         tape_sound: Res<TapeSoundSource>,
     ) {
-        *animate = TapeAnimate::curve(easing(-3.0, 0.5, EaseFunction::Steps(3)).unwrap()); //.map(|x| -x));
+        *animate = TapeAnimate::curve(easing(-3.0, 0.5, EaseFunction::Steps(3, JumpAt::default())).unwrap()); //.map(|x| -x));
         commands.spawn((
             AudioPlayer::new(tape_sound.squeak.clone_weak()),
             PlaybackSettings::DESPAWN,
@@ -176,7 +176,7 @@ mod fun {
         mut commands: Commands,
         tape_sound: Res<TapeSoundSource>,
     ) {
-        *animate = TapeAnimate::curve(easing(-3.0, 4.0, EaseFunction::Steps(3)).unwrap()); //.map(|x| -x));
+        *animate = TapeAnimate::curve(easing(-3.0, 4.0, EaseFunction::Steps(3, JumpAt::default())).unwrap()); //.map(|x| -x));
         commands.spawn((
             AudioPlayer::new(tape_sound.load.clone_weak()),
             PlaybackSettings::DESPAWN,
@@ -258,6 +258,11 @@ mod fun {
         *animate = TapeAnimate::Speed(0.0);
     }
 
+    struct AudioBundle {
+        pub source: AudioPlayer,
+        pub settings: PlaybackSettings,
+    }
+
     #[derive(Component)]
     struct TapeSoundSink;
 
@@ -272,13 +277,13 @@ mod fun {
     #[derive(Component)]
     struct PlayFor(Timer, After);
 
-    #[derive(Component)]
-    struct PlayNext(Option<AudioBundle>);
-    impl PlayNext {
-        fn new(bundle: AudioBundle) -> Self {
-            Self(Some(bundle))
-        }
-    }
+    // #[derive(Component)]
+    // struct PlayNext(Option<AudioBundle>);
+    // impl PlayNext {
+    //     fn new(bundle: AudioBundle) -> Self {
+    //         Self(Some(bundle))
+    //     }
+    // }
 
     fn play_for(
         mut query: Query<(Entity, &AudioSink, &mut PlayFor), With<TapeSoundSink>>,
@@ -286,7 +291,7 @@ mod fun {
         time: Res<Time>,
         mut tape_state: ResMut<NextState<SoundState>>,
     ) {
-        for (id, sink, mut play_for) in &mut query {
+        for (id, _sink, mut play_for) in &mut query {
             let PlayFor(ref mut timer, ref mut after) = *play_for;
             timer.tick(time.delta());
             if timer.just_finished() {
@@ -295,7 +300,7 @@ mod fun {
                         warn!("After::DONE unexpected.");
                     }
                     After::Play(bundle) => {
-                        commands.spawn((bundle, TapeSoundSink));
+                        commands.spawn((bundle.source, bundle.settings, TapeSoundSink));
                         commands.entity(id).despawn();
                     }
                     After::State(state) => {
@@ -310,7 +315,6 @@ mod fun {
     fn after(
         mut query: Query<(Entity, &AudioSink, &mut After), With<TapeSoundSink>>,
         mut commands: Commands,
-        time: Res<Time>,
         mut tape_state: ResMut<NextState<SoundState>>,
     ) {
         for (id, sink, mut after) in &mut query {
@@ -320,7 +324,7 @@ mod fun {
                         warn!("After::DONE unexpected.");
                     }
                     After::Play(bundle) => {
-                        commands.spawn((bundle, TapeSoundSink));
+                        commands.spawn((bundle.source, bundle.settings, TapeSoundSink));
                         commands.entity(id).despawn();
                     }
                     After::State(state) => {
@@ -407,7 +411,7 @@ mod fun {
         query: Query<Entity, With<IconContainer>>,
         asset_loader: Res<AssetServer>,
     ) {
-        let icon_container = query.single();
+        let icon_container = query.single().expect("icon container");
         commands.entity(icon_container).with_children(|parent| {
             parent.spawn((
                 ImageNode::new(asset_loader.load("embedded://bevy_minibuffer/acts/tape/tape.png")),

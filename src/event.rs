@@ -7,6 +7,7 @@ use crate::{
     Error, Minibuffer,
 };
 use bevy::{
+    core::FrameCount,
     ecs::{
         event::{Event, EventReader},
         system::{Commands, QueryLens},
@@ -299,6 +300,7 @@ fn run_acts_obs(
     run_act_map: Res<RunActMap>,
     acts: Query<&Act>,
     mut last: ResMut<LastRunAct>,
+    frame_count: Res<FrameCount>,
 ) {
     let e = trigger.event();
     let act = match acts.get(e.act.id) {
@@ -308,6 +310,7 @@ fn run_acts_obs(
             return;
         }
     };
+    trace!("act {:?} frame {}", &act, frame_count.0);
     let run_act = act
         .input
         .as_ref()

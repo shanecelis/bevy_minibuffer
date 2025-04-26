@@ -119,10 +119,8 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .insert_resource(self.config.clone())
             .add_event::<LookupEvent>()
             .add_event::<KeyChordEvent>()
-            .configure_sets(Update, (
-                (MinibufferSet::Input, MinibufferSet::Process.before(AskySet::Controller), MinibufferSet::Output.before(AskySet::View), InputSequenceSet.run_if(in_state(MinibufferState::Inactive))).chain(),
-                // InputSequenceSet.after(MinibufferSet::Output).run_if(|| false)
-            ))
+            .configure_sets(Update,
+                            (MinibufferSet::Input, MinibufferSet::Process.before(AskySet::Controller), MinibufferSet::Output.before(AskySet::View), InputSequenceSet.run_if(in_state(MinibufferState::Inactive))).chain())
             .add_systems(Update, get_key_chords.in_set(MinibufferSet::Input))
             .add_systems(Update,
                          ((hide_prompt_maybe, listen_prompt_active),

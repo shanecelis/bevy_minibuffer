@@ -163,8 +163,8 @@ impl Act {
                 EntityCommand::apply(
                     KeySequence::new(
                         // XXX: Should this be trigger?
-                        // action::send_event(RunActEvent::from_act(self, act_id).with_hotkey(i)),
-                        action::trigger(RunActEvent::from_act(self, act_id).with_hotkey(i)),
+                        action::send_event(RunActEvent::from_act(self, act_id).with_hotkey(i)),
+                        // action::trigger(RunActEvent::from_act(self, act_id).with_hotkey(i)),
                         hotkey.chords.clone(),
                     ),
                     id,

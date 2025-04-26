@@ -1,6 +1,7 @@
 //! Tab completion functionality
 use crate::{event::LookupEvent, prelude::*};
 use bevy::{
+    core::FrameCount,
     ecs::system::EntityCommands,
     input::{
         keyboard::{Key, KeyboardInput},
@@ -9,6 +10,7 @@ use bevy::{
     prelude::*,
 };
 use bevy_asky::{
+    AskySet,
     construct::ConstructExt,
     focus::{FocusParam, Focusable},
     string_cursor::*,
@@ -70,8 +72,8 @@ impl AutoComplete {
 }
 
 pub(crate) fn plugin(app: &mut App) {
-    app.add_systems(PreUpdate, autocomplete_controller)
-        .add_systems(Update, crate::view::text_view::<With<AutoComplete>>);
+    app.add_systems(Update, autocomplete_controller.in_set(AskySet::Controller))
+        .add_systems(Update, crate::view::text_view::<With<AutoComplete>>.in_set(AskySet::View));
 }
 
 unsafe impl Submitter for AutoComplete {
@@ -111,6 +113,7 @@ fn autocomplete_controller(
     mut input: EventReader<KeyboardInput>,
     mut commands: Commands,
     mut lookup_events: EventWriter<LookupEvent>,
+    frame_count: Res<FrameCount>,
 ) {
     let mut any_focused_text = false;
     for (id, mut text_state, autocomplete, require_match) in query.iter_mut() {
@@ -122,6 +125,7 @@ fn autocomplete_controller(
             if ev.state != ButtonState::Pressed {
                 continue;
             }
+            trace!("input {:?} frame {}", &ev.logical_key, frame_count.0);
             match &ev.logical_key {
                 Key::Tab => {
                     if let Err(e) = autocomplete.lookup(&text_state.value) {

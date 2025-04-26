@@ -159,6 +159,8 @@ fn choose_completion(In(arg): In<Option<String>>, mut minibuffer: Minibuffer) {
                 move |mut trigger: Trigger<Submit<usize>>, mut minibuffer: Minibuffer| {
                     if let Ok(index) = trigger.event_mut().take_result() {
                         minibuffer.run_act(OPTIONS[index].1);
+                    } else {
+                        commands.entity(trigger.entity()).despawn_recursive();
                     }
                 },
             );

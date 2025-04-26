@@ -18,8 +18,7 @@ use bevy::{
         system::{EntityCommands, Query, Res, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Bundle, DespawnRecursiveExt, State, Trigger},
-    utils::Duration,
+    prelude::{Bundle, State, Trigger, Component},
 };
 use bevy_asky::{
     construct::{Add0, Construct},
@@ -31,6 +30,7 @@ use bevy_defer::{AsyncAccess, AsyncWorld};
 use bevy_input_sequence::KeyChord;
 use futures::{channel::oneshot, future::Either, pin_mut, Future, TryFutureExt};
 use std::{borrow::Cow, fmt::Debug};
+use core::time::Duration;
 
 /// MinibufferAsync, a [SystemParam] for async.
 ///
@@ -58,7 +58,7 @@ unsafe impl SystemParam for MinibufferAsync {
             Res<ChannelSender<DispatchEvent>>,
         )> = SystemState::new(world);
         let (query, channel) = state.get_mut(world);
-        (query.single(), channel.clone())
+        (query.single().expect("prompt container"), channel.clone())
     }
 
     #[inline]
@@ -79,7 +79,7 @@ unsafe impl SystemParam for MinibufferAsync {
 
 impl MinibufferAsync {
     /// Prompt the user for input.
-    pub fn prompt<T: Construct + Bundle + Submitter>(
+    pub fn prompt<T: Construct + Bundle + Submitter + Component>(
         &mut self,
         props: impl Into<T::Props>,
     ) -> impl Future<Output = Result<T::Out, Error>>
@@ -112,7 +112,7 @@ impl MinibufferAsync {
     }
 
     /// Builds a prompt and accepts a closure that may alter that entity.
-    pub fn prompt_with<T: Submitter + Construct + Bundle>(
+    pub fn prompt_with<T: Submitter + Construct + Bundle + Component>(
         &mut self,
         props: impl Into<T::Props>,
         f: impl FnOnce(&mut EntityCommands) + Send + 'static,

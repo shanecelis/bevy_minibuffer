@@ -26,8 +26,8 @@ bevy_asky = { version = "0.3.0", default-features = false, features = [ "color" 
 futures = { version = "0.3.30", optional = true }
 tabular = "0.2.0"
 thiserror = "1.0.58"
-bevy_defer = { version = "0.13", optional = true }
-bevy_channel_trigger = { version = "0.3.0", optional = true }
+bevy_defer = { version = "0.14", optional = true }
+bevy_channel_trigger = { version = "0.4.0", optional = true }
 accesskit = "0.18.0"
 copypasta = { version = "0.10.1", optional = true }
 variadics_please = "1.1.0"

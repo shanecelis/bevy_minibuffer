@@ -121,8 +121,8 @@ fn setup_scene(
     let observers = vec![
         Observer::new(update_color_on::<Pointer<Over>>(hover_color)),
         Observer::new(update_color_on::<Pointer<Out>>(None)),
-        Observer::new(update_color_on::<Pointer<Down>>(pressed_color)),
-        Observer::new(update_color_on::<Pointer<Up>>(hover_color)),
+        Observer::new(update_color_on::<Pointer<Pressed>>(pressed_color)),
+        Observer::new(update_color_on::<Pointer<Released>>(hover_color)),
         Observer::new(select),
         Observer::new(rotate_on_drag),
     ];
@@ -180,7 +180,7 @@ fn setup_scene(
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::default().mesh().size(50.0, 50.0).subdivisions(10))),
         MeshMaterial3d(materials.add(ground_color)),
-        PickingBehavior::IGNORE, // Disable picking for the ground plane.
+        Pickable::IGNORE, // Disable picking for the ground plane.
     ));
 
     // Light
@@ -386,7 +386,7 @@ fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
 
 /// An observer to rotate an entity when it is dragged
 fn rotate_on_drag(drag: Trigger<Pointer<Drag>>, mut transforms: Query<&mut Transform>) {
-    let mut transform = transforms.get_mut(drag.entity()).unwrap();
+    let mut transform = transforms.get_mut(drag.target.entity()).unwrap();
     transform.rotate_y(drag.delta.x * 0.02);
     transform.rotate_x(drag.delta.y * 0.02);
 }

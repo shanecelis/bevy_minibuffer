@@ -42,15 +42,17 @@ fn main() {
 
 /// Start the cube spinning.
 fn start(mut query: Query<&mut Rotatable>) {
-    let mut r = query.single_mut();
+    if let Ok(mut r) = query.single_mut() {
     r.speed = 0.3;
+    }
 }
 
 /// Stop the cube spinning. No input.
 fn stop(mut query: Query<&mut Rotatable>, mut minibuffer: MinibufferAsync) {
     minibuffer.clear();
-    let mut r = query.single_mut();
+    if let Ok(mut r) = query.single_mut() {
     r.speed = 0.0;
+    }
 }
 
 /// Set the speed of the spinning cube with input.
@@ -58,7 +60,7 @@ fn speed(
     mut minibuffer: MinibufferAsync,
     query: Query<Entity, With<Rotatable>>,
 ) -> impl Future<Output = Result<(), Error>> {
-    let id = query.single();
+    let id = query.single().unwrap();
     async move {
         let speed = minibuffer.prompt::<Number<f32>>("speed: ").await?;
         let world = AsyncWorld::new();

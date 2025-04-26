@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [unreleased]
 
 ## [0.4.1] - 2025-04-26
-- Fix [issue 3](https://github.com/shanecelis/bevy_minibuffer/issues/3) missing docs link.
+- Fix [issue 3](https://github.com/shanecelis/bevy_minibuffer/issues/3) broken docs-rs build.
 
 ## [0.4.0] - 2025-04-25
 - Add support for Bevy 0.16.

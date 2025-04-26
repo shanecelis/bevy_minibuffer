@@ -37,7 +37,7 @@ pub(crate) fn plugin(app: &mut App) {
 }
 
 fn setup_observers(query: Query<Entity, With<MinibufferNode>>, mut commands: Commands) {
-    match query.get_single() {
+    match query.single() {
         Ok(root) => {
             commands.entity(root).with_children(|parent| {
                 parent.spawn(Observer::new(dispatch_trigger));
@@ -213,7 +213,7 @@ pub(crate) fn dispatch_events(
     for e in dispatch_events.read() {
         match e {
             LookupEvent(l) => {
-                lookup_events.send(l.clone());
+                lookup_events.write(l.clone());
             }
             RunActEvent(e) => {
                 minibuffer.run_act(e.act);
@@ -244,7 +244,7 @@ fn dispatch_trigger(
     let event = std::mem::replace(dispatch_events.event_mut(), DispatchEvent::Taken);
     match event {
         LookupEvent(l) => {
-            lookup_events.send(l);
+            lookup_events.write(l);
         }
         RunActEvent(e) => {
             minibuffer.run_act(e.act);

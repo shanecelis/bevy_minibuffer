@@ -231,11 +231,11 @@ impl Command for ActBuilder {
 
         // let id = world.spawn(act).insert(name).id();
         for keyseq_id in keyseqs {
-            world.entity_mut(keyseq_id).set_parent(id);
+            world.entity_mut(keyseq_id).insert(ChildOf(id));
         }
         let mut query = world.query_filtered::<Entity, With<ActContainer>>();
-        if let Ok(act_container) = query.get_single(world) {
-            world.entity_mut(id).set_parent(act_container);
+        if let Ok(act_container) = query.single(world) {
+            world.entity_mut(id).insert(ChildOf(act_container));
         }
     }
 }
@@ -250,9 +250,9 @@ impl EntityCommand for ActBuilder {
         let mut entity = world.get_entity_mut(id).unwrap();
         entity.insert(act);
         for keyseq_id in keyseqs {
-            world.entity_mut(keyseq_id).set_parent(id);
+            world.entity_mut(keyseq_id).insert(ChildOf(id));
         }
-        world.entity_mut(system_id).set_parent(id);
+        world.entity_mut(system_id).insert(ChildOf(id));
         });
     }
 }

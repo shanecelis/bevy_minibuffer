@@ -142,12 +142,12 @@ pub fn toggle_visibility(
         PromptState::Invisible => {
             next_completion_state.set(*last_completion_state);
             next_prompt_state.set(PromptState::Visible);
-            redraw.send(RequestRedraw);
+            redraw.write(RequestRedraw);
         }
         PromptState::Visible => {
             next_completion_state.set(CompletionState::Invisible);
             next_prompt_state.set(PromptState::Invisible);
-            redraw.send(RequestRedraw);
+            redraw.write(RequestRedraw);
             *last_completion_state = **completion_state;
         }
     }
@@ -197,14 +197,14 @@ pub fn describe_key(
                     };
                     minibuffer.message(msg);
                     if matches!(x, Answer::Match) {
-                        commands.entity(trigger.target()).despawn_recursive();
+                        commands.entity(trigger.target()).despawn();
                     }
                 }
                 None => {
                     accum.chords.push(chord);
                     let msg = format!("{} is unbound", &accum);
                     minibuffer.message(msg);
-                    commands.entity(trigger.target()).despawn_recursive();
+                    commands.entity(trigger.target()).despawn();
                 }
             }
             position = search.into();

@@ -172,7 +172,7 @@ impl MinibufferAsync {
                                 .send(trigger.event_mut().take_result().map_err(Error::from))
                                 .expect("send");
                         }
-                        commands.entity(trigger.target()).despawn_recursive();
+                        commands.entity(trigger.target()).despawn();
                     },
                 );
             });
@@ -227,7 +227,7 @@ impl MinibufferAsync {
                                 )
                                 .expect("send");
                         }
-                        commands.entity(trigger.target()).despawn_recursive();
+                        commands.entity(trigger.target()).despawn();
                     },
                 );
                 state.apply(world);

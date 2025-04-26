@@ -49,12 +49,12 @@ fn reparent_acts(
     act_container: Query<Entity, With<ActContainer>>,
     mut commands: Commands,
 ) {
-    let Ok(act_container) = act_container.get_single() else {
+    let Ok(act_container) = act_container.single() else {
         warn!("No ActContainer");
         return;
     };
     for id in &acts {
-        commands.entity(id).set_parent(act_container);
+        commands.entity(id).insert(ChildOf(act_container));
     }
 }
 

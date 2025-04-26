@@ -70,9 +70,9 @@ pub(crate) fn show<T: Component>(
     mut redraw: EventWriter<RequestRedraw>,
     mut query: Query<&mut Visibility, With<T>>,
 ) {
-    if let Ok(mut visibility) = query.get_single_mut() {
+    if let Ok(mut visibility) = query.single_mut() {
         *visibility = Visibility::Visible;
-        redraw.send(RequestRedraw);
+        redraw.write(RequestRedraw);
     }
 }
 
@@ -158,7 +158,7 @@ pub(crate) fn hide_prompt_maybe(
 ) {
     for (id, mut hide) in query.iter_mut() {
         // eprintln!("checking hide {:?}", time.delta());
-        redraw.send(RequestRedraw); // Force ticks to happen when a timer is present.
+        redraw.write(RequestRedraw); // Force ticks to happen when a timer is present.
         hide.timer.tick(time.delta());
         if hide.timer.finished() {
             if *state == MinibufferState::Inactive {
@@ -178,9 +178,9 @@ pub(crate) fn hide<T: Component>(
     mut query: Query<&mut Visibility, With<T>>,
     mut redraw: EventWriter<RequestRedraw>,
 ) {
-    if let Ok(mut visibility) = query.get_single_mut() {
+    if let Ok(mut visibility) = query.single_mut() {
         *visibility = Visibility::Hidden;
-        redraw.send(RequestRedraw);
+        redraw.write(RequestRedraw);
     }
 }
 
@@ -223,7 +223,7 @@ pub(crate) fn lookup_events(
                     if let Ok((completion_node, children)) = completion.single() {
                         completion_set(completion_node, children, v.clone(), &mut commands);
                         next_completion_state.set(CompletionState::Visible);
-                        redraw.send(RequestRedraw);
+                        redraw.write(RequestRedraw);
                     }
                 }
                 *last_hash = Some(hash);
@@ -232,7 +232,7 @@ pub(crate) fn lookup_events(
                 // eprintln!("hide");
                 *last_hash = None;
                 next_completion_state.set(CompletionState::Invisible);
-                redraw.send(RequestRedraw);
+                redraw.write(RequestRedraw);
             }
         }
     }
@@ -248,7 +248,7 @@ pub(crate) fn listen_prompt_active(
         if let Some(MinibufferState::Active) = transition.entered {
             next_prompt_state.set(PromptState::Visible)
         }
-        redraw.send(RequestRedraw);
+        redraw.write(RequestRedraw);
     }
 }
 

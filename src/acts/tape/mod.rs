@@ -110,9 +110,9 @@ mod fun {
         mut redraw: EventWriter<RequestRedraw>,
         mut query: Query<&mut Visibility, With<T>>,
     ) {
-        if let Ok(mut visibility) = query.get_single_mut() {
+        if let Ok(mut visibility) = query.single_mut() {
             *visibility = Visibility::Inherited;
-            redraw.send(RequestRedraw);
+            redraw.write(RequestRedraw);
         }
     }
 
@@ -598,7 +598,7 @@ fn tape_record(
                             minibuffer.message(format!("{e}"));
                         }
                     }
-                    commands.entity(trigger.target()).despawn_recursive();
+                    commands.entity(trigger.target()).despawn();
                 },
             );
         }
@@ -701,7 +701,7 @@ fn tape_play(
                     tape_state.set(SoundState::Squeak);
                 }
             }
-            commands.entity(trigger.target()).despawn_recursive();
+            commands.entity(trigger.target()).despawn();
         },
     );
 }
@@ -759,7 +759,7 @@ fn tape_copy(mut minibuffer: Minibuffer, mut tape_state: ResMut<NextState<SoundS
                     minibuffer.message(format!("{e}"));
                 }
             }
-            commands.entity(trigger.target()).despawn_recursive();
+            commands.entity(trigger.target()).despawn();
         },
     );
 }

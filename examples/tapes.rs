@@ -245,14 +245,14 @@ mod unscriptable {
                                         paint.base = color.into();
                                         paint.tone = None;
                                     }
-                                    commands.entity(trigger.target()).despawn_recursive();
+                                    commands.entity(trigger.target()).despawn();
                                 }
                                 Err(e) => {
                                     warn!("set_color error: {e}");
                                 }
                             }
                         } else {
-                            commands.entity(trigger.target()).despawn_recursive();
+                            commands.entity(trigger.target()).despawn();
                         }
                     },
                 );
@@ -300,14 +300,14 @@ pub(crate) fn set_color(
                                         paint.base = color.into();
                                         paint.tone = None;
                                     }
-                                    commands.entity(trigger.target()).despawn_recursive();
+                                    commands.entity(trigger.target()).despawn();
                                 }
                                 Err(e) => {
                                     warn!("set_color error: {e}");
                                 }
                             }
                         } else {
-                            commands.entity(trigger.target()).despawn_recursive();
+                            commands.entity(trigger.target()).despawn();
                         }
                     },
                 );

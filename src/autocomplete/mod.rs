@@ -132,19 +132,19 @@ fn autocomplete_controller(
                         use LookupError::*;
                         match e {
                             NoMatch => {
-                                lookup_events.send(LookupEvent::Hide);
+                                lookup_events.write(LookupEvent::Hide);
                                 if let Some(mut ecommands) = commands.get_entity(id).ok() {
                                     ecommands.try_insert(Feedback::info(format!("{}", e)));
                                 }
                             }
                             OneMatch(s) => {
-                                lookup_events.send(LookupEvent::Hide);
+                                lookup_events.write(LookupEvent::Hide);
                                 text_state.set_value(&s);
                             }
                             ManyMatches => {
                                 let matches = autocomplete.all_lookups(&text_state.value);
 
-                                lookup_events.send(LookupEvent::Completions(matches));
+                                lookup_events.write(LookupEvent::Completions(matches));
                                 if let Some(new_input) =
                                     autocomplete.longest_prefix(&text_state.value)
                                 {
@@ -152,7 +152,7 @@ fn autocomplete_controller(
                                 }
                             }
                             Message(s) => {
-                                lookup_events.send(LookupEvent::Hide);
+                                lookup_events.write(LookupEvent::Hide);
                                 if let Some(mut ecommands) = commands.get_entity(id).ok() {
                                     ecommands.try_insert(Feedback::info(s)); // Err(s),
                                 }
@@ -176,19 +176,19 @@ fn autocomplete_controller(
                             use LookupError::*;
                             match e {
                                 NoMatch => {
-                                    lookup_events.send(LookupEvent::Hide);
+                                    lookup_events.write(LookupEvent::Hide);
                                     if let Some(mut ecommands) = commands.get_entity(id).ok() {
                                         ecommands.try_insert(Feedback::info(format!("{}", e)));
                                     }
                                 }
                                 Message(s) => {
-                                    lookup_events.send(LookupEvent::Hide);
+                                    lookup_events.write(LookupEvent::Hide);
                                     if let Some(mut ecommands) = commands.get_entity(id).ok() {
                                         ecommands.try_insert(Feedback::info(s));
                                     }
                                 }
                                 OneMatch(s) => {
-                                    lookup_events.send(LookupEvent::Hide);
+                                    lookup_events.write(LookupEvent::Hide);
                                     text_state.set_value(&s);
                                 }
                                 ManyMatches => {
@@ -197,7 +197,7 @@ fn autocomplete_controller(
                                     }
                                     let matches = autocomplete.all_lookups(&text_state.value);
 
-                                    lookup_events.send(LookupEvent::Completions(matches));
+                                    lookup_events.write(LookupEvent::Completions(matches));
                                     if let Some(new_input) =
                                         autocomplete.longest_prefix(&text_state.value)
                                     {
@@ -208,7 +208,7 @@ fn autocomplete_controller(
                             continue;
                         }
                     }
-                    lookup_events.send(LookupEvent::Hide);
+                    lookup_events.write(LookupEvent::Hide);
                     commands.trigger_targets(Submit::new(Ok(text_state.value.clone())), id);
                     focus.block_and_move(id);
                 }

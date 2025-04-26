@@ -182,7 +182,7 @@ fn setup_capture(
         images.add(export_texture)
     };
 
-    if let Ok(id) = camera2d.get_single() {
+    if let Ok(id) = camera2d.single() {
         commands
             .entity(id)
             // .insert(IsDefaultUiCamera)
@@ -211,7 +211,7 @@ fn setup_capture(
             },
             TargetCamera(id),
         ));
-    } else if let Ok(id) = camera3d.get_single() {
+    } else if let Ok(id) = camera3d.single() {
         commands.entity(id).with_children(|parent| {
             parent.spawn((
                 Camera3d::default(),

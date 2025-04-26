@@ -2,6 +2,8 @@
 use crate::Minibuffer;
 use bevy::ecs::system::In;
 use std::fmt::Display;
+#[cfg(doc)]
+use crate::acts::ActFlags;
 
 /// Show error if any in minibuffer.
 pub fn result<T, E>(In(result): In<Result<T, E>>, mut minibuffer: Minibuffer)

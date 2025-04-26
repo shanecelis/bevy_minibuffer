@@ -38,6 +38,7 @@ async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_
 fun = [ "bevy/bevy_audio" ]
 dev-capture = []
 clipboard = ["dep:copypasta"]
+x11 = ["bevy/x11"]
 
 [dev-dependencies]
 bevy = "0.16.0"
@@ -73,4 +74,5 @@ path = "examples/async/tab-completion.rs"
 required-features = [ "async" ]
 
 [package.metadata.docs.rs]
-features = ["bevy/x11"]
+features = ["x11"]
+all-features = true

@@ -25,6 +25,8 @@ use bevy::{
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
 use std::fmt::Debug;
+#[cfg(feature = "async")]
+use crate::future::MinibufferAsync;
 
 /// Manipulate minibuffer synchronously with this [SystemParam].
 ///

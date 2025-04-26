@@ -24,7 +24,7 @@ pub(crate) fn plugin(app: &mut App) {
 
 /// Universal argument plugin and acts
 ///
-/// Adds "universal_arg" act and resources: [UniversalArg] and [UniversalArgMultiplier].
+/// Adds "universal_arg" act and resources: [UniversalArg] and [Multiplier].
 pub struct UniversalArgActs {
     /// Acts
     pub acts: Acts,

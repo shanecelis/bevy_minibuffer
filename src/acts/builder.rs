@@ -4,10 +4,7 @@ use crate::{
     input::Hotkey,
     ui::ActContainer,
 };
-use bevy::{
-    ecs::{system::EntityCommand},
-    prelude::*,
-};
+use bevy::{ecs::system::EntityCommand, prelude::*};
 use bevy_input_sequence::KeyChord;
 use std::{
     any::TypeId,
@@ -245,14 +242,14 @@ impl EntityCommand for ActBuilder {
         let id = entity_world.id();
 
         entity_world.world_scope(move |world: &mut World| {
-        let (act, system_id) = self.build(world);
-        let keyseqs = act.build_keyseqs(id, world);
-        let mut entity = world.get_entity_mut(id).unwrap();
-        entity.insert(act);
-        for keyseq_id in keyseqs {
-            world.entity_mut(keyseq_id).insert(ChildOf(id));
-        }
-        world.entity_mut(system_id).insert(ChildOf(id));
+            let (act, system_id) = self.build(world);
+            let keyseqs = act.build_keyseqs(id, world);
+            let mut entity = world.get_entity_mut(id).unwrap();
+            entity.insert(act);
+            for keyseq_id in keyseqs {
+                world.entity_mut(keyseq_id).insert(ChildOf(id));
+            }
+            world.entity_mut(system_id).insert(ChildOf(id));
         });
     }
 }

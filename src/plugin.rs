@@ -9,14 +9,12 @@ use crate::{
 };
 use bevy::{
     app::{PluginGroupBuilder, Update},
-    ecs::{
-        schedule::{
-            IntoScheduleConfigs,
-            SystemSet,
-            // on_event,
-        },
+    ecs::schedule::{
+        IntoScheduleConfigs,
+        SystemSet,
+        // on_event,
     },
-    prelude::{Resource, OnEnter, OnExit, PluginGroup},
+    prelude::{OnEnter, OnExit, PluginGroup, Resource},
     reflect::Reflect,
     state::{
         app::AppExtStates,
@@ -24,7 +22,7 @@ use bevy::{
         condition::in_state,
     },
 };
-use bevy_asky::{AskySet, AskyPlugin};
+use bevy_asky::{AskyPlugin, AskySet};
 use bevy_input_sequence::InputSequencePlugin;
 use std::{borrow::Cow, time::Duration};
 

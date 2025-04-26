@@ -43,7 +43,7 @@ fn main() {
 /// Start the cube spinning.
 fn start(mut query: Query<&mut Rotatable>) {
     if let Ok(mut r) = query.single_mut() {
-    r.speed = 0.3;
+        r.speed = 0.3;
     }
 }
 
@@ -51,7 +51,7 @@ fn start(mut query: Query<&mut Rotatable>) {
 fn stop(mut query: Query<&mut Rotatable>, mut minibuffer: MinibufferAsync) {
     minibuffer.clear();
     if let Ok(mut r) = query.single_mut() {
-    r.speed = 0.0;
+        r.speed = 0.0;
     }
 }
 

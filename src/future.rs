@@ -18,7 +18,7 @@ use bevy::{
         system::{EntityCommands, Query, Res, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Bundle, State, Trigger, Component},
+    prelude::{Bundle, Component, State, Trigger},
 };
 use bevy_asky::{
     construct::{Add0, Construct},
@@ -28,9 +28,9 @@ use bevy_asky::{
 use bevy_channel_trigger::ChannelSender;
 use bevy_defer::{AsyncAccess, AsyncWorld};
 use bevy_input_sequence::KeyChord;
+use core::time::Duration;
 use futures::{channel::oneshot, future::Either, pin_mut, Future, TryFutureExt};
 use std::{borrow::Cow, fmt::Debug};
-use core::time::Duration;
 
 /// MinibufferAsync, a [SystemParam] for async.
 ///

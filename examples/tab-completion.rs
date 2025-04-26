@@ -156,7 +156,9 @@ fn choose_completion(In(arg): In<Option<String>>, mut minibuffer: Minibuffer) {
             .prompt::<RadioGroup>("Choose a completion kind: ")
             .prompt_children::<Radio>(OPTIONS.iter().map(|x| x.0))
             .observe(
-                move |mut trigger: Trigger<Submit<usize>>, mut minibuffer: Minibuffer, mut commands: Commands| {
+                move |mut trigger: Trigger<Submit<usize>>,
+                      mut minibuffer: Minibuffer,
+                      mut commands: Commands| {
                     if let Ok(index) = trigger.event_mut().take_result() {
                         minibuffer.run_act(OPTIONS[index].1);
                     } else {

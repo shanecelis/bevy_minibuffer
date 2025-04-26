@@ -1,6 +1,8 @@
 //! A sync version of the Minibuffer parameter
 //!
 //! It uses triggers rather than promises.
+#[cfg(all(doc, feature = "async"))]
+use crate::future::MinibufferAsync;
 use crate::{
     acts::{tape::TapeRecorder, ActArg},
     autocomplete::{AutoComplete, Completed, Lookup, LookupMap, RequireMatch},
@@ -19,14 +21,11 @@ use bevy::{
         system::{EntityCommands, Query, SystemParam},
     },
     prelude::{
-        default, LineBreak, NextState, Res, ResMut, State, Text, TextLayout,
-        Trigger, Children,
+        default, Children, LineBreak, NextState, Res, ResMut, State, Text, TextLayout, Trigger,
     },
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
 use std::fmt::Debug;
-#[cfg(all(doc, feature = "async"))]
-use crate::future::MinibufferAsync;
 
 /// Manipulate minibuffer synchronously with this [SystemParam].
 ///

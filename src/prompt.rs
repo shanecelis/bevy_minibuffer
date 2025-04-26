@@ -9,8 +9,9 @@ use bevy::{prelude::*, window::RequestRedraw};
 use bevy_asky::prelude::*;
 use bevy_input_sequence::{KeyChord, Modifiers};
 use std::collections::VecDeque;
-use std::{fmt::Debug,
-          hash::{Hash, Hasher},
+use std::{
+    fmt::Debug,
+    hash::{Hash, Hasher},
 };
 
 pub use bevy_asky::{prompt::*, Submit};
@@ -214,7 +215,10 @@ pub(crate) fn lookup_events(
         // info!("look up event: {e:?}");
         match e {
             LookupEvent::Completions(v) => {
-                let mut rnd_state = bevy::platform::hash::DefaultHasher::with_seed(0, foldhash::SharedSeed::global_fixed());
+                let mut rnd_state = bevy::platform::hash::DefaultHasher::with_seed(
+                    0,
+                    foldhash::SharedSeed::global_fixed(),
+                );
                 v.hash(&mut rnd_state);
                 // let hash = rnd_state.hash_one(v);
                 let hash = rnd_state.finish();

@@ -10,11 +10,10 @@ use bevy::{
     prelude::*,
 };
 use bevy_asky::{
-    AskySet,
     construct::ConstructExt,
     focus::{FocusParam, Focusable},
     string_cursor::*,
-    Submitter,
+    AskySet, Submitter,
 };
 use std::borrow::Cow;
 mod lookup;
@@ -73,7 +72,10 @@ impl AutoComplete {
 
 pub(crate) fn plugin(app: &mut App) {
     app.add_systems(Update, autocomplete_controller.in_set(AskySet::Controller))
-        .add_systems(Update, crate::view::text_view::<With<AutoComplete>>.in_set(AskySet::View));
+        .add_systems(
+            Update,
+            crate::view::text_view::<With<AutoComplete>>.in_set(AskySet::View),
+        );
 }
 
 unsafe impl Submitter for AutoComplete {

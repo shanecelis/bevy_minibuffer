@@ -163,7 +163,9 @@ mod fun {
         mut commands: Commands,
         tape_sound: Res<TapeSoundSource>,
     ) {
-        *animate = TapeAnimate::curve(easing(-3.0, 0.5, EaseFunction::Steps(3, JumpAt::default())).unwrap()); //.map(|x| -x));
+        *animate = TapeAnimate::curve(
+            easing(-3.0, 0.5, EaseFunction::Steps(3, JumpAt::default())).unwrap(),
+        ); //.map(|x| -x));
         commands.spawn((
             AudioPlayer::new(tape_sound.squeak.clone_weak()),
             PlaybackSettings::DESPAWN,
@@ -176,7 +178,9 @@ mod fun {
         mut commands: Commands,
         tape_sound: Res<TapeSoundSource>,
     ) {
-        *animate = TapeAnimate::curve(easing(-3.0, 4.0, EaseFunction::Steps(3, JumpAt::default())).unwrap()); //.map(|x| -x));
+        *animate = TapeAnimate::curve(
+            easing(-3.0, 4.0, EaseFunction::Steps(3, JumpAt::default())).unwrap(),
+        ); //.map(|x| -x));
         commands.spawn((
             AudioPlayer::new(tape_sound.load.clone_weak()),
             PlaybackSettings::DESPAWN,

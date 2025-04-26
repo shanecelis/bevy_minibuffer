@@ -1,7 +1,7 @@
-use super::{ActBuilder, Acts};
-use bevy::prelude::*;
 #[cfg(doc)]
 use super::AddActs;
+use super::{ActBuilder, Acts};
+use bevy::prelude::*;
 
 /// A [Plugin] with a collection of [Acts]
 ///

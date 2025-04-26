@@ -71,8 +71,3 @@ required-features = [ "async" ]
 name = "tab-completion-async"
 path = "examples/async/tab-completion.rs"
 required-features = [ "async" ]
-
-[patch.crates-io]
-keyseq = { path = "../keyseq" }
-bevy-input-sequence = { path = "../bevy-input-sequence" }
-bevy_asky = { path = "../bevy_asky" }

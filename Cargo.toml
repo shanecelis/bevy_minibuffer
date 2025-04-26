@@ -71,3 +71,6 @@ required-features = [ "async" ]
 name = "tab-completion-async"
 path = "examples/async/tab-completion.rs"
 required-features = [ "async" ]
+
+[package.metadata.docs.rs]
+features = ["bevy/x11"]

@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/bevy_minibuffer/0.4.0")]
+#![doc(html_root_url = "https://docs.rs/bevy_minibuffer/0.4.1")]
 #![doc = include_str!("../README.md")]
 // #![forbid(missing_docs)]
 pub mod acts;

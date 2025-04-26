@@ -192,7 +192,7 @@ fn setup_capture(
                     Camera {
                         order: 100,
                         // Connect the output texture to a camera as a RenderTarget.
-                        target: RenderTarget::Image(output_texture_handle.clone()),
+                        target: RenderTarget::Image(output_texture_handle.clone().into()),
                         ..default()
                     },
                     IsDefaultUiCamera,
@@ -209,7 +209,7 @@ fn setup_capture(
                 // align_items: AlignItems::Center,
                 ..default()
             },
-            TargetCamera(id),
+            UiTargetCamera(id),
         ));
     } else if let Ok(id) = camera3d.single() {
         commands.entity(id).with_children(|parent| {
@@ -217,7 +217,7 @@ fn setup_capture(
                 Camera3d::default(),
                 Camera {
                     // Connect the output texture to a camera as a RenderTarget.
-                    target: RenderTarget::Image(output_texture_handle.clone()),
+                    target: RenderTarget::Image(output_texture_handle.clone().into()),
                     ..default()
                 },
                 IsDefaultUiCamera,
@@ -234,7 +234,7 @@ fn setup_capture(
                 // align_items: AlignItems::Center,
                 ..default()
             },
-            TargetCamera(id),
+            UiTargetCamera(id),
         ));
     } else {
         panic!("No camera found!");

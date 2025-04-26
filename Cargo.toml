@@ -44,7 +44,7 @@ x11 = ["bevy/x11"]
 bevy = "0.16.0"
 bevy-inspector-egui = "0.31"
 bevy_framepace = "0.19.1"
-# bevy_image_export = "0.12.0"
+bevy_image_export = "0.13.0"
 rand = "0.8.5"
 version-sync = "0.9.5"
 
@@ -74,5 +74,4 @@ path = "examples/async/tab-completion.rs"
 required-features = [ "async" ]
 
 [package.metadata.docs.rs]
-features = ["x11"]
-all-features = true
+features = ["x11", "async", "fun"]

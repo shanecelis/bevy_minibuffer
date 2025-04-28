@@ -11,15 +11,22 @@ fn ask_name(mut minibuffer: Minibuffer) {
         .prompt::<TextField>("What's your first name? ")
         .observe(
             |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
-                let first_name = trigger.event_mut().take_result().unwrap();
-                minibuffer
-                    .prompt::<TextField>("What's your last name? ")
-                    .observe(
-                        move |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
-                            let last_name = trigger.event_mut().take_result().unwrap();
-                            minibuffer.message(format!("Hello, {first_name} {last_name}!"));
-                        },
-                    );
+                if let Ok(first_name) = trigger.event_mut().take_result() {
+                    minibuffer
+                        .prompt::<TextField>("What's your last name? ")
+                        .observe(
+                            move |mut trigger: Trigger<Submit<String>>,
+                                  mut minibuffer: Minibuffer| {
+                                if let Ok(last_name) = trigger.event_mut().take_result() {
+                                    minibuffer.message(format!("Hello, {first_name} {last_name}!"));
+                                } else {
+                                    minibuffer.clear();
+                                }
+                            },
+                        );
+                } else {
+                    minibuffer.clear();
+                }
             },
         );
 }
@@ -30,8 +37,11 @@ fn ask_age(mut minibuffer: Minibuffer) {
         .prompt::<Number<u8>>("What's your age? ")
         .observe(
             |mut trigger: Trigger<Submit<u8>>, mut minibuffer: Minibuffer| {
-                let age = trigger.event_mut().take_result().unwrap();
-                minibuffer.message(format!("You are {age} years old."));
+                if let Ok(age) = trigger.event_mut().take_result() {
+                    minibuffer.message(format!("You are {age} years old."));
+                } else {
+                    minibuffer.clear();
+                }
             },
         );
 }

@@ -43,6 +43,7 @@ x11 = ["bevy/x11"]
 [dev-dependencies]
 bevy = "0.17.0"
 bevy-inspector-egui = "0.35"
+bevy_egui = "0.38.1"
 bevy_framepace = "0.20"
 bevy_image_export = "0.15"
 rand = "0.9"

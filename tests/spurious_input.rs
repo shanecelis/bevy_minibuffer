@@ -5,6 +5,7 @@
 use bevy::prelude::*;
 use bevy_minibuffer::prelude::*;
 use bevy::input::keyboard::{Key, KeyboardInput};
+use bevy::input::ButtonState;
 use bevy_asky::string_cursor::StringCursor;
 use bevy_minibuffer::ui::MinibufferNode;
 
@@ -119,14 +120,37 @@ fn test_spurious_input_on_command_key() {
         let mut state = app.world_mut().resource_mut::<NextState<bevy_minibuffer::prompt::MinibufferState>>();
         state.set(bevy_minibuffer::prompt::MinibufferState::Inactive);
         drop(state);
+        
+        // Update to apply state transition
         app.update();
+        
+        // Verify state is actually Inactive before proceeding
+        let minibuffer_state_before = app.world().resource::<State<bevy_minibuffer::prompt::MinibufferState>>();
+        let is_inactive_before = matches!(**minibuffer_state_before, bevy_minibuffer::prompt::MinibufferState::Inactive);
+        println!("  Before 'n' key: MinibufferState is Inactive: {}", is_inactive_before);
+        drop(minibuffer_state_before);
+        
+        if !is_inactive_before {
+            println!("  WARNING: MinibufferState is not Inactive! InputSequenceSet will not run!");
+            continue;
+        }
         
         // Step 1: Simulate pressing 'n' key (this should trigger the command and open text field)
-        // Press the key and update once so get_just_pressed() can detect it
+        // Ensure key is released first so InputPlugin can detect the press transition
+        let mut button_input = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
+        if button_input.pressed(KeyCode::KeyN) {
+            button_input.release(KeyCode::KeyN);
+        }
+        drop(button_input);
+        app.update(); // Let InputPlugin process the release
+        
+        // Now press the key - InputPlugin should detect this transition
         simulate_key_press(&mut app, KeyCode::KeyN);
+        
+        // Update once so InputPlugin can process the press and set just_pressed
         app.update();
         
-        // Update again to process the key press
+        // Update again to let bevy-input-sequence process the just_pressed key
         app.update();
         
         // Now release the key
@@ -240,13 +264,71 @@ fn ask_name(mut minibuffer: Minibuffer) {
         );
 }
 
+// Helper to send keyboard events
+fn send_key_event(app: &mut App, event: KeyboardInput) {
+    app.world_mut()
+        .resource_mut::<Events<KeyboardInput>>()
+        .send(event);
+}
+
+// Helper to create character events
+fn create_char_event(c: char) -> KeyboardInput {
+    use bevy::input::keyboard::KeyCode;
+    // Map character to KeyCode for the key_code field
+    let key_code = match c {
+        'n' => KeyCode::KeyN,
+        'N' => KeyCode::KeyN,
+        'a' => KeyCode::KeyA,
+        'A' => KeyCode::KeyA,
+        'e' => KeyCode::KeyE,
+        'l' => KeyCode::KeyL,
+        'o' => KeyCode::KeyO,
+        _ => KeyCode::KeyN, // fallback
+    };
+    KeyboardInput {
+        logical_key: Key::Character(c.to_string().into()),
+        state: ButtonState::Pressed,
+        window: Entity::PLACEHOLDER,
+        key_code,
+        text: Some(c.to_string().into()),
+        repeat: false,
+    }
+}
+
+fn create_key_event(key: Key) -> KeyboardInput {
+    use bevy::input::keyboard::KeyCode;
+    let key_code = match key {
+        Key::Backspace => KeyCode::Backspace,
+        Key::Delete => KeyCode::Delete,
+        Key::ArrowLeft => KeyCode::ArrowLeft,
+        Key::ArrowRight => KeyCode::ArrowRight,
+        Key::Space => KeyCode::Space,
+        Key::Escape => KeyCode::Escape,
+        _ => KeyCode::Backspace, // fallback
+    };
+    KeyboardInput {
+        logical_key: key,
+        state: ButtonState::Pressed,
+        window: Entity::PLACEHOLDER,
+        key_code,
+        text: None,
+        repeat: false,
+    }
+}
+
 fn simulate_key_press(app: &mut App, key_code: KeyCode) {
-    // Update ButtonInput resource for bevy-input-sequence
-    let mut button_input = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
-    button_input.press(key_code);
-    drop(button_input);
-    
-    // Send KeyboardInput event for text input
+    // Create and send the appropriate KeyboardInput event
+    let event = match key_code {
+        KeyCode::KeyN => create_char_event('n'),
+        KeyCode::KeyA => create_char_event('a'),
+        KeyCode::Escape => create_key_event(Key::Escape),
+        _ => panic!("Unexpected key code: {:?}", key_code),
+    };
+    send_key_event(app, event);
+}
+
+fn simulate_key_release(app: &mut App, key_code: KeyCode) {
+    // Create a release event
     let logical_key = match key_code {
         KeyCode::KeyN => Key::Character("n".into()),
         KeyCode::KeyA => Key::Character("a".into()),
@@ -254,22 +336,14 @@ fn simulate_key_press(app: &mut App, key_code: KeyCode) {
         _ => panic!("Unexpected key code: {:?}", key_code),
     };
     
-    let keyboard_input = KeyboardInput {
+    let event = KeyboardInput {
         logical_key,
         key_code,
-        state: bevy::input::ButtonState::Pressed,
+        state: ButtonState::Released,
         window: Entity::PLACEHOLDER,
         repeat: false,
         text: None,
     };
-    
-    app.world_mut().write_message(keyboard_input);
-}
-
-fn simulate_key_release(app: &mut App, key_code: KeyCode) {
-    // Release the key in ButtonInput
-    let mut button_input = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
-    button_input.release(key_code);
-    drop(button_input);
+    send_key_event(app, event);
 }
 

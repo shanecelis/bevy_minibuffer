@@ -129,9 +129,9 @@ impl ActBuilder {
         let name = self.name;
         // let id = (self.make_act_runner)(world);
         let system_id = (self.register_system)(world);
-        // let id = system_id.entity();
-        // world.get_entity_mut(id).expect("entity for system_id")
-        //     .insert(RunActMap::new(ActSystem(system_id)));
+        // Spawn a new entity for the Act component instead of using the system entity
+        // In Bevy 0.17, system entities may not be regular entities that can have components
+        let act_entity = world.spawn_empty().id();
         (
             Act {
                 name,
@@ -141,7 +141,7 @@ impl ActBuilder {
                 system_name: self.system_name,
                 input: self.input,
             },
-            system_id,
+            act_entity,
         )
     }
 

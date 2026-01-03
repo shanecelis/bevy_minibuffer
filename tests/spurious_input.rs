@@ -11,9 +11,48 @@ use bevy_asky::string_cursor::StringCursor;
 #[derive(Resource, Default)]
 struct TestState {
     last_text_value: String,
+    key_press_frame: Option<u32>,
+    key_release_frame: Option<u32>,
+    text_field_created_frame: Option<u32>,
+    act_run_frame: Option<u32>,
+    minibuffer_state_on_press: Option<String>,
+    minibuffer_state_on_release: Option<String>,
+    minibuffer_state_when_text_created: Option<String>,
 }
 
 fn check_text_field(
+    query: Query<Ref<bevy_asky::string_cursor::StringCursor>, Added<bevy_asky::string_cursor::StringCursor>>,
+    mut test_state: ResMut<TestState>,
+    frame_count: Res<bevy::diagnostic::FrameCount>,
+    minibuffer_state: Res<State<bevy_minibuffer::prompt::MinibufferState>>,
+) {
+    // Check if a new text field was just created
+    if let Ok(cursor) = query.single() {
+        if test_state.text_field_created_frame.is_none() {
+            test_state.text_field_created_frame = Some(frame_count.0);
+            test_state.minibuffer_state_when_text_created = Some(format!("{:?}", **minibuffer_state));
+            test_state.last_text_value = cursor.value.clone();
+        }
+    }
+}
+
+fn track_text_field_first_seen(
+    query: Query<&bevy_asky::string_cursor::StringCursor>,
+    mut test_state: ResMut<TestState>,
+    frame_count: Res<bevy::diagnostic::FrameCount>,
+    minibuffer_state: Res<State<bevy_minibuffer::prompt::MinibufferState>>,
+) {
+    // Track when we first see a text field (even if it wasn't just added this frame)
+    if test_state.text_field_created_frame.is_none() {
+        if let Ok(cursor) = query.single() {
+            test_state.text_field_created_frame = Some(frame_count.0);
+            test_state.minibuffer_state_when_text_created = Some(format!("{:?}", **minibuffer_state));
+            test_state.last_text_value = cursor.value.clone();
+        }
+    }
+}
+
+fn track_text_field_value(
     query: Query<&StringCursor>,
     mut test_state: ResMut<TestState>,
 ) {
@@ -51,14 +90,17 @@ fn test_spurious_input_on_command_key() {
         .add_plugins(MinibufferPlugins)
         .add_acts((
             Act::new(ask_name).named("ask_name").bind(keyseq!(N)),
-            BasicActs::default().remove("run_act").unwrap(),
         ))
         .add_message::<bevy::window::RequestRedraw>() // Required for hide/show systems
         // .add_message::<bevy::window::WindowResized>() // Required for hide/show systems
         // .add_message::<bevy::window::WindowScaleFactorChanged>() // Required for hide/show systems
 
         .init_resource::<TestState>()
-        .add_systems(Update, check_text_field)
+        .add_systems(Update, (
+            check_text_field,
+            track_text_field_first_seen,
+            track_text_field_value,
+        ))
         .add_systems(Startup, |mut minibuffer: Minibuffer| {
             minibuffer.message("Hit 'N' for ask_name. Hit 'A' for ask_age.");
             minibuffer.set_visible(true);
@@ -80,27 +122,73 @@ fn test_spurious_input_on_command_key() {
         drop(state);
         app.update();
         
-        // Ensure key is released first so InputPlugin can detect the press transition
-        let mut button_input = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
-        if button_input.pressed(KeyCode::KeyN) {
-            button_input.release(KeyCode::KeyN);
-        }
-        drop(button_input);
+        // Reset test state
+        let mut test_state = app.world_mut().resource_mut::<TestState>();
+        test_state.last_text_value.clear();
+        test_state.key_press_frame = None;
+        test_state.key_release_frame = None;
+        test_state.text_field_created_frame = None;
+        test_state.act_run_frame = None;
+        test_state.minibuffer_state_on_press = None;
+        test_state.minibuffer_state_on_release = None;
+        test_state.minibuffer_state_when_text_created = None;
+        drop(test_state);
+        
+        // Get frame count before key press
+        let frame_count_before = app.world().resource::<bevy::diagnostic::FrameCount>().0;
+        
+        // Check minibuffer state before key press
+        let minibuffer_state_before = app.world().resource::<State<bevy_minibuffer::prompt::MinibufferState>>();
+        let state_before = format!("{:?}", **minibuffer_state_before);
+        drop(minibuffer_state_before);
         app.update();
         
         // Press 'n' key to trigger the command
         simulate_key_press(&mut app, KeyCode::KeyN);
+        
+        // Record key press frame and minibuffer state
+        let mut test_state = app.world_mut().resource_mut::<TestState>();
+        test_state.key_press_frame = Some(frame_count_before + 1);
+        test_state.minibuffer_state_on_press = Some(state_before);
+        drop(test_state);
+        
         app.update();
 
+        // Get frame count before key release
+        let frame_count_before_release = app.world().resource::<bevy::diagnostic::FrameCount>().0;
+        
+        // Check minibuffer state before key release
+        let minibuffer_state_before_release = app.world().resource::<State<bevy_minibuffer::prompt::MinibufferState>>();
+        let state_before_release = format!("{:?}", **minibuffer_state_before_release);
+        drop(minibuffer_state_before_release);
+        
         // Release the key
         simulate_key_release(&mut app, KeyCode::KeyN);
+        
+        // Record key release frame and minibuffer state
+        let mut test_state = app.world_mut().resource_mut::<TestState>();
+        test_state.key_release_frame = Some(frame_count_before_release + 1);
+        test_state.minibuffer_state_on_release = Some(state_before_release.clone());
+        drop(test_state);
+        
         app.update();
         
         // Check if text field exists
         let test_state_before = app.world().resource::<TestState>();
         if test_state_before.last_text_value.is_empty() {
-            continue; // Skip if text field wasn't created
+            warn!("no last text value");
         }
+        
+        // Print diagnostic information
+        println!("\n=== Diagnostic Information ===");
+        println!("Key press frame: {:?}", test_state_before.key_press_frame);
+        println!("Key release frame: {:?}", test_state_before.key_release_frame);
+        println!("Text field created frame: {:?}", test_state_before.text_field_created_frame);
+        println!("Minibuffer state on key press: {:?}", test_state_before.minibuffer_state_on_press);
+        println!("Minibuffer state on key release: {:?}", test_state_before.minibuffer_state_on_release);
+        println!("Minibuffer state when text created: {:?}", test_state_before.minibuffer_state_when_text_created);
+        println!("Text field value after 'n' key: '{}'", test_state_before.last_text_value);
+        println!("=============================\n");
         
         // Type 'a' - this should be the ONLY character in the field
         simulate_key_press(&mut app, KeyCode::KeyA);

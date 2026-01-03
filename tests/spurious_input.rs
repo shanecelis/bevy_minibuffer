@@ -7,12 +7,9 @@ use bevy_minibuffer::prelude::*;
 use bevy::input::keyboard::{Key, KeyboardInput};
 use bevy::input::ButtonState;
 use bevy_asky::string_cursor::StringCursor;
-use bevy_minibuffer::ui::MinibufferNode;
 
 #[derive(Resource, Default)]
 struct TestState {
-    attempts: u32,
-    found_spurious: bool,
     last_text_value: String,
 }
 
@@ -68,185 +65,74 @@ fn test_spurious_input_on_command_key() {
         })
         ;
     
-    // Run startup systems (PreStartup runs before Startup)
+    // Run startup systems
     app.update();
-    
-    // Check if MinibufferNode entity was created by spawn_layout
-    let mut minibuffer_node_query = app.world_mut().query_filtered::<Entity, With<MinibufferNode>>();
-    let minibuffer_node_count = minibuffer_node_query.iter(app.world()).count();
-    println!("MinibufferNode entities found: {}", minibuffer_node_count);
-    
-    if minibuffer_node_count == 0 {
-        panic!("MinibufferNode entity was not created! spawn_layout may not have run or failed.");
-    } else if minibuffer_node_count > 1 {
-        panic!("Multiple MinibufferNode entities found (expected 1): {}", minibuffer_node_count);
-    }
-    
-    // Get the MinibufferNode entity
-    let minibuffer_node_entity = minibuffer_node_query.single(app.world())
-        .expect("Should have exactly one MinibufferNode");
-    println!("MinibufferNode entity: {:?}", minibuffer_node_entity);
-    
-    // Check if it has children (the UI structure should have been created)
-    if let Some(children) = app.world().get::<Children>(minibuffer_node_entity) {
-        println!("MinibufferNode has {} children", children.len());
-        for (i, child) in children.iter().enumerate() {
-            println!("  Child {}: {:?}", i, child);
-        }
-    } else {
-        println!("MinibufferNode has no children");
-    }
-    
-    // Check if minibuffer is visible
-    let prompt_state = app.world().resource::<State<bevy_minibuffer::prompt::PromptState>>();
-    let is_visible = matches!(**prompt_state, bevy_minibuffer::prompt::PromptState::Visible);
-    println!("Minibuffer visible: {}", is_visible);
-    if !is_visible {
-        panic!("Minibuffer is not visible! Cannot run test.");
-    }
     
     // Try multiple times to provoke the bug
     for attempt in 0..10 {
         let mut test_state = app.world_mut().resource_mut::<TestState>();
-        test_state.attempts = attempt;
-        test_state.found_spurious = false;
         test_state.last_text_value.clear();
         drop(test_state);
         
-        println!("Attempt {}", attempt);
-        
         // Ensure MinibufferState is Inactive so bevy-input-sequence can process the key
-        // (InputSequenceSet only runs when MinibufferState::Inactive)
         let mut state = app.world_mut().resource_mut::<NextState<bevy_minibuffer::prompt::MinibufferState>>();
         state.set(bevy_minibuffer::prompt::MinibufferState::Inactive);
         drop(state);
-        
-        // Update to apply state transition
         app.update();
         
-        // Verify state is actually Inactive before proceeding
-        let minibuffer_state_before = app.world().resource::<State<bevy_minibuffer::prompt::MinibufferState>>();
-        let is_inactive_before = matches!(**minibuffer_state_before, bevy_minibuffer::prompt::MinibufferState::Inactive);
-        println!("  Before 'n' key: MinibufferState is Inactive: {}", is_inactive_before);
-        drop(minibuffer_state_before);
-        
-        if !is_inactive_before {
-            println!("  WARNING: MinibufferState is not Inactive! InputSequenceSet will not run!");
-            continue;
-        }
-        
-        // Step 1: Simulate pressing 'n' key (this should trigger the command and open text field)
         // Ensure key is released first so InputPlugin can detect the press transition
         let mut button_input = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
         if button_input.pressed(KeyCode::KeyN) {
             button_input.release(KeyCode::KeyN);
         }
         drop(button_input);
-        app.update(); // Let InputPlugin process the release
+        app.update();
         
-        // Now press the key - InputPlugin should detect this transition
+        // Press 'n' key to trigger the command
         simulate_key_press(&mut app, KeyCode::KeyN);
-        
-        // Update once so InputPlugin can process the press and set just_pressed
         app.update();
-        
-        // Update again to let bevy-input-sequence process the just_pressed key
-        app.update();
-        
-        // Now release the key
+
+        // Release the key
         simulate_key_release(&mut app, KeyCode::KeyN);
         app.update();
         
-        // Give it a few updates to process the command and create the text field
-        for _ in 0..20 {
-            app.update();
-        }
-        
-        // Check that minibuffer went into Active state after 'n' was pressed
-        let minibuffer_state = app.world().resource::<State<bevy_minibuffer::prompt::MinibufferState>>();
-        let is_active = matches!(**minibuffer_state, bevy_minibuffer::prompt::MinibufferState::Active);
-        let current_state = **minibuffer_state;
-        drop(minibuffer_state);
-        
-        // Check for Focusable entities (text fields should have this)
-        let mut focusable_query = app.world_mut().query_filtered::<Entity, With<bevy_asky::focus::Focusable>>();
-        let focusable_count = focusable_query.iter(app.world()).count();
-        drop(focusable_query);
-        
-        // Check for GetKeyChord components (used for key input)
-        let mut get_key_chord_query = app.world_mut().query_filtered::<Entity, With<bevy_minibuffer::prompt::GetKeyChord>>();
-        let get_key_chord_count = get_key_chord_query.iter(app.world()).count();
-        drop(get_key_chord_query);
-        
-        println!("After 'n' key: MinibufferState is Active: {}", is_active);
-        println!("  Focusable entities found: {}", focusable_count);
-        println!("  GetKeyChord entities found: {}", get_key_chord_count);
-        
-        if !is_active {
-            println!("WARNING: MinibufferState did not transition to Active after pressing 'n'!");
-            println!("  Current state: {:?}", current_state);
-            println!("  This suggests the command may not have triggered or the text field wasn't created/focused");
-        }
-        
-        // Step 2: Check if text field exists, if not, skip this attempt
+        // Check if text field exists
         let test_state_before = app.world().resource::<TestState>();
-        
         if test_state_before.last_text_value.is_empty() {
-            println!("No text field found after 'n' key, skipping attempt");
-            continue;
+            continue; // Skip if text field wasn't created
         }
         
-        println!("Text field created, initial value: '{}'", test_state_before.last_text_value);
-        
-        // Step 3: Type 'a' - this should be the ONLY character in the field
-        // If 'n' is also there, that's the bug!
+        // Type 'a' - this should be the ONLY character in the field
         simulate_key_press(&mut app, KeyCode::KeyA);
         app.update();
-        
-        // Release the key
         simulate_key_release(&mut app, KeyCode::KeyA);
         app.update();
         
-        // Give it a few updates to process the 'a' key
-        for _ in 0..20 {
-            app.update();
-        }
-        
-        // Step 4: Check the text field value
+
+        // Check the text field value - it should contain ONLY 'a', not 'na' or 'n'
         let test_state_after = app.world().resource::<TestState>();
         let final_value = &test_state_after.last_text_value;
         
-        println!("After typing 'a', text field value: '{}'", final_value);
-        
-        // The text field should contain ONLY 'a', not 'na' or 'n'
         if final_value == "a" {
-            println!("✓ Correct: Text field contains only 'a'");
+            // Correct: text field contains only 'a'
         } else if final_value.starts_with('n') {
             panic!(
                 "BUG REPRODUCED on attempt {}: Text field has spurious 'n' character! Expected 'a', got '{}'",
                 attempt, final_value
             );
-        } else if final_value.is_empty() {
-            println!("Text field is empty (might have been closed)");
-        } else {
+        } else if !final_value.is_empty() {
             panic!(
                 "Unexpected text field value on attempt {}: Expected 'a', got '{}'",
                 attempt, final_value
             );
         }
         
-        // Step 5: Press Escape to close the text field
+        // Press Escape to close the text field
         simulate_key_press(&mut app, KeyCode::Escape);
         app.update();
-        
-        // Release the key
         simulate_key_release(&mut app, KeyCode::Escape);
         app.update();
         
-        // Give it a few updates to process
-        for _ in 0..20 {
-            app.update();
-        }
     }
 }
 

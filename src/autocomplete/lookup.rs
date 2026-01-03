@@ -93,8 +93,8 @@ impl LookupMap for SrgbaHexLookup {
 }
 
 /// Triggered from `.resolve()` with value `T` and input string
-#[derive(Event, Debug)]
-pub enum Completed<T> {
+#[derive(Debug)]
+pub enum CompletedState<T> {
     /// A completion event with its associated input if available
     Unhandled {
         result: Result<T, Error>,
@@ -104,15 +104,31 @@ pub enum Completed<T> {
     Handled,
 }
 
+#[derive(EntityEvent, Message, Debug)]
+pub struct Completed<T> {
+    pub entity: Entity,
+    pub state: CompletedState<T>,
+}
+
 impl<T> Completed<T> {
+    /// Create a new completed event.
+    pub fn new(entity: Entity, result: Result<T, Error>, input: Option<String>) -> Self {
+        Self {
+            entity,
+            state: CompletedState::new(result, input)
+        }
+    }
+}
+
+impl<T> CompletedState<T> {
     /// Create a new completed event.
     pub fn new(result: Result<T, Error>, input: Option<String>) -> Self {
         Self::Unhandled { result, input }
     }
 
-    /// Take this completed and leave `Completed::Handled`.
+    /// Take this completed and leave `CompletedState::Handled`.
     pub fn take(&mut self) -> Self {
-        std::mem::replace(self, Completed::Handled)
+        std::mem::replace(self, CompletedState::Handled)
     }
 
     /// Return the result; leave a Handled event in its place.
@@ -120,9 +136,9 @@ impl<T> Completed<T> {
     /// WARNING: Cannot get input after this. Use `take_inner()` to get result
     /// and input.
     pub fn take_result(&mut self) -> Option<Result<T, Error>> {
-        match std::mem::replace(self, Completed::Handled) {
-            Completed::Unhandled { result, .. } => Some(result),
-            Completed::Handled => None,
+        match std::mem::replace(self, CompletedState::Handled) {
+            CompletedState::Unhandled { result, .. } => Some(result),
+            CompletedState::Handled => None,
         }
     }
 }

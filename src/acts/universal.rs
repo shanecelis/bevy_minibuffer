@@ -107,7 +107,7 @@ impl ActsPlugin for UniversalArgActs {
 }
 
 fn clear_arg(
-    mut event: EventReader<RunActEvent>,
+    mut event: MessageReader<RunActEvent>,
     mut arg: ResMut<UniversalArg>,
     mut clear: Local<Option<Cow<'static, str>>>,
 ) {
@@ -164,7 +164,7 @@ fn universal_arg(
         .unwrap_or("universal_arg".into());
     minibuffer.message(prompt.clone());
     minibuffer.get_chord().observe(
-        move |mut trigger: Trigger<KeyChordEvent>,
+        move |mut trigger: On<KeyChordEvent>,
               mut universal_arg: ResMut<UniversalArg>,
               mut chord_queue: ResMut<KeyChordQueue>,
               mut minibuffer: Minibuffer,
@@ -230,7 +230,7 @@ fn universal_arg(
             };
             if abort {
                 minibuffer.clear();
-                commands.entity(trigger.target()).despawn();
+                commands.entity(trigger.event().entity).despawn();
             }
         },
     );

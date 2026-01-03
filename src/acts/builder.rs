@@ -54,7 +54,7 @@ impl ActBuilder {
         S: IntoSystem<(), (), P> + 'static,
     {
         let system = IntoSystem::into_system(system);
-        let system_name = system.name();
+        let system_name = system.name().to_string().into();
         let name = Self::name_for_system(&system, true);
         ActBuilder {
             name,
@@ -76,7 +76,7 @@ impl ActBuilder {
         I: 'static + Default + Clone + Send + Sync + Debug,
     {
         let system = IntoSystem::into_system(system);
-        let system_name = system.name();
+        let system_name = system.name().to_string().into();
         let name = Self::name_for_system(&system, true);
         ActBuilder {
             name,
@@ -98,7 +98,7 @@ impl ActBuilder {
     }
 
     fn name_for_system<S: System>(system: &S, shorten_name: bool) -> Cow<'static, str> {
-        let mut n = system.name();
+        let mut n: Cow<'static, str> = system.name().to_string().into();
         // Take name out of pipe.
         //
         // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"

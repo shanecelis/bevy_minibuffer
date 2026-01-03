@@ -166,13 +166,13 @@ impl MinibufferAsync {
                 f(&mut commands);
                 let autocomplete = AutoComplete::new(lookup);
                 autocomplete.construct(commands, prompt).observe(
-                    move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
+                    move |mut trigger: On<Submit<String>>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             promise
                                 .send(trigger.event_mut().take_result().map_err(Error::from))
                                 .expect("send");
                         }
-                        commands.entity(trigger.target()).despawn();
+                        commands.entity(trigger.event().entity).despawn();
                     },
                 );
             });
@@ -216,18 +216,19 @@ impl MinibufferAsync {
                 let mut ecommands = minibuffer.prompt_map(prompt, lookup);
                 f(&mut ecommands);
                 ecommands.observe(
-                    move |mut trigger: Trigger<Completed<L::Item>>, mut commands: Commands| {
+                    move |mut trigger: On<Completed<L::Item>>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             promise
                                 .send(
                                     trigger
                                         .event_mut()
+                                        .state
                                         .take_result()
                                         .expect("completed already handled"),
                                 )
                                 .expect("send");
                         }
-                        commands.entity(trigger.target()).despawn();
+                        commands.entity(trigger.event().entity).despawn();
                     },
                 );
                 state.apply(world);
@@ -292,11 +293,11 @@ impl MinibufferAsync {
             async_world.apply_command(move |world: &mut World| {
                 let mut commands = world.commands();
                 commands.spawn(GetKeyChord).observe(
-                    move |mut trigger: Trigger<KeyChordEvent>, mut commands: Commands| {
+                    move |mut trigger: On<KeyChordEvent>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             let _ = promise.send(trigger.event_mut().take());
                         }
-                        commands.entity(trigger.target()).despawn();
+                        commands.entity(trigger.event().entity).despawn();
                     },
                 );
             });

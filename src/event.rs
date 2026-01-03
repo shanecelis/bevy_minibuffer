@@ -9,7 +9,7 @@ use crate::{
 use bevy::{
     diagnostic::FrameCount,
     ecs::{
-        event::{Event, EventReader},
+        event::Event,
         system::{Commands, QueryLens},
     },
     prelude::*,
@@ -54,7 +54,7 @@ fn setup_observers(query: Query<Entity, With<MinibufferNode>>, mut commands: Com
 }
 
 /// Requests an act to be run
-#[derive(Clone, Event, Debug, Copy)]
+#[derive(Clone, Event, Message, Debug, Copy)]
 pub struct RunActEvent {
     /// The act to run
     pub(crate) act: ActRef,
@@ -63,7 +63,7 @@ pub struct RunActEvent {
 }
 
 /// Requests an act by name to be run
-#[derive(Clone, Event, Debug)]
+#[derive(Clone, Event, Message, Debug)]
 pub struct RunActByNameEvent {
     /// Name of the act to run
     pub name: Cow<'static, str>,
@@ -94,7 +94,7 @@ impl LastRunAct {
 }
 
 fn set_visible_on_flag(
-    trigger: Trigger<RunActEvent>,
+    trigger: On<RunActEvent>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
 ) {
     if trigger.event().act.flags.contains(ActFlags::ShowMinibuffer) {
@@ -160,7 +160,7 @@ impl RunActEvent {
 // }
 
 /// Look up event fires when autocomplete panel is shown or hidden.
-#[derive(Debug, Clone, Event)]
+#[derive(Debug, Clone, Event, Message)]
 pub(crate) enum LookupEvent {
     /// Hide the autocomplete panel
     Hide,
@@ -174,7 +174,7 @@ pub(crate) enum LookupEvent {
 ///
 /// Allows minibuffer to use one channel to dispatch multiple kinds of events.
 #[doc(hidden)]
-#[derive(Debug, Clone, Event)]
+#[derive(Debug, Clone, Event, Message)]
 #[allow(private_interfaces)]
 pub enum DispatchEvent {
     /// Send a look up event.
@@ -205,8 +205,8 @@ impl From<RunActEvent> for DispatchEvent {
 }
 
 pub(crate) fn dispatch_events(
-    mut dispatch_events: EventReader<DispatchEvent>,
-    mut lookup_events: EventWriter<LookupEvent>,
+    mut dispatch_events: MessageReader<DispatchEvent>,
+    mut lookup_events: MessageWriter<LookupEvent>,
     mut minibuffer: Minibuffer,
 ) {
     use crate::event::DispatchEvent::*;
@@ -236,8 +236,8 @@ pub(crate) fn dispatch_events(
 }
 
 fn dispatch_trigger(
-    mut dispatch_events: Trigger<DispatchEvent>,
-    mut lookup_events: EventWriter<LookupEvent>,
+    mut dispatch_events: On<DispatchEvent>,
+    mut lookup_events: MessageWriter<LookupEvent>,
     mut minibuffer: Minibuffer,
 ) {
     use crate::event::DispatchEvent::*;
@@ -265,29 +265,45 @@ fn dispatch_trigger(
     }
 }
 
-#[derive(Event, Debug, Reflect)]
-pub enum KeyChordEvent {
+#[derive(Debug, Reflect)]
+pub enum KeyChordState {
     Unhandled(KeyChord),
     Canceled,
     Handled,
 }
 
+#[derive(EntityEvent, Message, Debug, Reflect)]
+pub struct KeyChordEvent {
+    pub entity: Entity,
+    pub state: KeyChordState,
+}
+
 impl KeyChordEvent {
-    pub fn new(chord: KeyChord) -> Self {
-        Self::Unhandled(chord)
+    pub fn new(entity: Entity, chord: KeyChord) -> Self {
+        Self {
+            entity,
+            state: KeyChordState::Unhandled(chord),
+        }
+    }
+
+    pub fn canceled(entity: Entity) -> Self {
+        Self {
+            entity,
+            state: KeyChordState::Canceled,
+        }
     }
 
     pub fn take(&mut self) -> Result<KeyChord, Error> {
-        match std::mem::replace(self, KeyChordEvent::Handled) {
-            KeyChordEvent::Unhandled(chord) => Ok(chord),
-            KeyChordEvent::Handled => Err(Error::Message("Event already handled".into())),
-            KeyChordEvent::Canceled => Err(bevy_asky::Error::Cancel.into()),
+        match std::mem::replace(&mut self.state, KeyChordState::Handled) {
+            KeyChordState::Unhandled(chord) => Ok(chord),
+            KeyChordState::Handled => Err(Error::Message("Event already handled".into())),
+            KeyChordState::Canceled => Err(bevy_asky::Error::Cancel.into()),
         }
     }
 }
 
 /// Run act for any [RunActEvent].
-pub(crate) fn run_acts(mut events: EventReader<RunActEvent>, mut commands: Commands) {
+pub(crate) fn run_acts(mut events: MessageReader<RunActEvent>, mut commands: Commands) {
     for e in events.read() {
         commands.trigger(*e);
     }
@@ -295,7 +311,7 @@ pub(crate) fn run_acts(mut events: EventReader<RunActEvent>, mut commands: Comma
 
 /// Run act for any [RunActEvent].
 fn run_acts_obs(
-    trigger: Trigger<RunActEvent>,
+    trigger: On<RunActEvent>,
     mut commands: Commands,
     run_act_map: Res<RunActMap>,
     acts: Query<&Act>,
@@ -324,14 +340,14 @@ fn run_acts_obs(
 }
 
 /// Lookup and run act for any [RunActByNameEvent].
-pub(crate) fn run_acts_by_name(mut events: EventReader<RunActByNameEvent>, mut commands: Commands) {
+pub(crate) fn run_acts_by_name(mut events: MessageReader<RunActByNameEvent>, mut commands: Commands) {
     for e in events.read() {
         commands.trigger(e.clone());
     }
 }
 
 fn run_acts_by_name_obs(
-    trigger: Trigger<RunActByNameEvent>,
+    trigger: On<RunActByNameEvent>,
     mut commands: Commands,
     acts: Query<(Entity, &Act)>,
 ) {

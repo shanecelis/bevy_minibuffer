@@ -21,7 +21,7 @@ use bevy::{
         system::{EntityCommands, Query, SystemParam},
     },
     prelude::{
-        default, Children, LineBreak, NextState, Res, ResMut, State, Text, TextLayout, Trigger,
+        default, Children, LineBreak, NextState, Res, ResMut, State, Text, TextLayout, On,
     },
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
@@ -192,7 +192,8 @@ impl Minibuffer<'_, '_> {
             .insert(RequireMatch)
             // TODO: We should probably return the input string in either case.
             .observe(
-                move |mut trigger: Trigger<Submit<String>>, mut commands: Commands| {
+                move |mut trigger: On<Submit<String>>, mut commands: Commands| {
+                    let entity = trigger.event().entity;
                     let mut input = None;
                     let result: Result<L::Item, Error> = trigger
                         .event_mut()
@@ -204,7 +205,7 @@ impl Minibuffer<'_, '_> {
                             r
                         });
                     commands
-                        .trigger_targets(Completed::Unhandled { result, input }, trigger.target());
+                        .trigger(Completed::new(entity, result, input));
                 },
             );
         ecommands

@@ -112,9 +112,9 @@ fn autocomplete_controller(
         &AutoComplete,
         Option<&RequireMatch>,
     )>,
-    mut input: EventReader<KeyboardInput>,
+    mut input: MessageReader<KeyboardInput>,
     mut commands: Commands,
-    mut lookup_events: EventWriter<LookupEvent>,
+    mut lookup_events: MessageWriter<LookupEvent>,
     frame_count: Res<FrameCount>,
 ) {
     let mut any_focused_text = false;
@@ -211,12 +211,12 @@ fn autocomplete_controller(
                         }
                     }
                     lookup_events.write(LookupEvent::Hide);
-                    commands.trigger_targets(Submit::new(Ok(text_state.value.clone())), id);
+                    commands.trigger(Submit::new(id, Ok(text_state.value.clone())));
                     focus.block_and_move(id);
                 }
                 Key::Escape => {
                     commands
-                        .trigger_targets(Submit::<String>::new(Err(bevy_asky::Error::Cancel)), id);
+                        .trigger(Submit::<String>::new(id, Err(bevy_asky::Error::Cancel)));
                     if let Some(mut ecommands) = commands.get_entity(id).ok() {
                         ecommands.try_insert(Feedback::error("canceled"));
                     }

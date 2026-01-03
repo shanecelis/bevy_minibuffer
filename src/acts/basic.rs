@@ -44,20 +44,19 @@ pub fn run_act(
         .unwrap_or("run_act: ".into());
     let acts = act_cache.trie(acts.iter(), ActFlags::RunAct | ActFlags::Active);
     minibuffer.prompt_map(prompt, acts.clone()).observe(
-        move |mut trigger: Trigger<Completed<ActRef>>, mut minibuffer: Minibuffer| match trigger
-            .event_mut()
-            .take()
-        {
-            Completed::Unhandled { result, input: _ } => match result {
-                Ok(act) => {
-                    minibuffer.run_act(act);
+        move |mut trigger: On<Completed<ActRef>>, mut minibuffer: Minibuffer| {
+            match trigger.event_mut().state.take() {
+                CompletedState::Unhandled { result, input: _ } => match result {
+                    Ok(act) => {
+                        minibuffer.run_act(act);
+                    }
+                    Err(e) => {
+                        minibuffer.message(format!("{e}"));
+                    }
+                },
+                CompletedState::Handled => {
+                    warn!("Unexpected handled.");
                 }
-                Err(e) => {
-                    minibuffer.message(format!("{e}"));
-                }
-            },
-            Completed::Handled => {
-                warn!("Unexpected handled.");
             }
         },
     );
@@ -131,7 +130,7 @@ pub fn list_key_bindings(acts: Query<&Act>) -> String {
 /// Toggle visibility.
 #[allow(private_interfaces)]
 pub fn toggle_visibility(
-    mut redraw: EventWriter<RequestRedraw>,
+    mut redraw: MessageWriter<RequestRedraw>,
     prompt_state: Res<State<PromptState>>,
     completion_state: Res<State<CompletionState>>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
@@ -167,12 +166,13 @@ pub fn describe_key(
     let mut accum = Hotkey::empty();
     minibuffer.message("Press key: ");
     minibuffer.get_chord().observe(
-        move |mut trigger: Trigger<KeyChordEvent>,
+        move |mut trigger: On<KeyChordEvent>,
               mut commands: Commands,
               mut minibuffer: Minibuffer,
               acts: Query<&Act>| {
             use trie_rs::inc_search::Answer;
             let mut search = IncSearch::resume(&trie, position);
+            let entity = trigger.event().entity;
             let chord: KeyChord = trigger.event_mut().take().expect("key chord");
             match search.query(&chord) {
                 Some(x) => {
@@ -197,14 +197,14 @@ pub fn describe_key(
                     };
                     minibuffer.message(msg);
                     if matches!(x, Answer::Match) {
-                        commands.entity(trigger.target()).despawn();
+                        commands.entity(entity).despawn();
                     }
                 }
                 None => {
                     accum.chords.push(chord);
                     let msg = format!("{} is unbound", &accum);
                     minibuffer.message(msg);
-                    commands.entity(trigger.target()).despawn();
+                    commands.entity(entity).despawn();
                 }
             }
             position = search.into();

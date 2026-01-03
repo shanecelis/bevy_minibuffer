@@ -68,7 +68,7 @@ pub struct GetKeyChord;
 
 /// Make component visible.
 pub(crate) fn show<T: Component>(
-    mut redraw: EventWriter<RequestRedraw>,
+    mut redraw: MessageWriter<RequestRedraw>,
     mut query: Query<&mut Visibility, With<T>>,
 ) {
     if let Ok(mut visibility) = query.single_mut() {
@@ -116,9 +116,9 @@ pub(crate) fn get_key_chords(
         for (id, get_key_chord) in query.iter_mut() {
             if !get_key_chord.is_added() {
                 if chord.1 == KeyCode::Escape && chord.0.is_empty() {
-                    commands.trigger_targets(KeyChordEvent::Canceled, id);
+                    commands.trigger(KeyChordEvent::canceled(id));
                 } else {
-                    commands.trigger_targets(KeyChordEvent::new(chord.clone()), id);
+                    commands.trigger(KeyChordEvent::new(id, chord.clone()));
                 }
             }
             // NOTE: Don't remove this here. Let the consumer decide when they're done.
@@ -134,7 +134,7 @@ pub(crate) fn get_key_chords(
 pub(crate) fn hide_delayed<T: Component>(
     mut commands: Commands,
     config: Res<Config>,
-    // redraw: EventWriter<RequestRedraw>,
+    // redraw: MessageWriter<RequestRedraw>,
     mut query: Query<Entity, With<T>>,
 ) {
     if !config.auto_hide {
@@ -152,7 +152,7 @@ pub(crate) fn hide_prompt_maybe(
     mut commands: Commands,
     time: Res<Time>,
     state: Res<State<MinibufferState>>,
-    mut redraw: EventWriter<RequestRedraw>,
+    mut redraw: MessageWriter<RequestRedraw>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
     mut next_completion_state: ResMut<NextState<CompletionState>>,
     mut query: Query<(Entity, &mut HideTime)>,
@@ -161,7 +161,7 @@ pub(crate) fn hide_prompt_maybe(
         // eprintln!("checking hide {:?}", time.delta());
         redraw.write(RequestRedraw); // Force ticks to happen when a timer is present.
         hide.timer.tick(time.delta());
-        if hide.timer.finished() {
+        if hide.timer.is_finished() {
             if *state == MinibufferState::Inactive {
                 next_prompt_state.set(PromptState::Invisible);
                 next_completion_state.set(CompletionState::Invisible);
@@ -177,7 +177,7 @@ pub(crate) fn hide_prompt_maybe(
 #[allow(dead_code)]
 pub(crate) fn hide<T: Component>(
     mut query: Query<&mut Visibility, With<T>>,
-    mut redraw: EventWriter<RequestRedraw>,
+    mut redraw: MessageWriter<RequestRedraw>,
 ) {
     if let Ok(mut visibility) = query.single_mut() {
         *visibility = Visibility::Hidden;
@@ -204,10 +204,10 @@ fn completion_set(
 }
 
 pub(crate) fn lookup_events(
-    mut lookup_events: EventReader<LookupEvent>,
+    mut lookup_events: MessageReader<LookupEvent>,
     completion: Query<(Entity, Option<&Children>), With<ScrollingList>>,
     mut next_completion_state: ResMut<NextState<CompletionState>>,
-    mut redraw: EventWriter<RequestRedraw>,
+    mut redraw: MessageWriter<RequestRedraw>,
     mut commands: Commands,
     mut last_hash: Local<Option<u64>>,
 ) {
@@ -244,9 +244,9 @@ pub(crate) fn lookup_events(
 
 /// Listen for [MinibufferState] transitions.
 pub(crate) fn listen_prompt_active(
-    mut transitions: EventReader<StateTransitionEvent<MinibufferState>>,
+    mut transitions: MessageReader<StateTransitionEvent<MinibufferState>>,
     mut next_prompt_state: ResMut<NextState<PromptState>>,
-    mut redraw: EventWriter<RequestRedraw>,
+    mut redraw: MessageWriter<RequestRedraw>,
 ) {
     for transition in transitions.read() {
         if let Some(MinibufferState::Active) = transition.entered {

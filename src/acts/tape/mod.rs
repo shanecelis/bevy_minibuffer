@@ -107,7 +107,7 @@ mod fun {
     use std::time::Duration;
 
     fn show<T: Component>(
-        mut redraw: EventWriter<RequestRedraw>,
+        mut redraw: MessageWriter<RequestRedraw>,
         mut query: Query<&mut Visibility, With<T>>,
     ) {
         if let Ok(mut visibility) = query.single_mut() {
@@ -504,7 +504,7 @@ impl Default for TapeRecorder {
 }
 
 pub(crate) fn process_event(
-    trigger: Trigger<RunActEvent>,
+    trigger: On<RunActEvent>,
     mut recorder: ResMut<TapeRecorder>,
     universal_arg: Res<UniversalArg>,
 ) {
@@ -568,11 +568,12 @@ fn tape_record(
         TapeRecorder::Off { one_off: _ } => {
             minibuffer.message("Record tape: ");
             minibuffer.get_chord().observe(
-                move |mut trigger: Trigger<KeyChordEvent>,
+                move |mut trigger: On<KeyChordEvent>,
                       tapes: Res<Tapes>,
                       mut commands: Commands,
                       mut minibuffer: Minibuffer,
                       mut tape_state: ResMut<NextState<SoundState>>| {
+                    let entity = trigger.event().entity;
                     match trigger.event_mut().take() {
                         Ok(chord) => {
                             tape_state.set(SoundState::Record);
@@ -606,7 +607,7 @@ fn tape_record(
                             minibuffer.message(format!("{e}"));
                         }
                     }
-                    commands.entity(trigger.target()).despawn();
+                    commands.entity(entity).despawn();
                 },
             );
         }
@@ -665,12 +666,13 @@ fn tape_play(
     let count = universal_arg.unwrap_or(1);
     minibuffer.message("Play tape: ");
     minibuffer.get_chord().observe(
-        move |mut trigger: Trigger<KeyChordEvent>,
+        move |mut trigger: On<KeyChordEvent>,
               mut commands: Commands,
               tapes: Res<Tapes>,
               mut minibuffer: Minibuffer,
               mut tape_state: ResMut<NextState<SoundState>>,
               mut last_played: ResMut<LastPlayed>| {
+            let entity = trigger.event().entity;
             match trigger.event_mut().take() {
                 Ok(mut chord) => 'body: {
                     if this_keychord
@@ -709,7 +711,7 @@ fn tape_play(
                     tape_state.set(SoundState::Squeak);
                 }
             }
-            commands.entity(trigger.target()).despawn();
+            commands.entity(entity).despawn();
         },
     );
 }
@@ -718,13 +720,14 @@ fn tape_copy(mut minibuffer: Minibuffer, mut tape_state: ResMut<NextState<SoundS
     tape_state.set(SoundState::Load);
     minibuffer.message("Copy tape for key: ");
     minibuffer.get_chord().observe(
-        |mut trigger: Trigger<KeyChordEvent>,
+        |mut trigger: On<KeyChordEvent>,
          mut commands: Commands,
          tapes: Res<Tapes>,
          mut minibuffer: Minibuffer,
          run_act_map: Res<RunActMap>,
          mut tape_state: ResMut<NextState<SoundState>>,
          acts: Query<&Act>| {
+            let entity = trigger.event().entity;
             match trigger.event_mut().take() {
                 Ok(chord) => 'press: {
                     if let Some(tape) = tapes.get(&chord) {
@@ -767,7 +770,7 @@ fn tape_copy(mut minibuffer: Minibuffer, mut tape_state: ResMut<NextState<SoundS
                     minibuffer.message(format!("{e}"));
                 }
             }
-            commands.entity(trigger.target()).despawn();
+            commands.entity(entity).despawn();
         },
     );
 }

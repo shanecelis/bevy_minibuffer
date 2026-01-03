@@ -504,23 +504,24 @@ impl Default for TapeRecorder {
 }
 
 pub(crate) fn process_event(
-    trigger: On<RunActEvent>,
+    mut events: MessageReader<RunActEvent>,
     mut recorder: ResMut<TapeRecorder>,
     universal_arg: Res<UniversalArg>,
 ) {
-    let event = trigger.event();
-    if event.act.flags.contains(ActFlags::Record) {
-        match *recorder {
-            TapeRecorder::Off {
-                one_off: ref mut tape,
-            } => {
-                tape.content.clear();
-                tape.append_run(event, &universal_arg);
+    for event in events.read() {
+        if event.act.flags.contains(ActFlags::Record) {
+            match *recorder {
+                TapeRecorder::Off {
+                    one_off: ref mut tape,
+                } => {
+                    tape.content.clear();
+                    tape.append_run(event, &universal_arg);
+                }
+                TapeRecorder::Record { ref mut tape, .. } => {
+                    tape.append_run(event, &universal_arg);
+                }
+                _ => (),
             }
-            TapeRecorder::Record { ref mut tape, .. } => {
-                tape.append_run(event, &universal_arg);
-            }
-            _ => (),
         }
     }
 }

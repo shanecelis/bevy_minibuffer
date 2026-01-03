@@ -86,6 +86,7 @@ pub(crate) fn set_minibuffer_state(
 ) {
     let is_active = query.iter().any(|x| focus.is_focused(x)) || key_chords.iter().next().is_some();
 
+    // May need to use set_if_neq in Bevy 0.18.
     next_minibuffer_state.set(if is_active {
         MinibufferState::Active
     } else {

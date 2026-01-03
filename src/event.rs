@@ -30,22 +30,16 @@ pub(crate) fn plugin(app: &mut App) {
         app.insert_resource(sender);
     }
     app.add_event::<DispatchEvent>()
-        .add_event::<RunActEvent>()
-        .add_event::<RunActByNameEvent>()
+        .add_message::<RunActEvent>()
+        .add_message::<RunActByNameEvent>()
         .add_systems(Startup, setup_observers)
         .init_resource::<LastRunAct>();
 }
 
 fn setup_observers(query: Query<Entity, With<MinibufferNode>>, mut commands: Commands) {
     match query.single() {
-        Ok(root) => {
-            commands.entity(root).with_children(|parent| {
-                parent.spawn(Observer::new(dispatch_trigger));
-                parent.spawn(Observer::new(run_acts_obs));
-                parent.spawn(Observer::new(run_acts_by_name_obs));
-                parent.spawn(Observer::new(set_visible_on_flag));
-                parent.spawn(Observer::new(crate::acts::tape::process_event));
-            });
+        Ok(_root) => {
+            // Observers removed - using message-based systems instead
         }
         Err(e) => {
             error!("Can not setup minibuffer observers: {e}");
@@ -54,7 +48,7 @@ fn setup_observers(query: Query<Entity, With<MinibufferNode>>, mut commands: Com
 }
 
 /// Requests an act to be run
-#[derive(Clone, Event, Message, Debug, Copy)]
+#[derive(Clone, Message, Debug, Copy)]
 pub struct RunActEvent {
     /// The act to run
     pub(crate) act: ActRef,
@@ -63,7 +57,7 @@ pub struct RunActEvent {
 }
 
 /// Requests an act by name to be run
-#[derive(Clone, Event, Message, Debug)]
+#[derive(Clone, Message, Debug)]
 pub struct RunActByNameEvent {
     /// Name of the act to run
     pub name: Cow<'static, str>,
@@ -93,14 +87,6 @@ impl LastRunAct {
     }
 }
 
-fn set_visible_on_flag(
-    trigger: On<RunActEvent>,
-    mut next_prompt_state: ResMut<NextState<PromptState>>,
-) {
-    if trigger.event().act.flags.contains(ActFlags::ShowMinibuffer) {
-        next_prompt_state.set(PromptState::Visible);
-    }
-}
 
 impl RunActEvent {
     /// Make a new run act event.
@@ -303,63 +289,60 @@ impl KeyChordEvent {
 }
 
 /// Run act for any [RunActEvent].
-pub(crate) fn run_acts(mut events: MessageReader<RunActEvent>, mut commands: Commands) {
-    for e in events.read() {
-        commands.trigger(*e);
-    }
-}
-
-/// Run act for any [RunActEvent].
-fn run_acts_obs(
-    trigger: On<RunActEvent>,
+pub(crate) fn run_acts(
+    mut events: MessageReader<RunActEvent>,
     mut commands: Commands,
     run_act_map: Res<RunActMap>,
     acts: Query<&Act>,
     mut last: ResMut<LastRunAct>,
+    mut next_prompt_state: ResMut<NextState<PromptState>>,
     frame_count: Res<FrameCount>,
 ) {
-    let e = trigger.event();
-    let act = match acts.get(e.act.id) {
-        Ok(act) => act,
-        Err(e) => {
-            warn!("Could not find act: {e}");
-            return;
+    for e in events.read() {
+        let act = match acts.get(e.act.id) {
+            Ok(act) => act,
+            Err(err) => {
+                warn!("Could not find act: {err}");
+                continue;
+            }
+        };
+        trace!("act {:?} frame {}", &act, frame_count.0);
+        
+        // Set prompt state if needed
+        if e.act.flags.contains(ActFlags::ShowMinibuffer) {
+            next_prompt_state.set(PromptState::Visible);
         }
-    };
-    trace!("act {:?} frame {}", &act, frame_count.0);
-    let run_act = act
-        .input
-        .as_ref()
-        .and_then(|x| run_act_map.get(x).map(|y| &**y));
-
-    let run_act = run_act.unwrap_or(&ActSystem);
-    last.0 = Some(*trigger.event());
-    if let Err(error) = run_act.run(act.system_id, &mut commands) {
-        warn!("Error running act '{}': {:?}", act.name, error);
+        
+        // Run the act
+        let run_act = act
+            .input
+            .as_ref()
+            .and_then(|x| run_act_map.get(x).map(|y| &**y));
+        
+        let run_act = run_act.unwrap_or(&ActSystem);
+        last.0 = Some(*e);
+        if let Err(error) = run_act.run(act.system_id, &mut commands) {
+            warn!("Error running act '{}': {:?}", act.name, error);
+        }
     }
 }
 
 /// Lookup and run act for any [RunActByNameEvent].
-pub(crate) fn run_acts_by_name(mut events: MessageReader<RunActByNameEvent>, mut commands: Commands) {
-    for e in events.read() {
-        commands.trigger(e.clone());
-    }
-}
-
-fn run_acts_by_name_obs(
-    trigger: On<RunActByNameEvent>,
+pub(crate) fn run_acts_by_name(
+    mut events: MessageReader<RunActByNameEvent>,
     mut commands: Commands,
     acts: Query<(Entity, &Act)>,
 ) {
-    let e = trigger.event();
-    if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
-        let new_event = RunActEvent {
-            act: ActRef::from_act(act, id),
-            hotkey: None,
-        };
-        commands.trigger(new_event);
-    } else {
-        warn!("No act named '{}' found.", e.name);
+    for e in events.read() {
+        if let Some((id, act)) = acts.iter().find(|(_, a)| a.name == e.name) {
+            let new_event = RunActEvent {
+                act: ActRef::from_act(act, id),
+                hotkey: None,
+            };
+            commands.write_message(new_event);
+        } else {
+            warn!("No act named '{}' found.", e.name);
+        }
     }
 }
 

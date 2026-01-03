@@ -8,7 +8,7 @@ use crate::{
     ui,
 };
 use bevy::{
-    app::{PluginGroupBuilder, Update},
+    app::{PluginGroupBuilder, PreUpdate, Update},
     ecs::schedule::{
         IntoScheduleConfigs,
         SystemSet,
@@ -114,15 +114,18 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
             .insert_resource(self.config.clone())
-            .add_event::<LookupEvent>()
-            .add_event::<KeyChordEvent>()
+            .add_message::<LookupEvent>()
+            .add_message::<KeyChordEvent>()
             .configure_sets(Update,
                             (MinibufferSet::Input, MinibufferSet::Process.before(AskySet::Controller), MinibufferSet::Output.before(AskySet::View), InputSequenceSet.run_if(in_state(MinibufferState::Inactive))).chain())
             .add_systems(Update, get_key_chords.in_set(MinibufferSet::Input))
             .add_systems(Update,
                          ((hide_prompt_maybe, listen_prompt_active),
-                          (dispatch_events, lookup_events, run_acts_by_name, run_acts, prompt::set_minibuffer_state).chain())
+                          (dispatch_events, lookup_events, run_acts, run_acts_by_name, crate::acts::tape::process_event, prompt::set_minibuffer_state).chain())
                          .in_set(MinibufferSet::Process))
+            // Process RunActEvent messages in PreUpdate of the next frame
+            // This ensures keyboard events that triggered the command are consumed before the act runs
+            // .add_systems(PreUpdate, run_acts)
             .add_systems(OnEnter(MinibufferState::Inactive),hide_delayed::<ui::BottomBar>)
             .add_systems(OnEnter(MinibufferState::Inactive),hide::<ui::CompletionContainer>)
             .add_systems(OnEnter(PromptState::Visible),     show::<ui::BottomBar>)

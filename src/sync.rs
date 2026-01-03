@@ -117,10 +117,10 @@ impl Minibuffer<'_, '_> {
     pub fn run_act(&mut self, act: impl Into<ActArg>) {
         match act.into() {
             ActArg::ActRef(act) => {
-                self.commands.trigger(RunActEvent::new(act));
+                self.commands.write_message(RunActEvent::new(act));
             }
             ActArg::Name(name) => {
-                self.commands.trigger(RunActByNameEvent::new(name));
+                self.commands.write_message(RunActByNameEvent::new(name));
                 // self.commands.send_event(RunActByNameEvent::new(name));
                 // self.lookup_and_run_act_event.send(RunActByNameEvent::new(name));
             }

@@ -92,9 +92,8 @@ impl Default for ActFlags {
     }
 }
 
-#[derive(EntityEvent, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct ActRef {
-    #[event_target]
     pub id: Entity,
     pub flags: ActFlags,
 }

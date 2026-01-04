@@ -29,7 +29,7 @@ pub(crate) fn plugin(app: &mut App) {
         let sender = app.add_channel_trigger::<DispatchEvent>();
         app.insert_resource(sender);
     }
-    app.add_event::<DispatchEvent>()
+    app.add_message::<DispatchEvent>()
         .add_message::<RunActEvent>()
         .add_message::<RunActByNameEvent>()
         .add_systems(Startup, setup_observers)
@@ -218,36 +218,6 @@ pub(crate) fn dispatch_events(
             }
             Taken => {}
         }
-    }
-}
-
-fn dispatch_trigger(
-    mut dispatch_events: On<DispatchEvent>,
-    mut lookup_events: MessageWriter<LookupEvent>,
-    mut minibuffer: Minibuffer,
-) {
-    use crate::event::DispatchEvent::*;
-    let event = std::mem::replace(dispatch_events.event_mut(), DispatchEvent::Taken);
-    match event {
-        LookupEvent(l) => {
-            lookup_events.write(l);
-        }
-        RunActEvent(e) => {
-            minibuffer.run_act(e.act);
-        }
-        RunActByNameEvent(e) => {
-            minibuffer.run_act(e.name);
-        }
-        EmitMessage(s) => {
-            minibuffer.message(s);
-        }
-        Clear => {
-            minibuffer.clear();
-        }
-        SetVisible(show) => {
-            minibuffer.set_visible(show);
-        }
-        Taken => {}
     }
 }
 

@@ -1,7 +1,7 @@
 [package]
 name = "bevy_minibuffer"
 description = "A gamedev console inspired by classic Unix text editors"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 authors = ["Shane Celis <shane.celis@gmail.com>"]
 keywords = [
@@ -22,7 +22,7 @@ bitflags = "2.9"
 trie-rs = "0.4.2"
 bevy-input-sequence = "0.9.0"
 keyseq = { version = "0.7.0", features = [ "bevy" ]}
-bevy_asky = { version = "0.3.0", default-features = false, features = [ "color" ] }
+bevy_asky = { version = "0.4.0", default-features = false, features = [ "color" ] }
 futures = { version = "0.3.30", optional = true }
 tabular = "0.2.0"
 thiserror = "2.0"

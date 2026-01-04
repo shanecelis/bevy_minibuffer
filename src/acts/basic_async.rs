@@ -87,13 +87,13 @@ pub fn describe_key(
                         Answer::Match => format!(
                             "{}is bound to {}",
                             accum,
-                            name.as_deref().unwrap_or(&"???".into())
+                            name.unwrap_or(&"???".into())
                         ),
                         Answer::PrefixAndMatch => {
                             format!(
                                 "{}is bound to {} and more",
                                 accum,
-                                name.as_deref().unwrap_or(&"???".into())
+                                name.unwrap_or(&"???".into())
                             )
                         }
                         Answer::Prefix => accum.clone(),

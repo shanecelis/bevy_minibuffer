@@ -16,19 +16,12 @@ use bevy::{
 };
 
 #[cfg(feature = "async")]
-use bevy_channel_trigger::ChannelTriggerApp;
-// #[cfg(feature = "async")]
-// use bevy_crossbeam_event::CrossbeamEventApp;
+use bevy_channel_message::ChannelMessageApp;
 use std::{borrow::Cow, fmt::Debug};
 
 pub(crate) fn plugin(app: &mut App) {
-    // #[cfg(feature = "async")]
-    // app.add_crossbeam_event::<DispatchEvent>();
     #[cfg(feature = "async")]
-    {
-        let sender = app.add_channel_trigger::<DispatchEvent>();
-        app.insert_resource(sender);
-    }
+    app.add_channel_message::<DispatchEvent>();
     app.add_message::<DispatchEvent>()
         .add_message::<RunActEvent>()
         .add_message::<RunActByNameEvent>()

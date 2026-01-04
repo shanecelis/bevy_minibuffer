@@ -643,14 +643,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_channel_trigger"
-version = "0.5.0"
+name = "bevy_channel_message"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "611dce9d64153b867c4e67742307e17b178fcc611e9faa564bce17ac24ddb300"
+checksum = "a11920785b5a0671637245277fc0946284c774d87b70fd3104267321a9e7e93b"
 dependencies = [
- "bevy_app",
- "bevy_ecs",
- "bevy_log",
+ "bevy",
  "crossbeam-channel",
 ]
 
@@ -1214,7 +1212,7 @@ dependencies = [
  "bevy-input-sequence",
  "bevy-inspector-egui",
  "bevy_asky",
- "bevy_channel_trigger",
+ "bevy_channel_message",
  "bevy_defer",
  "bevy_egui",
  "bevy_framepace",

@@ -25,7 +25,7 @@ use bevy_asky::{
     AskyAsync, Dest, Submit, Submitter,
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
-use bevy_channel_trigger::ChannelSender;
+use bevy_channel_message::ChannelMessageSender;
 use bevy_defer::AsyncWorld;
 use bevy_input_sequence::KeyChord;
 use core::time::Duration;
@@ -40,14 +40,14 @@ use std::{borrow::Cow, fmt::Debug};
 pub struct MinibufferAsync {
     asky: AskyAsync,
     dest: Entity,
-    trigger: ChannelSender<DispatchEvent>,
+    sender: ChannelMessageSender<DispatchEvent>,
 }
 
 unsafe impl SystemParam for MinibufferAsync {
     type State = (
         Entity,
         // CrossbeamEventSender<DispatchEvent>,
-        ChannelSender<DispatchEvent>,
+        ChannelMessageSender<DispatchEvent>,
     );
     type Item<'w, 's> = MinibufferAsync;
 
@@ -55,7 +55,7 @@ unsafe impl SystemParam for MinibufferAsync {
     fn init_state(world: &mut World) -> Self::State {
         let mut state: SystemState<(
             Query<Entity, With<PromptContainer>>,
-            Res<ChannelSender<DispatchEvent>>,
+            Res<ChannelMessageSender<DispatchEvent>>,
         )> = SystemState::new(world);
         let (query, channel) = state.get_mut(world);
         (query.single().expect("prompt container"), channel.clone())
@@ -81,7 +81,7 @@ unsafe impl SystemParam for MinibufferAsync {
         MinibufferAsync {
             asky: AskyAsync,
             dest: state.0,
-            trigger: state.1,
+            sender: state.1,
         }
     }
 }
@@ -109,11 +109,11 @@ impl MinibufferAsync {
     pub fn run_act(&mut self, act: impl Into<ActArg>) {
         match act.into() {
             ActArg::ActRef(act_ref) => {
-                self.trigger
+                self.sender
                     .send(DispatchEvent::RunActEvent(RunActEvent::new(act_ref)));
             }
             ActArg::Name(name) => {
-                self.trigger
+                self.sender
                     .send(DispatchEvent::RunActByNameEvent(RunActByNameEvent::new(
                         name,
                     )));
@@ -139,7 +139,7 @@ impl MinibufferAsync {
 
     /// Leave a message in the minibuffer.
     pub fn message(&mut self, msg: impl Into<String>) {
-        self.trigger.send(DispatchEvent::EmitMessage(msg.into()));
+        self.sender.send(DispatchEvent::EmitMessage(msg.into()));
     }
 
     /// Read input from user with autocomplete provided by a [Lookup].
@@ -176,13 +176,13 @@ impl MinibufferAsync {
                 f(&mut commands);
                 let autocomplete = AutoComplete::new(lookup);
                 autocomplete.construct(commands, prompt).observe(
-                    move |mut trigger: On<Submit<String>>, mut commands: Commands| {
+                    move |mut sender: On<Submit<String>>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             promise
-                                .send(trigger.event_mut().take_result().map_err(Error::from))
+                                .send(sender.event_mut().take_result().map_err(Error::from))
                                 .expect("send");
                         }
-                        commands.entity(trigger.event().entity).despawn();
+                        commands.entity(sender.event().entity).despawn();
                     },
                 );
             });
@@ -226,11 +226,11 @@ impl MinibufferAsync {
                 let mut ecommands = minibuffer.prompt_map(prompt, lookup);
                 f(&mut ecommands);
                 ecommands.observe(
-                    move |mut trigger: On<Completed<L::Item>>, mut commands: Commands| {
+                    move |mut sender: On<Completed<L::Item>>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
                             promise
                                 .send(
-                                    trigger
+                                    sender
                                         .event_mut()
                                         .state
                                         .take_result()
@@ -238,7 +238,7 @@ impl MinibufferAsync {
                                 )
                                 .expect("send");
                         }
-                        commands.entity(trigger.event().entity).despawn();
+                        commands.entity(sender.event().entity).despawn();
                     },
                 );
                 state.apply(world);
@@ -249,12 +249,12 @@ impl MinibufferAsync {
 
     /// Clear the minibuffer.
     pub fn clear(&mut self) {
-        self.trigger.send(DispatchEvent::Clear);
+        self.sender.send(DispatchEvent::Clear);
     }
 
     /// Hide the minibuffer.
     pub fn set_visible(&mut self, show: bool) {
-        self.trigger.send(DispatchEvent::SetVisible(show));
+        self.sender.send(DispatchEvent::SetVisible(show));
     }
 
     /// Show the minibuffer.
@@ -303,11 +303,11 @@ impl MinibufferAsync {
             async_world.apply_command(move |world: &mut World| {
                 let mut commands = world.commands();
                 commands.spawn(GetKeyChord).observe(
-                    move |mut trigger: On<KeyChordEvent>, mut commands: Commands| {
+                    move |mut sender: On<KeyChordEvent>, mut commands: Commands| {
                         if let Some(promise) = promise.take() {
-                            let _ = promise.send(trigger.event_mut().take());
+                            let _ = promise.send(sender.event_mut().take());
                         }
-                        commands.entity(trigger.event().entity).despawn();
+                        commands.entity(sender.event().entity).despawn();
                     },
                 );
             });

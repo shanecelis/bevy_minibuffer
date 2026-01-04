@@ -135,7 +135,7 @@ fn autocomplete_controller(
                         match e {
                             NoMatch => {
                                 lookup_events.write(LookupEvent::Hide);
-                                if let Some(mut ecommands) = commands.get_entity(id).ok() {
+                                if let Ok(mut ecommands) = commands.get_entity(id) {
                                     ecommands.try_insert(Feedback::info(format!("{}", e)));
                                 }
                             }
@@ -155,7 +155,7 @@ fn autocomplete_controller(
                             }
                             Message(s) => {
                                 lookup_events.write(LookupEvent::Hide);
-                                if let Some(mut ecommands) = commands.get_entity(id).ok() {
+                                if let Ok(mut ecommands) = commands.get_entity(id) {
                                     ecommands.try_insert(Feedback::info(s)); // Err(s),
                                 }
                             }
@@ -179,13 +179,13 @@ fn autocomplete_controller(
                             match e {
                                 NoMatch => {
                                     lookup_events.write(LookupEvent::Hide);
-                                    if let Some(mut ecommands) = commands.get_entity(id).ok() {
+                                    if let Ok(mut ecommands) = commands.get_entity(id) {
                                         ecommands.try_insert(Feedback::info(format!("{}", e)));
                                     }
                                 }
                                 Message(s) => {
                                     lookup_events.write(LookupEvent::Hide);
-                                    if let Some(mut ecommands) = commands.get_entity(id).ok() {
+                                    if let Ok(mut ecommands) = commands.get_entity(id) {
                                         ecommands.try_insert(Feedback::info(s));
                                     }
                                 }
@@ -194,7 +194,7 @@ fn autocomplete_controller(
                                     text_state.set_value(&s);
                                 }
                                 ManyMatches => {
-                                    if let Some(mut ecommands) = commands.get_entity(id).ok() {
+                                    if let Ok(mut ecommands) = commands.get_entity(id) {
                                         ecommands.try_insert(Feedback::warn("require match"));
                                     }
                                     let matches = autocomplete.all_lookups(&text_state.value);
@@ -217,7 +217,7 @@ fn autocomplete_controller(
                 Key::Escape => {
                     commands
                         .trigger(Submit::<String>::new(id, Err(bevy_asky::Error::Cancel)));
-                    if let Some(mut ecommands) = commands.get_entity(id).ok() {
+                    if let Ok(mut ecommands) = commands.get_entity(id) {
                         ecommands.try_insert(Feedback::error("canceled"));
                     }
                     focus.block(id);

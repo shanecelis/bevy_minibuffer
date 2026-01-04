@@ -8,7 +8,7 @@ use crate::{
     ui,
 };
 use bevy::{
-    app::{PluginGroupBuilder, PreUpdate, Update},
+    app::{PluginGroupBuilder, Update},
     ecs::schedule::{
         IntoScheduleConfigs,
         SystemSet,

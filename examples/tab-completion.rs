@@ -22,7 +22,7 @@ fn hello_name_vec(mut minibuffer: Minibuffer) {
     minibuffer
         .prompt_lookup("What's your name? ", vec!["John", "Sean", "Shane"])
         .observe(
-            |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
+            |mut trigger: On<Submit<String>>, mut minibuffer: Minibuffer| {
                 minibuffer.message(format!(
                     "Hello, {}.",
                     trigger.event_mut().take_result().unwrap()
@@ -38,7 +38,7 @@ fn hello_name_trie(mut minibuffer: Minibuffer) {
             trie_rs::Trie::from_iter(["John", "Sean", "Shane"]),
         )
         .observe(
-            |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
+            |mut trigger: On<Submit<String>>, mut minibuffer: Minibuffer| {
                 minibuffer.message(format!(
                     "Hello, {}.",
                     trigger.event_mut().take_result().unwrap()
@@ -61,7 +61,7 @@ fn hello_name_hash_map(mut minibuffer: Minibuffer) {
         ("Shane", Popular::Rare),
     ]);
     minibuffer.prompt_map("What's your name? ", map).observe(
-        |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
+        |mut trigger: On<Completed<Popular>>, mut minibuffer: Minibuffer| {
             let popular = trigger.event_mut().take_result().unwrap();
             minibuffer.message(match popular {
                 Ok(popular) => format!("That's a {:?} name.", popular),
@@ -78,7 +78,7 @@ fn hello_name_trie_map(mut minibuffer: Minibuffer) {
         ("Shane", Popular::Rare),
     ]);
     minibuffer.prompt_map("What's your name? ", trie).observe(
-        |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
+        |mut trigger: On<Completed<Popular>>, mut minibuffer: Minibuffer| {
             let popular = trigger.event_mut().take_result().unwrap();
             minibuffer.message(match popular {
                 Ok(popular) => format!("That's a {:?} name.", popular),
@@ -156,7 +156,7 @@ fn choose_completion(In(arg): In<Option<String>>, mut minibuffer: Minibuffer) {
             .prompt::<RadioGroup>("Choose a completion kind: ")
             .prompt_children::<Radio>(OPTIONS.iter().map(|x| x.0))
             .observe(
-                move |mut trigger: Trigger<Submit<usize>>,
+                move |mut trigger: On<Submit<usize>>,
                       mut minibuffer: Minibuffer,
                       mut commands: Commands| {
                     if let Ok(index) = trigger.event_mut().take_result() {

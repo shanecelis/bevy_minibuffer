@@ -119,7 +119,7 @@ pub(crate) fn get_key_chords(
                 if chord.1 == KeyCode::Escape && chord.0.is_empty() {
                     commands.trigger(KeyChordEvent::canceled(id));
                 } else {
-                    commands.trigger(KeyChordEvent::new(id, chord.clone()));
+                    commands.trigger(KeyChordEvent::new(id, chord));
                 }
             }
             // NOTE: Don't remove this here. Let the consumer decide when they're done.

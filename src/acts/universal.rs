@@ -157,7 +157,7 @@ fn universal_arg(
         .hotkey(&mut acts.as_query_lens())
         .map(|hotkey| {
             if hotkey.chords.len() == 1 {
-                bindkey = Some(hotkey.chords[0].clone());
+                bindkey = Some(hotkey.chords[0]);
             }
             format!("{}", hotkey).into()
         })

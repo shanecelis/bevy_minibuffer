@@ -58,7 +58,7 @@ pub trait MinibufferCommands {
     fn prompt_children<T: Construct + Component + Part>(
         &mut self,
         props: impl IntoIterator<Item = impl Into<T::Props>>,
-    ) -> EntityCommands
+    ) -> EntityCommands<'_>
     where
         <T as Construct>::Props: Send;
 }
@@ -67,7 +67,7 @@ impl MinibufferCommands for EntityCommands<'_> {
     fn prompt_children<T: Construct + Component + Part>(
         &mut self,
         props: impl IntoIterator<Item = impl Into<T::Props>>,
-    ) -> EntityCommands
+    ) -> EntityCommands<'_>
     where
         <T as Construct>::Props: Send,
     {
@@ -81,7 +81,7 @@ impl Minibuffer<'_, '_> {
     pub fn prompt<T: Construct + Component + Submitter>(
         &mut self,
         props: impl Into<T::Props>,
-    ) -> EntityCommands
+    ) -> EntityCommands<'_>
     where
         <T as Construct>::Props: Send,
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
@@ -162,7 +162,7 @@ impl Minibuffer<'_, '_> {
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
         lookup: L,
-    ) -> EntityCommands
+    ) -> EntityCommands<'_>
     where
         L: Lookup + Send + Sync + 'static,
     {
@@ -179,7 +179,7 @@ impl Minibuffer<'_, '_> {
         &mut self,
         prompt: impl Into<<TextField as Construct>::Props>,
         lookup: L,
-    ) -> EntityCommands
+    ) -> EntityCommands<'_>
     where
         L: Lookup + Clone + LookupMap + Send + Sync + 'static,
         <L as LookupMap>::Item: Sync + Debug,
@@ -232,7 +232,7 @@ impl Minibuffer<'_, '_> {
     }
 
     /// Get the next key chord.
-    pub fn get_chord(&mut self) -> EntityCommands {
+    pub fn get_chord(&mut self) -> EntityCommands<'_> {
         self.commands.spawn(GetKeyChord)
     }
 }

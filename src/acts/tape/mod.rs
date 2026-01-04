@@ -690,7 +690,7 @@ fn tape_play(
                             break 'body;
                         }
                     }
-                    minibuffer.log_input(&Some(chord.clone()));
+                    minibuffer.log_input(&Some(chord));
                     if let Some(tape) = tapes.get(&chord) {
                         let tape = tape.clone();
                         tape_state.set(SoundState::Play);

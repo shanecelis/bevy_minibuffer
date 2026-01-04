@@ -9,7 +9,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer
         .prompt::<TextField>("What's your name? ")
         .observe(
-            |mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
+            |mut trigger: On<Submit<String>>, mut minibuffer: Minibuffer| {
                 minibuffer.message(format!(
                     "Hello, {}.",
                     trigger.event_mut().take_result().unwrap()

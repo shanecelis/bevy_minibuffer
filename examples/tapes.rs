@@ -228,7 +228,7 @@ mod unscriptable {
             minibuffer
                 .prompt_map("Hex color: ", bevy_minibuffer::autocomplete::SrgbaHexLookup)
                 .observe(
-                    move |mut trigger: Trigger<Completed<Srgba>>,
+                    move |mut trigger: On<Completed<Srgba>>,
                           mut selected: ResMut<Selected>,
                           mut paints: Query<&mut Paint>,
                           mut commands: Commands,
@@ -282,7 +282,7 @@ pub(crate) fn set_color(
             minibuffer
                 .prompt_map("Hex color: ", bevy_minibuffer::autocomplete::SrgbaHexLookup)
                 .observe(
-                    move |mut trigger: Trigger<Completed<Srgba>>,
+                    move |mut trigger: On<Completed<Srgba>>,
                           mut selected: ResMut<Selected>,
                           mut paints: Query<&mut Paint>,
                           mut commands: Commands,
@@ -325,7 +325,7 @@ fn goto_next_selectable(selection: Entity, selectables: &Selectables, selected: 
         .copied();
 }
 
-fn select(trigger: Trigger<Pointer<Click>>, mut selected: ResMut<Selected>) {
+fn select(trigger: On<Pointer<Click>>, mut selected: ResMut<Selected>) {
     selected.set(Some(trigger.target()));
 }
 
@@ -362,7 +362,7 @@ fn update_color(
 /// Returns an observer that updates the entity's material to the one specified.
 fn update_color_on<E>(
     color: Option<Color>,
-) -> impl Fn(Trigger<E>, Query<&mut Paint>, Res<Selected>) {
+) -> impl Fn(On<E>, Query<&mut Paint>, Res<Selected>) {
     move |trigger, mut query, selected| {
         if selected
             .curr
@@ -385,7 +385,7 @@ fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
 }
 
 /// An observer to rotate an entity when it is dragged
-fn rotate_on_drag(drag: Trigger<Pointer<Drag>>, mut transforms: Query<&mut Transform>) {
+fn rotate_on_drag(drag: On<Pointer<Drag>>, mut transforms: Query<&mut Transform>) {
     let mut transform = transforms.get_mut(drag.target.entity()).unwrap();
     transform.rotate_y(drag.delta.x * 0.02);
     transform.rotate_x(drag.delta.y * 0.02);

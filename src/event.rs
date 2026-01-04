@@ -36,7 +36,7 @@ pub(crate) fn plugin(app: &mut App) {
         .init_resource::<LastRunAct>();
 }
 
-fn setup_observers(query: Query<Entity, With<MinibufferNode>>, mut commands: Commands) {
+fn setup_observers(query: Query<Entity, With<MinibufferNode>>, _commands: Commands) {
     match query.single() {
         Ok(_root) => {
             // Observers removed - using message-based systems instead

@@ -146,7 +146,7 @@ Ask the user for information. Notice that no acts are added. One can use
 fn hello_name(mut minibuffer: Minibuffer) {
   minibuffer
     .prompt::<TextField>("What's your name? ")
-    .observe(|mut trigger: Trigger<Submit<String>>, 
+    .observe(|mut trigger: On<Submit<String>>, 
               mut minibuffer: Minibuffer| {
         minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
     });
@@ -190,7 +190,7 @@ One can provide a list of strings for simple completions.
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer.prompt_lookup("What's your name? ",
                              vec!["John", "Sean", "Shane"])
-        .observe(|mut trigger: Trigger<Submit<String>>, 
+        .observe(|mut trigger: On<Submit<String>>, 
                   mut minibuffer: Minibuffer| {
             minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
         });
@@ -214,7 +214,7 @@ One can provide a trie for more performant completion.
 fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer.prompt_lookup("What's your name? ",
                              Trie::from_iter(["John", "Sean", "Shane"]))
-        .observe(|mut trigger: Trigger<Submit<String>>, mut minibuffer: Minibuffer| {
+        .observe(|mut trigger: On<Submit<String>>, mut minibuffer: Minibuffer| {
             minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
         });
 }
@@ -244,7 +244,7 @@ fn hello_name_hash_map(mut minibuffer: Minibuffer) {
         ("Shane", Popular::Rare),
     ]);
     minibuffer.prompt_map("What's your name? ", map).observe(
-        |mut trigger: Trigger<Completed<Popular>>, mut minibuffer: Minibuffer| {
+        |mut trigger: On<Completed<Popular>>, mut minibuffer: Minibuffer| {
             let popular = trigger.event_mut().take_result().unwrap();
             minibuffer.message(match popular {
                 Ok(popular) => format!("That's a {:?} name.", popular),
@@ -280,7 +280,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
         ("Shane", Popular::Rare),
     ]);
     minibuffer.prompt_map("What's your name? ", trie).observe(
-        |mut trigger: Trigger<Completed<Popular>>, 
+        |mut trigger: On<Completed<Popular>>, 
          mut minibuffer: Minibuffer| {
             let popular = trigger.event_mut().take_result().unwrap();
             minibuffer.message(match popular {

@@ -15,8 +15,7 @@ fn ask_name(mut minibuffer: Minibuffer) {
                     minibuffer
                         .prompt::<TextField>("What's your last name? ")
                         .observe(
-                            move |mut trigger: On<Submit<String>>,
-                                  mut minibuffer: Minibuffer| {
+                            move |mut trigger: On<Submit<String>>, mut minibuffer: Minibuffer| {
                                 if let Ok(last_name) = trigger.event_mut().take_result() {
                                     minibuffer.message(format!("Hello, {first_name} {last_name}!"));
                                 } else {
@@ -35,15 +34,13 @@ fn ask_name(mut minibuffer: Minibuffer) {
 fn ask_age(mut minibuffer: Minibuffer) {
     minibuffer
         .prompt::<Number<u8>>("What's your age? ")
-        .observe(
-            |mut trigger: On<Submit<u8>>, mut minibuffer: Minibuffer| {
-                if let Ok(age) = trigger.event_mut().take_result() {
-                    minibuffer.message(format!("You are {age} years old."));
-                } else {
-                    minibuffer.clear();
-                }
-            },
-        );
+        .observe(|mut trigger: On<Submit<u8>>, mut minibuffer: Minibuffer| {
+            if let Ok(age) = trigger.event_mut().take_result() {
+                minibuffer.message(format!("You are {age} years old."));
+            } else {
+                minibuffer.clear();
+            }
+        });
 }
 
 fn plugin(app: &mut App) {

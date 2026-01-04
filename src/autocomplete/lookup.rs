@@ -115,7 +115,7 @@ impl<T> Completed<T> {
     pub fn new(entity: Entity, result: Result<T, Error>, input: Option<String>) -> Self {
         Self {
             entity,
-            state: CompletedState::new(result, input)
+            state: CompletedState::new(result, input),
         }
     }
 }

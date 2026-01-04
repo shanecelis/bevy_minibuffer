@@ -87,7 +87,6 @@ impl LastRunAct {
     }
 }
 
-
 impl RunActEvent {
     /// Make a new run act event.
     pub fn new(act: ActRef) -> Self {
@@ -277,18 +276,18 @@ pub(crate) fn run_acts(
             }
         };
         trace!("act {:?} frame {}", &act, frame_count.0);
-        
+
         // Set prompt state if needed
         if e.act.flags.contains(ActFlags::ShowMinibuffer) {
             next_prompt_state.set(PromptState::Visible);
         }
-        
+
         // Run the act
         let run_act = act
             .input
             .as_ref()
             .and_then(|x| run_act_map.get(x).map(|y| &**y));
-        
+
         let run_act = run_act.unwrap_or(&ActSystem);
         last.0 = Some(*e);
         if let Err(error) = run_act.run(act.system_id, &mut commands) {

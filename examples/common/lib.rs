@@ -24,12 +24,9 @@
 use bevy::prelude::*;
 #[cfg(feature = "dev-capture")]
 use bevy::{
-
     camera::RenderTarget,
-    render::{
-    render_resource::{
+    render::render_resource::{
         Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
-    },
     },
 };
 #[cfg(feature = "dev-capture")]

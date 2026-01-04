@@ -14,7 +14,7 @@ struct Rotatable {
 
 fn plugin(app: &mut App) {
     app.add_plugins(MinibufferPlugins)
-       .add_plugins(bevy_egui::EguiPlugin::default())
+        .add_plugins(bevy_egui::EguiPlugin::default())
         .add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new())
         .add_acts((
             BasicActs::default(),
@@ -28,7 +28,6 @@ fn plugin(app: &mut App) {
             minibuffer.message("Hit A, S, or D to change cube speed. Hit 'Ctrl-H B' for keys.");
             minibuffer.set_visible(true);
         });
-
 }
 
 fn main() {

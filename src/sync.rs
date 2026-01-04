@@ -20,9 +20,7 @@ use bevy::{
         query::With,
         system::{EntityCommands, Query, SystemParam},
     },
-    prelude::{
-        default, Children, LineBreak, NextState, Res, ResMut, State, Text, TextLayout, On,
-    },
+    prelude::{default, Children, LineBreak, NextState, On, Res, ResMut, State, Text, TextLayout},
 };
 use bevy_asky::{prelude::*, sync::AskyCommands, Dest, Part};
 use std::fmt::Debug;
@@ -204,8 +202,7 @@ impl Minibuffer<'_, '_> {
                             input = Some(s);
                             r
                         });
-                    commands
-                        .trigger(Completed::new(entity, result, input));
+                    commands.trigger(Completed::new(entity, result, input));
                 },
             );
         ecommands

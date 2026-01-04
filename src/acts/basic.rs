@@ -44,19 +44,21 @@ pub fn run_act(
         .unwrap_or("run_act: ".into());
     let acts = act_cache.trie(acts.iter(), ActFlags::RunAct | ActFlags::Active);
     minibuffer.prompt_map(prompt, acts.clone()).observe(
-        move |mut trigger: On<Completed<ActRef>>, mut minibuffer: Minibuffer| {
-            match trigger.event_mut().state.take() {
-                CompletedState::Unhandled { result, input: _ } => match result {
-                    Ok(act) => {
-                        minibuffer.run_act(act);
-                    }
-                    Err(e) => {
-                        minibuffer.message(format!("{e}"));
-                    }
-                },
-                CompletedState::Handled => {
-                    warn!("Unexpected handled.");
+        move |mut trigger: On<Completed<ActRef>>, mut minibuffer: Minibuffer| match trigger
+            .event_mut()
+            .state
+            .take()
+        {
+            CompletedState::Unhandled { result, input: _ } => match result {
+                Ok(act) => {
+                    minibuffer.run_act(act);
                 }
+                Err(e) => {
+                    minibuffer.message(format!("{e}"));
+                }
+            },
+            CompletedState::Handled => {
+                warn!("Unexpected handled.");
             }
         },
     );

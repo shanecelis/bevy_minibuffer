@@ -84,11 +84,9 @@ pub fn describe_key(
                         .value()
                         .and_then(|act_ref: &ActRef| act_names.get(&act_ref.id));
                     let msg = match x {
-                        Answer::Match => format!(
-                            "{}is bound to {}",
-                            accum,
-                            name.unwrap_or(&"???".into())
-                        ),
+                        Answer::Match => {
+                            format!("{}is bound to {}", accum, name.unwrap_or(&"???".into()))
+                        }
                         Answer::PrefixAndMatch => {
                             format!(
                                 "{}is bound to {} and more",

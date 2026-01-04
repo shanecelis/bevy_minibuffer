@@ -215,8 +215,7 @@ fn autocomplete_controller(
                     focus.block_and_move(id);
                 }
                 Key::Escape => {
-                    commands
-                        .trigger(Submit::<String>::new(id, Err(bevy_asky::Error::Cancel)));
+                    commands.trigger(Submit::<String>::new(id, Err(bevy_asky::Error::Cancel)));
                     if let Ok(mut ecommands) = commands.get_entity(id) {
                         ecommands.try_insert(Feedback::error("canceled"));
                     }

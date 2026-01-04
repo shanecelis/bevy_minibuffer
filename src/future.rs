@@ -18,7 +18,7 @@ use bevy::{
         system::{EntityCommands, Query, Res, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
-    prelude::{Bundle, Component, State, On},
+    prelude::{Bundle, Component, On, State},
 };
 use bevy_asky::{
     construct::{Add0, Construct},

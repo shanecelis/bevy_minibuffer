@@ -23,10 +23,13 @@
 //!
 use bevy::prelude::*;
 #[cfg(feature = "dev-capture")]
-use bevy::render::{
+use bevy::{
+
     camera::RenderTarget,
+    render::{
     render_resource::{
         Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages,
+    },
     },
 };
 #[cfg(feature = "dev-capture")]

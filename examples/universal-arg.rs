@@ -7,7 +7,7 @@ use rand::prelude::*;
 mod common;
 
 fn rnd_vec<R: Rng>(rng: &mut R) -> Vec3 {
-    2.0 * Vec3::new(rng.gen(), rng.gen(), rng.gen()) - Vec3::ONE
+    2.0 * Vec3::new(rng.random(), rng.random(), rng.random()) - Vec3::ONE
 }
 
 fn make_cube(
@@ -20,9 +20,9 @@ fn make_cube(
 ) {
     let mut rng = rand::thread_rng();
 
-    let cube_handle = meshes.add(Cuboid::new(rng.gen(), rng.gen(), rng.gen()));
+    let cube_handle = meshes.add(Cuboid::new(rng.random(), rng.random(), rng.random()));
     let cube_material_handle = materials.add(StandardMaterial {
-        base_color: Color::srgb(rng.gen(), rng.gen(), rng.gen()),
+        base_color: Color::srgb(rng.random(), rng.random(), rng.random()),
         ..default()
     });
 

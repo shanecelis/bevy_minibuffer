@@ -1,6 +1,6 @@
 //! Illustrates how to interact with an entity with [MinibufferAsync].
 use bevy::prelude::*;
-use bevy_defer::{AsyncAccess, AsyncWorld};
+use bevy_defer::AsyncWorld;
 use bevy_minibuffer::prelude::*;
 use std::f32::consts::TAU;
 use std::future::Future;

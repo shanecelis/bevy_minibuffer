@@ -26,7 +26,7 @@ use bevy_asky::{
 };
 // use bevy_crossbeam_event::CrossbeamEventSender;
 use bevy_channel_trigger::ChannelSender;
-use bevy_defer::{AsyncAccess, AsyncWorld};
+use bevy_defer::AsyncWorld;
 use bevy_input_sequence::KeyChord;
 use core::time::Duration;
 use futures::{channel::oneshot, future::Either, pin_mut, Future, TryFutureExt};
@@ -52,13 +52,22 @@ unsafe impl SystemParam for MinibufferAsync {
     type Item<'w, 's> = MinibufferAsync;
 
     #[allow(clippy::type_complexity)]
-    fn init_state(world: &mut World, _system_meta: &mut SystemMeta) -> Self::State {
+    fn init_state(world: &mut World) -> Self::State {
         let mut state: SystemState<(
             Query<Entity, With<PromptContainer>>,
             Res<ChannelSender<DispatchEvent>>,
         )> = SystemState::new(world);
         let (query, channel) = state.get_mut(world);
         (query.single().expect("prompt container"), channel.clone())
+    }
+
+    fn init_access(
+        _state: &Self::State,
+        _system_meta: &mut SystemMeta,
+        _access: &mut bevy::ecs::query::FilteredAccessSet,
+        _world: &mut World,
+    ) {
+        // No additional access needed
     }
 
     #[inline]
@@ -82,13 +91,14 @@ impl MinibufferAsync {
     pub fn prompt<T: Construct + Bundle + Submitter + Component>(
         &mut self,
         props: impl Into<T::Props>,
-    ) -> impl Future<Output = Result<T::Out, Error>>
+    ) -> impl Future<Output = Result<T::Out, Error>> + '_
     where
         <T as Construct>::Props: Send + Sync,
         <T as Submitter>::Out: Clone + Debug + Send + Sync,
     {
+        let p = props.into();
         self.asky
-            .prompt::<Add0<T, View>>(props, Dest::ReplaceChildren(self.dest))
+            .prompt::<Add0<T, View>>(p, Dest::ReplaceChildren(self.dest))
             .map_err(Error::from)
     }
 
@@ -116,7 +126,7 @@ impl MinibufferAsync {
         &mut self,
         props: impl Into<T::Props>,
         f: impl FnOnce(&mut EntityCommands) + Send + 'static,
-    ) -> impl Future<Output = Result<T::Out, Error>>
+    ) -> impl Future<Output = Result<T::Out, Error>> + '_
     where
         <T as Construct>::Props: Send + Sync,
         <T as Submitter>::Out: Clone + Debug + Send + Sync + 'static,

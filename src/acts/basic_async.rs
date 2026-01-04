@@ -48,7 +48,7 @@ pub fn run_act(
         match minibuffer.prompt_map(prompt, acts_trie).await {
             // TODO: Get rid of clone.
             Ok(act_ref) => {
-                AsyncWorld::new().send_event(RunActEvent::new(act_ref))?;
+                AsyncWorld::new().write_message(RunActEvent::new(act_ref))?;
             }
             Err(e) => {
                 minibuffer.message(format!("Error: {e}"));

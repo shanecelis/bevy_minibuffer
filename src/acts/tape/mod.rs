@@ -167,7 +167,7 @@ mod fun {
             easing(-3.0, 0.5, EaseFunction::Steps(3, JumpAt::default())).unwrap(),
         ); //.map(|x| -x));
         commands.spawn((
-            AudioPlayer::new(tape_sound.squeak.clone_weak()),
+            AudioPlayer::new(tape_sound.squeak.clone()),
             PlaybackSettings::DESPAWN,
             TapeSoundSink,
         ));
@@ -182,7 +182,7 @@ mod fun {
             easing(-3.0, 4.0, EaseFunction::Steps(3, JumpAt::default())).unwrap(),
         ); //.map(|x| -x));
         commands.spawn((
-            AudioPlayer::new(tape_sound.load.clone_weak()),
+            AudioPlayer::new(tape_sound.load.clone()),
             PlaybackSettings::DESPAWN,
             TapeSoundSink,
         ));
@@ -194,7 +194,7 @@ mod fun {
         tape_sound: Res<TapeSoundSource>,
     ) {
         commands.spawn((
-            AudioPlayer::new(tape_sound.rewind.clone_weak()),
+            AudioPlayer::new(tape_sound.rewind.clone()),
             TapeSoundSink,
             PlaybackSettings::LOOP,
             PlayFor(
@@ -211,7 +211,7 @@ mod fun {
         mut animate: ResMut<TapeAnimate>,
     ) {
         commands.spawn((
-            AudioPlayer::new(tape_sound.play.clone_weak()),
+            AudioPlayer::new(tape_sound.play.clone()),
             TapeSoundSink,
             PlayFor(
                 Timer::new(Duration::from_secs_f32(2.0), TimerMode::Once),
@@ -230,9 +230,9 @@ mod fun {
         mut animate: ResMut<TapeAnimate>,
     ) {
         commands.spawn((
-            AudioPlayer::new(tape_sound.record_start.clone_weak()),
+            AudioPlayer::new(tape_sound.record_start.clone()),
             After::Play(AudioBundle {
-                source: AudioPlayer::new(tape_sound.record_loop.clone_weak()),
+                source: AudioPlayer::new(tape_sound.record_loop.clone()),
                 settings: PlaybackSettings::LOOP,
             }),
             TapeSoundSink,
@@ -254,7 +254,7 @@ mod fun {
         mut animate: ResMut<TapeAnimate>,
     ) {
         commands.spawn((
-            AudioPlayer::new(tape_sound.record_stop.clone_weak()),
+            AudioPlayer::new(tape_sound.record_stop.clone()),
             TapeSoundSink,
             PlaybackSettings::DESPAWN,
         ));

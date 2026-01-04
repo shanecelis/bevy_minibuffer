@@ -11,7 +11,7 @@ use crate::{
 use crate::{sink, MinibufferAsync};
 use bevy::prelude::*;
 #[cfg(feature = "async")]
-use bevy_defer::{AsyncAccess, AsyncWorld};
+use bevy_defer::AsyncWorld;
 use bevy_input_sequence::{KeyChord, KeyChordQueue};
 #[cfg(feature = "async")]
 use std::future::Future;

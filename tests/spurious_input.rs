@@ -49,6 +49,8 @@ fn test_spurious_input_on_command_key() {
         // .add_plugins(DefaultPlugins.build()
         // .disable::<bevy::window::WindowPlugin>()
         // .disable::<bevy::winit::WinitPlugin>())
+        .init_asset::<bevy::prelude::AudioSource>()
+        .init_asset::<bevy::prelude::Image>()
         .add_plugins(MinibufferPlugins)
         .add_acts((
             Act::new(ask_name).named("ask_name").bind(keyseq!(N)),
@@ -56,7 +58,6 @@ fn test_spurious_input_on_command_key() {
         .add_message::<bevy::window::RequestRedraw>() // Required for hide/show systems
         // .add_message::<bevy::window::WindowResized>() // Required for hide/show systems
         // .add_message::<bevy::window::WindowScaleFactorChanged>() // Required for hide/show systems
-
         .init_resource::<TestState>()
         .add_systems(Update, track_text_field_value)
         .add_systems(Startup, |mut minibuffer: Minibuffer| {

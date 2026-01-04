@@ -9,7 +9,7 @@
 //!
 use std::f32::consts::PI;
 
-use bevy::{color::palettes::tailwind::*, prelude::*};
+use bevy::{color::palettes::tailwind::*, ecs::event::EntityEvent, prelude::*};
 use bevy_minibuffer::prelude::*;
 
 #[path = "common/lib.rs"]
@@ -121,8 +121,8 @@ fn setup_scene(
     let observers = vec![
         Observer::new(update_color_on::<Pointer<Over>>(hover_color)),
         Observer::new(update_color_on::<Pointer<Out>>(None)),
-        Observer::new(update_color_on::<Pointer<Pressed>>(pressed_color)),
-        Observer::new(update_color_on::<Pointer<Released>>(hover_color)),
+        Observer::new(update_color_on::<Pointer<Press>>(pressed_color)),
+        Observer::new(update_color_on::<Pointer<Release>>(hover_color)),
         Observer::new(select),
         Observer::new(rotate_on_drag),
     ];
@@ -234,9 +234,7 @@ mod unscriptable {
                           mut commands: Commands,
                           mut minibuffer: Minibuffer,
                           selectables: Res<Selectables>| {
-                        if let Completed::Unhandled { result, input: _ } =
-                            trigger.event_mut().take()
-                        {
+                        if let Some(result) = trigger.event_mut().state.take_result() {
                             match result {
                                 Ok(color) => {
                                     goto_next_selectable(selection, &selectables, &mut selected);
@@ -245,14 +243,14 @@ mod unscriptable {
                                         paint.base = color.into();
                                         paint.tone = None;
                                     }
-                                    commands.entity(trigger.target()).despawn();
+                                    commands.entity(trigger.event().entity).despawn();
                                 }
                                 Err(e) => {
                                     warn!("set_color error: {e}");
                                 }
                             }
                         } else {
-                            commands.entity(trigger.target()).despawn();
+                            commands.entity(trigger.event().entity).despawn();
                         }
                     },
                 );
@@ -288,9 +286,7 @@ pub(crate) fn set_color(
                           mut commands: Commands,
                           mut minibuffer: Minibuffer,
                           selectables: Res<Selectables>| {
-                        if let Completed::Unhandled { result, input: _ } =
-                            trigger.event_mut().take()
-                        {
+                        if let Some(result) = trigger.event_mut().state.take_result() {
                             match result {
                                 Ok(color) => {
                                     minibuffer.log_input(&Some(color));
@@ -300,14 +296,14 @@ pub(crate) fn set_color(
                                         paint.base = color.into();
                                         paint.tone = None;
                                     }
-                                    commands.entity(trigger.target()).despawn();
+                                    commands.entity(trigger.event().entity).despawn();
                                 }
                                 Err(e) => {
                                     warn!("set_color error: {e}");
                                 }
                             }
                         } else {
-                            commands.entity(trigger.target()).despawn();
+                            commands.entity(trigger.event().entity).despawn();
                         }
                     },
                 );
@@ -326,7 +322,7 @@ fn goto_next_selectable(selection: Entity, selectables: &Selectables, selected: 
 }
 
 fn select(trigger: On<Pointer<Click>>, mut selected: ResMut<Selected>) {
-    selected.set(Some(trigger.target()));
+    selected.set(Some(trigger.event().entity));
 }
 
 fn update_selected(selected: Res<Selected>, mut paints: Query<&mut Paint>) {
@@ -360,7 +356,7 @@ fn update_color(
 }
 
 /// Returns an observer that updates the entity's material to the one specified.
-fn update_color_on<E>(
+fn update_color_on<E: EntityEvent>(
     color: Option<Color>,
 ) -> impl Fn(On<E>, Query<&mut Paint>, Res<Selected>) {
     move |trigger, mut query, selected| {
@@ -386,7 +382,7 @@ fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
 
 /// An observer to rotate an entity when it is dragged
 fn rotate_on_drag(drag: On<Pointer<Drag>>, mut transforms: Query<&mut Transform>) {
-    let mut transform = transforms.get_mut(drag.target.entity()).unwrap();
-    transform.rotate_y(drag.delta.x * 0.02);
-    transform.rotate_x(drag.delta.y * 0.02);
+    let mut transform = transforms.get_mut(drag.event().entity).unwrap();
+    transform.rotate_y(drag.event().delta.x * 0.02);
+    transform.rotate_x(drag.event().delta.y * 0.02);
 }

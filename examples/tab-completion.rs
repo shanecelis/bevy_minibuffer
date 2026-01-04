@@ -62,7 +62,7 @@ fn hello_name_hash_map(mut minibuffer: Minibuffer) {
     ]);
     minibuffer.prompt_map("What's your name? ", map).observe(
         |mut trigger: On<Completed<Popular>>, mut minibuffer: Minibuffer| {
-            let popular = trigger.event_mut().take_result().unwrap();
+            let popular = trigger.event_mut().state.take_result().unwrap();
             minibuffer.message(match popular {
                 Ok(popular) => format!("That's a {:?} name.", popular),
                 _ => "I don't know what kind of name that is.".to_string(),
@@ -79,7 +79,7 @@ fn hello_name_trie_map(mut minibuffer: Minibuffer) {
     ]);
     minibuffer.prompt_map("What's your name? ", trie).observe(
         |mut trigger: On<Completed<Popular>>, mut minibuffer: Minibuffer| {
-            let popular = trigger.event_mut().take_result().unwrap();
+            let popular = trigger.event_mut().state.take_result().unwrap();
             minibuffer.message(match popular {
                 Ok(popular) => format!("That's a {:?} name.", popular),
                 _ => "I don't know what kind of name that is.".to_string(),
@@ -162,7 +162,7 @@ fn choose_completion(In(arg): In<Option<String>>, mut minibuffer: Minibuffer) {
                     if let Ok(index) = trigger.event_mut().take_result() {
                         minibuffer.run_act(OPTIONS[index].1);
                     } else {
-                        commands.entity(trigger.target()).despawn();
+                        commands.entity(trigger.event().entity).despawn();
                     }
                 },
             );

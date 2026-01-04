@@ -148,7 +148,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
     .prompt::<TextField>("What's your name? ")
     .observe(|mut trigger: On<Submit<String>>, 
               mut minibuffer: Minibuffer| {
-        minibuffer.message(format!("Hello, {}.", trigger.event_mut().state.take_result().unwrap()));
+        minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
     });
 }
 
@@ -192,7 +192,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
                              vec!["John", "Sean", "Shane"])
         .observe(|mut trigger: On<Submit<String>>, 
                   mut minibuffer: Minibuffer| {
-            minibuffer.message(format!("Hello, {}.", trigger.event_mut().state.take_result().unwrap()));
+            minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
         });
 }
 
@@ -215,7 +215,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
     minibuffer.prompt_lookup("What's your name? ",
                              Trie::from_iter(["John", "Sean", "Shane"]))
         .observe(|mut trigger: On<Submit<String>>, mut minibuffer: Minibuffer| {
-            minibuffer.message(format!("Hello, {}.", trigger.event_mut().state.take_result().unwrap()));
+            minibuffer.message(format!("Hello, {}.", trigger.event_mut().take_result().unwrap()));
         });
 }
 ```

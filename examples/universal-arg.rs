@@ -18,7 +18,7 @@ fn make_cube(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut minibuffer: Minibuffer,
 ) {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let cube_handle = meshes.add(Cuboid::new(rng.random(), rng.random(), rng.random()));
     let cube_material_handle = materials.add(StandardMaterial {

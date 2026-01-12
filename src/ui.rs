@@ -178,7 +178,7 @@ fn spawn_layout(mut commands: Commands) {
 
 // Scroll the auto complete panel with mouse.
 // pub(crate) fn mouse_scroll(
-//     mut mouse_wheel_events: EventReader<MouseWheel>,
+//     mut mouse_wheel_events: MessageReader<MouseWheel>,
 //     mut query_list: Query<(&mut ScrollingList, &mut Style, &Parent, &Node)>,
 //     query_node: Query<&Node>,
 // ) {

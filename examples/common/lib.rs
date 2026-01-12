@@ -55,7 +55,7 @@ impl Plugin for VideoCapturePlugin {
             let plugin = ImageExportPlugin::default();
             let export_threads = plugin.threads.clone();
             app.add_plugins(plugin)
-                .add_systems(Update, move |events: EventReader<AppExit>| {
+                .add_systems(Update, move |events: MessageReader<AppExit>| {
                     if !events.is_empty() {
                         export_threads.finish();
                     }

@@ -360,14 +360,15 @@ fn update_color_on<E: EntityEvent>(
     color: Option<Color>,
 ) -> impl Fn(On<E>, Query<&mut Paint>, Res<Selected>) {
     move |trigger, mut query, selected| {
+        let entity = trigger.event().event_target();
         if selected
             .curr
-            .map(|x| x == trigger.target())
+            .map(|x| x == entity)
             .unwrap_or(false)
         {
             return;
         }
-        if let Ok(mut paint) = query.get_mut(trigger.target()) {
+        if let Ok(mut paint) = query.get_mut(entity) {
             paint.tone = color.map(|c| (c, 0.7));
         }
     }

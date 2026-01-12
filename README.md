@@ -355,7 +355,7 @@ Although one can technically achieve the same behavior with `Minibuffer`, there
 are cases like those with many queries in succession where using
 `MinibufferAsync` is more straightforward to write and read. 
 
-``` rust no_run
+``` rust ignore
 # use bevy::prelude::*;
 # use bevy_minibuffer::prelude::*;
 

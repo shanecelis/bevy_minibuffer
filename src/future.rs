@@ -75,7 +75,7 @@ unsafe impl SystemParam for MinibufferAsync {
         state: &'s mut Self::State,
         _system_meta: &SystemMeta,
         _world: UnsafeWorldCell<'w>,
-        _change_tick: bevy::ecs::component::Tick,
+        _change_tick: bevy::ecs::change_detection::Tick,
     ) -> Self::Item<'w, 's> {
         let state = state.clone();
         MinibufferAsync {

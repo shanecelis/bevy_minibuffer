@@ -117,16 +117,19 @@ fn autocomplete_controller(
     mut lookup_events: MessageWriter<LookupEvent>,
     frame_count: Res<FrameCount>,
 ) {
+    // Always read so the reader drains each frame; otherwise messages persist and
+    // the trigger key (e.g. ':') can appear in the next frame when the prompt opens.
     let mut any_focused_text = false;
-    for (id, mut text_state, autocomplete, require_match) in query.iter_mut() {
-        if !focus.is_focused(id) {
+
+    for ev in input.read() {
+        if ev.state != ButtonState::Pressed {
             continue;
         }
-        any_focused_text |= true;
-        for ev in input.read() {
-            if ev.state != ButtonState::Pressed {
+        for (id, mut text_state, autocomplete, require_match) in query.iter_mut() {
+            if !focus.is_focused(id) {
                 continue;
             }
+            any_focused_text |= true;
             trace!("input {:?} frame {}", &ev.logical_key, frame_count.0);
             match &ev.logical_key {
                 Key::Tab => {

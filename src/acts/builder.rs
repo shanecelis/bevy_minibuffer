@@ -124,7 +124,9 @@ impl ActBuilder {
 
     /// Return the name of the act. Derived from system if not explicitly given.
     pub fn name(&self) -> Cow<'static, str> {
-        self.name.clone().unwrap_or_else(|| self.name_for_system(true))
+        self.name
+            .clone()
+            .unwrap_or_else(|| self.name_for_system(true))
     }
 
     /// Build [Act].

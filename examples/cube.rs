@@ -22,7 +22,9 @@ fn plugin(app: &mut App) {
             Act::new(stop).named("stop").bind(keyseq! { A }),
             Act::new(speed).named("speed").bind(keyseq! { S }),
             Act::new(start).named("start").bind(keyseq! { D }),
-            Act::new_with_input(speed_scriptable).named("speed-scriptable").bind(keyseq! { F }),
+            Act::new_with_input(speed_scriptable)
+                .named("speed-scriptable")
+                .bind(keyseq! { F }),
         ))
         .add_systems(Startup, |mut minibuffer: Minibuffer| {
             minibuffer.message("Hit A, S, or D to change cube speed. Hit 'Ctrl-H B' for keys.");

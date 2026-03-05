@@ -4,7 +4,7 @@
 use crate::{
     acts::{Act, ActFlags, Acts, ActsPlugin},
     event::{KeyChordEvent, LastRunAct, RunActEvent},
-    prelude::{keyseq, _keyseq},
+    prelude::{_keyseq, keyseq},
     Minibuffer,
 };
 #[cfg(feature = "async")]

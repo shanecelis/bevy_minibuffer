@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+## [0.6.0] - 2026-03-04
+
+- Update to support Bevy 0.18.
+- Fix another spurious input.
+- Make `keyseq!` usable as re-export.
+
 ## [0.5.0] - 2026-01-12
 - Update to support Bevy 0.17.
 - Switch from `Event` to `Message` throughout. Events being executed

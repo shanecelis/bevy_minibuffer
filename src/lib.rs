@@ -52,4 +52,7 @@ pub mod prelude {
     pub use super::MinibufferAsync;
     pub use super::{Error, MinibufferPlugin, MinibufferPlugins};
     pub use std::time::Duration;
+
+    #[doc(hidden)]
+    pub use keyseq as _keyseq;
 }

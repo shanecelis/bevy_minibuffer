@@ -19,7 +19,7 @@ use std::{
 /// Builds an [Act]
 // #[derive(Debug)]
 pub struct ActBuilder {
-    pub name: Cow<'static, str>,
+    name: Option<Cow<'static, str>>,
     /// Hotkeys
     pub hotkeys: Vec<Hotkey>,
     system_name: Cow<'static, str>,
@@ -55,7 +55,7 @@ impl ActBuilder {
     {
         let system = IntoSystem::into_system(system);
         let system_name = system.name().to_string().into();
-        let name = Self::name_for_system(&system, true);
+        let name = None;
         ActBuilder {
             name,
             system_name,
@@ -77,7 +77,7 @@ impl ActBuilder {
     {
         let system = IntoSystem::into_system(system);
         let system_name = system.name().to_string().into();
-        let name = Self::name_for_system(&system, true);
+        let name = None;
         ActBuilder {
             name,
             system_name,
@@ -97,8 +97,8 @@ impl ActBuilder {
         }
     }
 
-    fn name_for_system<S: System>(system: &S, shorten_name: bool) -> Cow<'static, str> {
-        let mut n: Cow<'static, str> = system.name().to_string().into();
+    fn name_for_system(&self, shorten_name: bool) -> Cow<'static, str> {
+        let mut n: Cow<'static, str> = self.system_name.clone();
         // Take name out of pipe.
         //
         // "Pipe(cube_async::speed, bevy_minibuffer::sink::future_result<(), bevy_minibuffer::plugin::Error, cube_async::speed::{{closure}}>)"
@@ -116,17 +116,20 @@ impl ActBuilder {
                 .map(|start| n[start + 1..].to_owned().into())
                 .unwrap_or(n);
         }
+        if n.contains("Enable the debug feature") {
+            warn_once!("Some act names may not derivable from the system names; consider naming them directly `Act::new(sys1).named(\"act1\")` or add `bevy/debug` feature.");
+        }
         n
     }
 
     /// Return the name of the act. Derived from system if not explicitly given.
     pub fn name(&self) -> Cow<'static, str> {
-        self.name.clone()
+        self.name.clone().unwrap_or_else(|| self.name_for_system(true))
     }
 
     /// Build [Act].
     pub fn build(self, world: &mut World) -> (Act, Entity) {
-        let name = self.name;
+        let name = self.name();
         // let id = (self.make_act_runner)(world);
         let system_id = (self.register_system)(world);
         // Spawn a new entity for the Act component instead of using the system entity
@@ -147,7 +150,7 @@ impl ActBuilder {
 
     /// Name the act.
     pub fn named(&mut self, name: impl Into<Cow<'static, str>>) -> &mut Self {
-        self.name = name.into();
+        self.name = Some(name.into());
         self
     }
 
@@ -201,7 +204,7 @@ impl From<&mut ActBuilder> for ActBuilder {
     fn from(builder: &mut ActBuilder) -> Self {
         let taken: Cow<'static, str> = "*TAKEN*".into();
         Self {
-            name: std::mem::replace(&mut builder.name, taken.clone()),
+            name: std::mem::replace(&mut builder.name, Some(taken.clone())),
             register_system: std::mem::replace(
                 &mut builder.register_system,
                 Box::new(|_world: &mut World| {

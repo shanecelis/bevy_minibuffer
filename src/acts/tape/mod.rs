@@ -2,6 +2,7 @@ use crate::{
     acts::{
         universal::UniversalArg, Act, ActFlags, ActRef, ActSystem, Acts, ActsPlugin, RunActMap,
     },
+    prelude::_keyseq,
     event::{KeyChordEvent, LastRunAct, RunActEvent},
     input::{keyseq, KeyChord},
     Minibuffer,

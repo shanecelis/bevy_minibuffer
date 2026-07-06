@@ -57,7 +57,7 @@ unsafe impl SystemParam for MinibufferAsync {
             Query<Entity, With<PromptContainer>>,
             Res<ChannelMessageSender<DispatchEvent>>,
         )> = SystemState::new(world);
-        let (query, channel) = state.get_mut(world);
+        let (query, channel) = state.get_mut(world).expect("prompt container");
         (query.single().expect("prompt container"), channel.clone())
     }
 
@@ -76,13 +76,13 @@ unsafe impl SystemParam for MinibufferAsync {
         _system_meta: &SystemMeta,
         _world: UnsafeWorldCell<'w>,
         _change_tick: bevy::ecs::change_detection::Tick,
-    ) -> Self::Item<'w, 's> {
+    ) -> Result<Self::Item<'w, 's>, bevy::ecs::system::SystemParamValidationError> {
         let state = state.clone();
-        MinibufferAsync {
+        Ok(MinibufferAsync {
             asky: AskyAsync,
             dest: state.0,
             sender: state.1,
-        }
+        })
     }
 }
 
@@ -222,7 +222,9 @@ impl MinibufferAsync {
             async_world.apply_command(move |world: &mut World| {
                 let mut promise = Some(promise);
                 let mut state: SystemState<(Minibuffer,)> = SystemState::new(world);
-                let (mut minibuffer,) = state.get_mut(world);
+                let Ok((mut minibuffer,)) = state.get_mut(world) else {
+                    return;
+                };
                 let mut ecommands = minibuffer.prompt_map(prompt, lookup);
                 f(&mut ecommands);
                 ecommands.observe(

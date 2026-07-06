@@ -11,9 +11,13 @@ use bevy::{
 };
 use bevy_asky::{
     construct::ConstructExt,
-    focus::{FocusParam, Focusable},
+    next_tab_index,
     string_cursor::*,
     AskySet, Submitter,
+};
+use bevy::input_focus::{
+    tab_navigation::{NavAction, TabIndex, TabNavigation},
+    FocusCause, InputFocus,
 };
 use std::borrow::Cow;
 mod lookup;
@@ -63,7 +67,7 @@ impl AutoComplete {
                 ..default()
             })
             .insert(StringCursor::default())
-            .insert(Focusable::default())
+            .insert(next_tab_index())
             .construct::<crate::view::View>(())
             .insert(self);
         commands
@@ -105,7 +109,8 @@ unsafe impl Submitter for AutoComplete {
 // }
 
 fn autocomplete_controller(
-    mut focus: FocusParam,
+    mut input_focus: ResMut<InputFocus>,
+    nav: TabNavigation,
     mut query: Query<(
         Entity,
         &mut StringCursor,
@@ -119,17 +124,14 @@ fn autocomplete_controller(
 ) {
     // Always read so the reader drains each frame; otherwise messages persist and
     // the trigger key (e.g. ':') can appear in the next frame when the prompt opens.
-    let mut any_focused_text = false;
-
     for ev in input.read() {
         if ev.state != ButtonState::Pressed {
             continue;
         }
         for (id, mut text_state, autocomplete, require_match) in query.iter_mut() {
-            if !focus.is_focused(id) {
+            if input_focus.get() != Some(id) {
                 continue;
             }
-            any_focused_text |= true;
             trace!("input {:?} frame {}", &ev.logical_key, frame_count.0);
             match &ev.logical_key {
                 Key::Tab => {
@@ -215,14 +217,14 @@ fn autocomplete_controller(
                     }
                     lookup_events.write(LookupEvent::Hide);
                     commands.trigger(Submit::new(id, Ok(text_state.value.clone())));
-                    focus.block_and_move(id);
+                    block_and_move_focus(&mut commands, id, &nav, &mut input_focus);
                 }
                 Key::Escape => {
                     commands.trigger(Submit::<String>::new(id, Err(bevy_asky::Error::Cancel)));
                     if let Ok(mut ecommands) = commands.get_entity(id) {
                         ecommands.try_insert(Feedback::error("canceled"));
                     }
-                    focus.block(id);
+                    block_focus(&mut commands, id);
                 }
                 _x => {
                     // info!("Unhandled key {x:?}");
@@ -230,5 +232,21 @@ fn autocomplete_controller(
             }
         }
     }
-    focus.set_keyboard_nav(!any_focused_text);
+}
+
+fn block_and_move_focus(
+    commands: &mut Commands,
+    id: Entity,
+    nav: &TabNavigation,
+    input_focus: &mut InputFocus,
+) {
+    match nav.navigate(input_focus, NavAction::Next) {
+        Ok(next) => input_focus.set(next, FocusCause::Navigated),
+        Err(_) => input_focus.clear(),
+    }
+    commands.entity(id).try_insert(TabIndex(-1));
+}
+
+fn block_focus(commands: &mut Commands, id: Entity) {
+    commands.entity(id).try_insert(TabIndex(-1));
 }

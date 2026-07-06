@@ -225,7 +225,9 @@ impl From<&mut ActBuilder> for ActBuilder {
 }
 
 impl Command for ActBuilder {
-    fn apply(self, world: &mut World) {
+    type Out = ();
+
+    fn apply(self, world: &mut World) -> Self::Out {
         let (act, id) = self.build(world);
         let name = Name::new(act.name.clone());
         let keyseqs = act.build_keyseqs(id, world);
@@ -243,7 +245,9 @@ impl Command for ActBuilder {
 }
 
 impl EntityCommand for ActBuilder {
-    fn apply(self, mut entity_world: EntityWorldMut) {
+    type Out = ();
+
+    fn apply(self, mut entity_world: EntityWorldMut) -> Self::Out {
         let id = entity_world.id();
 
         entity_world.world_scope(move |world: &mut World| {

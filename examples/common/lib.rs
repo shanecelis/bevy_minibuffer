@@ -60,7 +60,6 @@ impl Plugin for VideoCapturePlugin {
                         export_threads.finish();
                     }
                 });
-            // #[cfg(feature = "dev-framepace")]
             {
                 let fps = 12.0;
                 app.add_plugins(bevy_framepace::FramepacePlugin)
@@ -191,10 +190,9 @@ fn setup_capture(
                     Camera2d,
                     Camera {
                         order: 100,
-                        // Connect the output texture to a camera as a RenderTarget.
-                        target: RenderTarget::Image(output_texture_handle.clone().into()),
                         ..default()
                     },
+                    RenderTarget::Image(output_texture_handle.clone().into()),
                     IsDefaultUiCamera,
                 ));
             });
@@ -215,11 +213,8 @@ fn setup_capture(
         commands.entity(id).with_children(|parent| {
             parent.spawn((
                 Camera3d::default(),
-                Camera {
-                    // Connect the output texture to a camera as a RenderTarget.
-                    target: RenderTarget::Image(output_texture_handle.clone().into()),
-                    ..default()
-                },
+                Camera::default(),
+                RenderTarget::Image(output_texture_handle.clone().into()),
                 IsDefaultUiCamera,
             ));
         });

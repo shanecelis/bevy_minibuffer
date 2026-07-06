@@ -1,7 +1,7 @@
 [package]
 name = "bevy_minibuffer"
 description = "A gamedev console inspired by classic Unix text editors"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2021"
 authors = ["Shane Celis <shane.celis@gmail.com>"]
 keywords = [
@@ -17,21 +17,21 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/shanecelis/bevy_minibuffer"
 
 [dependencies]
-bevy = { version = "0.18", default-features = false, features = [ "bevy_text", "bevy_ui", "default_font", "bevy_window", "bevy_state", "bevy_log", "std", "async_executor" ] }
+bevy = { version = "0.19", default-features = false, features = [ "bevy_text", "bevy_ui", "default_font", "bevy_window", "bevy_state", "bevy_log", "std", "async_executor" ] }
 bitflags = "2.9"
 trie-rs = "0.4.2"
 bevy-input-sequence = "0.10"
-keyseq = { version = "0.8.0", features = [ "bevy" ]}
+keyseq = { version = "0.9.0", features = [ "bevy" ]}
 bevy_asky = { version = "0.5", default-features = false, features = [ "color" ] }
 futures = { version = "0.3.30", optional = true }
 tabular = "0.2.0"
 thiserror = "2.0"
-bevy_defer = { version = "0.17", optional = true }
-accesskit = "0.21"
+bevy_defer = { version = "0.18", optional = true }
+accesskit = "0.24"
 copypasta = { version = "0.10.1", optional = true }
 variadics_please = "1.1.0"
 foldhash = "0.2"
-bevy_channel_message = { version = "0.1.1", optional = true }
+bevy_channel_message = { version = "0.3", optional = true }
 
 [features]
 async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_message" ]
@@ -41,11 +41,11 @@ clipboard = ["dep:copypasta"]
 x11 = ["bevy/x11"]
 
 [dev-dependencies]
-bevy = "0.18"
-bevy-inspector-egui = "0.36"
-bevy_egui = "0.39"
+bevy = "0.19"
+bevy-inspector-egui = "0.37"
+bevy_egui = "0.41"
 bevy_framepace = "0.21"
-bevy_image_export = "0.16"
+bevy_image_export = "0.17"
 rand = "0.9"
 version-sync = "0.9.5"
 
@@ -81,3 +81,4 @@ features = ["x11", "async", "fun"]
 bevy_asky = { path = "../bevy_asky" }
 keyseq = { path = "../keyseq" }
 bevy-input-sequence = { path = "../bevy-input-sequence" }
+bevy_framepace = { git = "https://github.com/hacknus/bevy_framepace.git", branch = "bevy_0.19" }

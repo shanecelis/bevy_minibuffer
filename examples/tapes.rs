@@ -186,7 +186,7 @@ fn setup_scene(
     // Light
     commands.spawn((
         PointLight {
-            shadows_enabled: true,
+            shadow_maps_enabled: true,
             intensity: 10_000_000.,
             range: 100.0,
             shadow_depth_bias: 0.2,
@@ -346,7 +346,7 @@ fn update_color(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     for (mut mesh_material, paint) in &mut query {
-        if let Some(material) = materials.get_mut(&mut mesh_material.0) {
+        if let Some(mut material) = materials.get_mut(&mut mesh_material.0) {
             material.base_color = match paint.tone {
                 Some((tone, k)) => paint.base.mix(&tone, k),
                 None => paint.base,

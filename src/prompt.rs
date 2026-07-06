@@ -5,7 +5,7 @@ use crate::{
     ui::{completion_item, ScrollingList},
     Config,
 };
-use bevy::{prelude::*, window::RequestRedraw};
+use bevy::{input_focus::InputFocus, prelude::*, window::RequestRedraw};
 use bevy_asky::prelude::*;
 use bevy_input_sequence::{KeyChord, Modifiers};
 use std::collections::VecDeque;
@@ -79,12 +79,16 @@ pub(crate) fn show<T: Component>(
 
 /// Check components to determine MinibufferState's state.
 pub(crate) fn set_minibuffer_state(
-    query: Query<Entity, With<Focusable>>,
-    focus: Focus,
+    focusables: Query<(Entity, &bevy::input_focus::tab_navigation::TabIndex)>,
+    input_focus: Res<InputFocus>,
     key_chords: Query<&GetKeyChord>,
     mut next_minibuffer_state: ResMut<NextState<MinibufferState>>,
 ) {
-    let is_active = query.iter().any(|x| focus.is_focused(x)) || key_chords.iter().next().is_some();
+    let is_active = input_focus.get().is_some_and(|entity| {
+        focusables
+            .get(entity)
+            .is_ok_and(|(_, tab_index)| tab_index.0 >= 0)
+    }) || key_chords.iter().next().is_some();
 
     // May need to use set_if_neq in Bevy 0.18.
     next_minibuffer_state.set(if is_active {

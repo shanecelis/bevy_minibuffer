@@ -575,6 +575,8 @@ dependencies = [
 [[package]]
 name = "bevy_asky"
 version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8fdf0aee04da4f90f4f5fccb3d84690091d39daa14f17eae7d31c3f84fa448da"
 dependencies = [
  "accesskit",
  "bevy",

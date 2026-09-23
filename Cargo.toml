@@ -78,7 +78,7 @@ required-features = [ "async" ]
 features = ["x11", "async", "fun"]
 
 [patch.crates-io]
-bevy_asky = { path = "../bevy_asky" }
+# bevy_asky = { path = "../bevy_asky" }
 # keyseq = { path = "../keyseq" }
 # bevy-input-sequence = { path = "../bevy-input-sequence" }
 # bevy_framepace = { git = "https://github.com/hacknus/bevy_framepace.git", branch = "bevy_0.19" }

@@ -17,12 +17,12 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/shanecelis/bevy_minibuffer"
 
 [dependencies]
-bevy = { version = "0.19", default-features = false, features = [ "bevy_text", "bevy_ui", "default_font", "bevy_window", "bevy_state", "bevy_log", "std", "async_executor" ] }
+bevy = { version = "0.19", default-features = false, features = [ "bevy_text", "bevy_ui", "bevy_input_focus", "default_font", "bevy_window", "bevy_state", "bevy_log", "std", "async_executor" ] }
 bitflags = "2.9"
 trie-rs = "0.4.2"
-bevy-input-sequence = "0.10"
+bevy-input-sequence = "0.11"
 keyseq = { version = "0.9.0", features = [ "bevy" ]}
-bevy_asky = { version = "0.5", default-features = false, features = [ "color" ] }
+bevy_asky = { version = "0.6", default-features = false, features = [ "color" ] }
 futures = { version = "0.3.30", optional = true }
 tabular = "0.2.0"
 thiserror = "2.0"
@@ -44,7 +44,7 @@ x11 = ["bevy/x11"]
 bevy = "0.19"
 bevy-inspector-egui = "0.37"
 bevy_egui = "0.41"
-bevy_framepace = "0.21"
+bevy_framepace = "0.22"
 bevy_image_export = "0.17"
 rand = "0.9"
 version-sync = "0.9.5"
@@ -79,6 +79,6 @@ features = ["x11", "async", "fun"]
 
 [patch.crates-io]
 bevy_asky = { path = "../bevy_asky" }
-keyseq = { path = "../keyseq" }
-bevy-input-sequence = { path = "../bevy-input-sequence" }
-bevy_framepace = { git = "https://github.com/hacknus/bevy_framepace.git", branch = "bevy_0.19" }
+# keyseq = { path = "../keyseq" }
+# bevy-input-sequence = { path = "../bevy-input-sequence" }
+# bevy_framepace = { git = "https://github.com/hacknus/bevy_framepace.git", branch = "bevy_0.19" }

@@ -14,6 +14,7 @@ use bevy::{
         SystemSet,
         // on_event,
     },
+    input_focus::InputFocus,
     prelude::{OnEnter, OnExit, PluginGroup, Resource},
     reflect::Reflect,
     state::{
@@ -113,6 +114,7 @@ impl bevy::app::Plugin for MinibufferPlugin {
             .init_state::<MinibufferState>()
             .init_state::<PromptState>()
             .init_state::<CompletionState>()
+            .init_resource::<InputFocus>()
             .insert_resource(self.config.clone())
             .add_message::<LookupEvent>()
             .add_message::<KeyChordEvent>()

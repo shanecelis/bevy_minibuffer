@@ -15,7 +15,7 @@ use bevy::{
         entity::Entity,
         prelude::Commands,
         query::With,
-        system::{EntityCommands, Query, Res, SystemMeta, SystemParam, SystemState},
+        system::{EntityCommands, Query, Res, SystemAccess, SystemMeta, SystemParam, SystemState},
         world::{unsafe_world_cell::UnsafeWorldCell, World},
     },
     prelude::{Bundle, Component, On, State},
@@ -64,7 +64,7 @@ unsafe impl SystemParam for MinibufferAsync {
     fn init_access(
         _state: &Self::State,
         _system_meta: &mut SystemMeta,
-        _access: &mut bevy::ecs::query::FilteredAccessSet,
+        _access: &mut SystemAccess,
         _world: &mut World,
     ) {
         // No additional access needed

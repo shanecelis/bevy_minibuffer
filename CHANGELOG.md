@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+- Update to support Bevy 0.20.
+
+## [0.7.0] - 2026-09-22
+
 - Update to support Bevy 0.19.
 
 ## [0.6.0] - 2026-03-04

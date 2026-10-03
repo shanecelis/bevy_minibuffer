@@ -119,10 +119,10 @@ fn setup_scene(
     let mut selectables = vec![];
 
     let observers = vec![
-        Observer::new(update_color_on::<Pointer<Over>>(hover_color)),
-        Observer::new(update_color_on::<Pointer<Out>>(None)),
-        Observer::new(update_color_on::<Pointer<Press>>(pressed_color)),
-        Observer::new(update_color_on::<Pointer<Release>>(hover_color)),
+        Observer::new(update_color_on::<PointerOver>(hover_color)),
+        Observer::new(update_color_on::<PointerOut>(None)),
+        Observer::new(update_color_on::<PointerPress>(pressed_color)),
+        Observer::new(update_color_on::<PointerRelease>(hover_color)),
         Observer::new(select),
         Observer::new(rotate_on_drag),
     ];
@@ -321,8 +321,8 @@ fn goto_next_selectable(selection: Entity, selectables: &Selectables, selected: 
         .copied();
 }
 
-fn select(trigger: On<Pointer<Click>>, mut selected: ResMut<Selected>) {
-    selected.set(Some(trigger.event().entity));
+fn select(trigger: On<PointerClick>, mut selected: ResMut<Selected>) {
+    selected.set(Some(trigger.entity));
 }
 
 fn update_selected(selected: Res<Selected>, mut paints: Query<&mut Paint>) {
@@ -360,7 +360,7 @@ fn update_color_on<E: EntityEvent>(
     color: Option<Color>,
 ) -> impl Fn(On<E>, Query<&mut Paint>, Res<Selected>) {
     move |trigger, mut query, selected| {
-        let entity = trigger.event().event_target();
+        let entity = trigger.event_target();
         if selected.curr.map(|x| x == entity).unwrap_or(false) {
             return;
         }
@@ -378,8 +378,8 @@ fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
 }
 
 /// An observer to rotate an entity when it is dragged
-fn rotate_on_drag(drag: On<Pointer<Drag>>, mut transforms: Query<&mut Transform>) {
-    let mut transform = transforms.get_mut(drag.event().entity).unwrap();
-    transform.rotate_y(drag.event().delta.x * 0.02);
-    transform.rotate_x(drag.event().delta.y * 0.02);
+fn rotate_on_drag(drag: On<PointerDrag>, mut transforms: Query<&mut Transform>) {
+    let mut transform = transforms.get_mut(drag.entity).unwrap();
+    transform.rotate_y(drag.delta.x * 0.02);
+    transform.rotate_x(drag.delta.y * 0.02);
 }

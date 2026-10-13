@@ -17,17 +17,17 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/shanecelis/bevy_minibuffer"
 
 [dependencies]
-bevy = { version = "0.20.0-dev", default-features = false, features = [ "bevy_text", "bevy_ui", "bevy_ui_widgets", "bevy_input_focus", "default_font", "bevy_window", "bevy_state", "bevy_log", "std", "async_executor" ] }
+bevy = { version = "0.20.0", default-features = false, features = [ "bevy_text", "bevy_ui", "bevy_ui_widgets", "bevy_input_focus", "default_font", "bevy_window", "bevy_state", "bevy_log", "std", "async_executor" ] }
 bitflags = "2.9"
 trie-rs = "0.4.2"
-bevy-input-sequence = "0.11"
+bevy-input-sequence = "0.12"
 keyseq = { version = "0.10.0", features = [ "bevy" ]}
 bevy_asky = { version = "0.7", default-features = false, features = [ "color" ] }
 futures = { version = "0.3.30", optional = true }
 tabular = "0.2.0"
 thiserror = "2.0"
 bevy_defer = { version = "0.20", optional = true }
-accesskit = "0.24"
+accesskit = "0.24.1"
 copypasta = { version = "0.10.1", optional = true }
 variadics_please = "1.1.0"
 foldhash = "0.2"
@@ -41,9 +41,9 @@ clipboard = ["dep:copypasta"]
 x11 = ["bevy/x11"]
 
 [dev-dependencies]
-bevy = "0.20.0-dev"
+bevy = "0.20.0"
 bevy-inspector-egui = "0.37"
-bevy_egui = "0.41"
+bevy_egui = "0.43"
 bevy_framepace = "0.22"
 bevy_image_export = "0.17"
 rand = "0.9"
@@ -84,5 +84,4 @@ bevy-input-sequence = { path = "../bevy-input-sequence" }
 bevy_framepace = { path = "../bevy_framepace" }
 bevy_channel_message = { path = "../bevy_channel_message" }
 bevy_defer = { path = "../bevy_defer" }
-bevy_egui = { git = "https://github.com/taboky-dev/bevy_egui.git", rev = "3cd933b" }
 bevy-inspector-egui = { git = "https://github.com/taboky-dev/bevy-inspector-egui.git", rev = "bd1788b" }

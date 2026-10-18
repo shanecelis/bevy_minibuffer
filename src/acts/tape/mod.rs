@@ -581,7 +581,7 @@ fn tape_record(
                             tape_state.set(SoundState::Record);
                             if append {
                                 if let Some(tape) = tapes.get(&chord) {
-                                    minibuffer.message(format!("Recording tape {}", &chord));
+                                    minibuffer.message(format!("Recording tape {}", chord));
                                     *minibuffer.tape_recorder = TapeRecorder::Record {
                                         tape: tape.clone(),
                                         chord,
@@ -589,7 +589,7 @@ fn tape_record(
                                 } else {
                                     minibuffer.message(format!(
                                         "No prior tape. Recording new tape {}",
-                                        &chord
+                                        chord
                                     ));
                                     *minibuffer.tape_recorder = TapeRecorder::Record {
                                         tape: Tape::default(),
@@ -597,7 +597,7 @@ fn tape_record(
                                     };
                                 }
                             } else {
-                                minibuffer.message(format!("Recording new tape {}", &chord));
+                                minibuffer.message(format!("Recording new tape {}", chord));
                                 *minibuffer.tape_recorder = TapeRecorder::Record {
                                     tape: Tape::default(),
                                     chord,
@@ -620,7 +620,7 @@ fn tape_record(
                 unreachable!();
             };
             next_tape_state.set(SoundState::Stop);
-            minibuffer.message(format!("Stop recording tape {}", &chord));
+            minibuffer.message(format!("Stop recording tape {}", chord));
             tapes.insert(chord, tape);
         }
         TapeRecorder::Play => {
@@ -656,7 +656,7 @@ fn tape_play(
             });
         } else {
             // next_tape_state.set(SoundState::Load);
-            minibuffer.message(format!("No tape for {}", &chord));
+            minibuffer.message(format!("No tape for {}", chord));
         }
         return;
     }
@@ -705,7 +705,7 @@ fn tape_play(
                         **last_played = Some(chord);
                     } else {
                         tape_state.set(SoundState::Load);
-                        minibuffer.message(format!("No tape for {}", &chord));
+                        minibuffer.message(format!("No tape for {}", chord));
                     }
                 }
                 Err(e) => {
@@ -762,9 +762,9 @@ fn tape_copy(mut minibuffer: Minibuffer, mut tape_state: ResMut<NextState<SoundS
                             }
                         }
                         #[cfg(not(feature = "clipboard"))]
-                        minibuffer.message(format!("Log tape {}:\n\n{}", &chord, &script));
+                        minibuffer.message(format!("Log tape {}:\n\n{}", chord, script));
                     } else {
-                        minibuffer.message(format!("No tape for {}", &chord));
+                        minibuffer.message(format!("No tape for {}", chord));
                     }
                 }
                 Err(e) => {
@@ -839,11 +839,11 @@ impl Tape {
                     writeln!(
                         f,
                         "    commands.run_system_cached_with({}, {})",
-                        &act.system_name, input_string
+                        act.system_name, input_string
                     )?;
                 }
                 None => {
-                    writeln!(f, "    commands.run_system_cached({})", &act.system_name)?;
+                    writeln!(f, "    commands.run_system_cached({})", act.system_name)?;
                 }
             }
         }

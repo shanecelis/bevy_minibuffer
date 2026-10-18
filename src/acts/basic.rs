@@ -195,7 +195,7 @@ pub fn describe_key(
                             let binding = act.find_hotkey(&accum.chords).unwrap_or(&accum);
                             format!("{} is bound to {} and more", binding, act.name)
                         }
-                        Answer::Prefix => format!("Press key: {}", &accum),
+                        Answer::Prefix => format!("Press key: {}", accum),
                     };
                     minibuffer.message(msg);
                     if matches!(x, Answer::Match) {
@@ -204,7 +204,7 @@ pub fn describe_key(
                 }
                 None => {
                     accum.chords.push(chord);
-                    let msg = format!("{} is unbound", &accum);
+                    let msg = format!("{} is unbound", accum);
                     minibuffer.message(msg);
                     commands.entity(entity).despawn();
                 }

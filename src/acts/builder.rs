@@ -206,7 +206,7 @@ impl From<&mut ActBuilder> for ActBuilder {
     fn from(builder: &mut ActBuilder) -> Self {
         let taken: Cow<'static, str> = "*TAKEN*".into();
         Self {
-            name: std::mem::replace(&mut builder.name, Some(taken.clone())),
+            name: builder.name.replace(taken.clone()),
             register_system: std::mem::replace(
                 &mut builder.register_system,
                 Box::new(|_world: &mut World| {

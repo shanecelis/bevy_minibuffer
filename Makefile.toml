@@ -41,90 +41,150 @@ trunk build \
 private = true
 workspace = false
 env = { EXAMPLE = "opt-in" }
+condition = { files_modified = { input = [
+    "examples/opt-in.rs",
+    "web/opt-in/index.html",
+], output = ["web/built/opt-in/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-add-act]
 private = true
 workspace = false
 env = { EXAMPLE = "add-act" }
+condition = { files_modified = { input = [
+    "examples/add-act.rs",
+    "web/add-act/index.html",
+], output = ["web/built/add-act/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-bind-hotkey]
 private = true
 workspace = false
 env = { EXAMPLE = "bind-hotkey" }
+condition = { files_modified = { input = [
+    "examples/bind-hotkey.rs",
+    "web/bind-hotkey/index.html",
+], output = ["web/built/bind-hotkey/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-cube]
 private = true
 workspace = false
 env = { EXAMPLE = "cube" }
+condition = { files_modified = { input = [
+    "examples/cube.rs",
+    "web/cube/index.html",
+], output = ["web/built/cube/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-exclude-commands]
 private = true
 workspace = false
 env = { EXAMPLE = "exclude-commands" }
+condition = { files_modified = { input = [
+    "examples/exclude-commands.rs",
+    "web/exclude-commands/index.html",
+], output = ["web/built/exclude-commands/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-solicit-user]
 private = true
 workspace = false
 env = { EXAMPLE = "solicit-user" }
+condition = { files_modified = { input = [
+    "examples/solicit-user.rs",
+    "web/solicit-user/index.html",
+], output = ["web/built/solicit-user/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-tab-completion]
 private = true
 workspace = false
 env = { EXAMPLE = "tab-completion" }
+condition = { files_modified = { input = [
+    "examples/tab-completion.rs",
+    "web/tab-completion/index.html",
+], output = ["web/built/tab-completion/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-two-commands]
 private = true
 workspace = false
 env = { EXAMPLE = "two-commands" }
+condition = { files_modified = { input = [
+    "examples/two-commands.rs",
+    "web/two-commands/index.html",
+], output = ["web/built/two-commands/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-universal-arg]
 private = true
 workspace = false
 env = { EXAMPLE = "universal-arg" }
+condition = { files_modified = { input = [
+    "examples/universal-arg.rs",
+    "web/universal-arg/index.html",
+], output = ["web/built/universal-arg/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-tapes]
 private = true
 workspace = false
 env = { EXAMPLE = "tapes" }
+condition = { files_modified = { input = [
+    "examples/tapes.rs",
+    "web/tapes/index.html",
+], output = ["web/built/tapes/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-demo-async]
 private = true
 workspace = false
 env = { EXAMPLE = "demo-async" }
+condition = { files_modified = { input = [
+    "examples/async/demo.rs",
+    "web/demo-async/index.html",
+], output = ["web/built/demo-async/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-cube-async]
 private = true
 workspace = false
 env = { EXAMPLE = "cube-async" }
+condition = { files_modified = { input = [
+    "examples/async/cube.rs",
+    "web/cube-async/index.html",
+], output = ["web/built/cube-async/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-two-commands-async]
 private = true
 workspace = false
 env = { EXAMPLE = "two-commands-async" }
+condition = { files_modified = { input = [
+    "examples/async/two-commands.rs",
+    "web/two-commands-async/index.html",
+], output = ["web/built/two-commands-async/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-universal-arg-async]
 private = true
 workspace = false
 env = { EXAMPLE = "universal-arg-async" }
+condition = { files_modified = { input = [
+    "examples/async/universal-arg.rs",
+    "web/universal-arg-async/index.html",
+], output = ["web/built/universal-arg-async/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build-tab-completion-async]
 private = true
 workspace = false
 env = { EXAMPLE = "tab-completion-async" }
+condition = { files_modified = { input = [
+    "examples/async/tab-completion.rs",
+    "web/tab-completion-async/index.html",
+], output = ["web/built/tab-completion-async/*_bg.wasm"] }, fail_message = "up to date" }
 run_task = { name = "pages-build-one", fork = true }
 
 [tasks.pages-build]
@@ -167,11 +227,7 @@ set -eu
 root=$(git rev-parse --show-toplevel)
 cd "$root/web"
 
-if [ -n "$CARGO_TARGET_DIR" ]; then
-  doc="$CARGO_TARGET_DIR/doc"
-else
-  doc="$root/target/doc"
-fi
+doc="${CARGO_TARGET_DIR:-$root/target}/doc"
 if [ ! -f "$doc/bevy_minibuffer/index.html" ]; then
   echo "missing rustdoc; run cargo make pages-doc" >&2
   exit 1
@@ -291,3 +347,10 @@ description = "Build the WASM examples and publish them to gh-pages."
 category = "Pages"
 workspace = false
 dependencies = ["pages-build", "pages-dist", "pages-push"]
+
+[tasks.clean]
+description = "Remove every built WASM example under web/built."
+category = "Pages"
+workspace = false
+command = "rm"
+args = ["-rf", "web/built"]

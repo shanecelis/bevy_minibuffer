@@ -1,0 +1,278 @@
+# Local GitHub Pages publish for the WASM examples.
+# `cargo make pages` builds every example, assembles web/dist, and
+# force-pushes one commit to the gh-pages branch.
+
+[env]
+PAGES_EXAMPLES = "opt-in add-act bind-hotkey cube exclude-commands solicit-user tab-completion two-commands universal-arg tapes demo-async cube-async two-commands-async universal-arg-async tab-completion-async"
+
+[tasks.pages-build-one]
+description = "Build one WASM example. Pass the name, or set EXAMPLE."
+category = "Pages"
+workspace = false
+cwd = "web"
+script = '''
+set -eu
+example=""
+if [ "$#" -gt 0 ]; then
+  example="$1"
+fi
+if [ -z "$example" ]; then
+  example="${EXAMPLE-}"
+fi
+if [ -z "$example" ]; then
+  echo "pass an example name: cargo make pages-build-one opt-in" >&2
+  exit 1
+fi
+case "$example" in
+  *" "*)
+    echo "build one example at a time" >&2
+    exit 1
+    ;;
+esac
+trunk build \
+  --config Trunk.toml \
+  --release \
+  --dist "built/${example}" \
+  --public-url ./ \
+  "${example}/index.html"
+'''
+
+[tasks.pages-build-opt-in]
+private = true
+workspace = false
+env = { EXAMPLE = "opt-in" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-add-act]
+private = true
+workspace = false
+env = { EXAMPLE = "add-act" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-bind-hotkey]
+private = true
+workspace = false
+env = { EXAMPLE = "bind-hotkey" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-cube]
+private = true
+workspace = false
+env = { EXAMPLE = "cube" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-exclude-commands]
+private = true
+workspace = false
+env = { EXAMPLE = "exclude-commands" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-solicit-user]
+private = true
+workspace = false
+env = { EXAMPLE = "solicit-user" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-tab-completion]
+private = true
+workspace = false
+env = { EXAMPLE = "tab-completion" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-two-commands]
+private = true
+workspace = false
+env = { EXAMPLE = "two-commands" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-universal-arg]
+private = true
+workspace = false
+env = { EXAMPLE = "universal-arg" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-tapes]
+private = true
+workspace = false
+env = { EXAMPLE = "tapes" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-demo-async]
+private = true
+workspace = false
+env = { EXAMPLE = "demo-async" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-cube-async]
+private = true
+workspace = false
+env = { EXAMPLE = "cube-async" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-two-commands-async]
+private = true
+workspace = false
+env = { EXAMPLE = "two-commands-async" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-universal-arg-async]
+private = true
+workspace = false
+env = { EXAMPLE = "universal-arg-async" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build-tab-completion-async]
+private = true
+workspace = false
+env = { EXAMPLE = "tab-completion-async" }
+run_task = { name = "pages-build-one", fork = true }
+
+[tasks.pages-build]
+description = "Build every WASM example into web/built."
+category = "Pages"
+workspace = false
+dependencies = [
+  "pages-build-opt-in",
+  "pages-build-add-act",
+  "pages-build-bind-hotkey",
+  "pages-build-cube",
+  "pages-build-exclude-commands",
+  "pages-build-solicit-user",
+  "pages-build-tab-completion",
+  "pages-build-two-commands",
+  "pages-build-universal-arg",
+  "pages-build-tapes",
+  "pages-build-demo-async",
+  "pages-build-cube-async",
+  "pages-build-two-commands-async",
+  "pages-build-universal-arg-async",
+  "pages-build-tab-completion-async",
+]
+
+[tasks.pages-dist]
+description = "Assemble web/dist from web/built. Extra task names run afterward."
+category = "Pages"
+workspace = false
+cwd = "web"
+script = '''
+set -eu
+root=$(git rev-parse --show-toplevel)
+cd "$root/web"
+
+rm -rf dist
+mkdir -p dist
+for example in $PAGES_EXAMPLES; do
+  if [ ! -d "built/$example" ]; then
+    echo "missing web/built/$example" >&2
+    exit 1
+  fi
+  mkdir -p "dist/$example"
+  cp -R "built/$example/." "dist/$example/"
+  rm -rf "dist/$example/.stage"
+done
+cp index.html dist/index.html
+: > dist/.nojekyll
+
+test -f dist/index.html
+test -f dist/opt-in/index.html
+test -f dist/demo-async/index.html
+test -f dist/tapes/index.html
+for example in $PAGES_EXAMPLES; do
+  test -f "dist/$example/index.html"
+  found=0
+  for wasm in "dist/$example"/*.wasm; do
+    if [ -f "$wasm" ]; then
+      found=1
+      break
+    fi
+  done
+  if [ "$found" -ne 1 ]; then
+    echo "missing wasm for $example" >&2
+    exit 1
+  fi
+done
+if grep -RE "href=/|from '/|module_or_path: '/" dist --include='*.html' --include='*.js'; then
+  echo "absolute / asset URLs would break under the GitHub Pages prefix" >&2
+  exit 1
+fi
+
+if [ "$#" -gt 0 ]; then
+  cd "$root"
+  for task in "$@"; do
+    cargo make --no-workspace "$task"
+  done
+fi
+'''
+
+[tasks.pages-push]
+description = "Force-push web/dist as a single commit on gh-pages."
+category = "Pages"
+workspace = false
+script = '''
+set -eu
+branch=gh-pages
+case "$branch" in
+  main|master)
+    echo "refusing to publish to $branch" >&2
+    exit 1
+    ;;
+esac
+
+root=$(git rev-parse --show-toplevel)
+dist="$root/web/dist"
+if [ ! -f "$dist/index.html" ]; then
+  echo "web/dist is missing; run cargo make pages-dist" >&2
+  exit 1
+fi
+if [ ! -f "$dist/.nojekyll" ]; then
+  echo "web/dist/.nojekyll is missing; run cargo make pages-dist" >&2
+  exit 1
+fi
+
+origin=$(git -C "$root" remote get-url origin)
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+git -C "$tmp" init -b "$branch"
+cp -R "$dist/." "$tmp/"
+test -f "$tmp/.nojekyll"
+test -f "$tmp/index.html"
+git -C "$tmp" add -A
+git -C "$tmp" commit -m "Publish WASM examples."
+git -C "$tmp" remote add origin "$origin"
+git -C "$tmp" push --force origin "HEAD:$branch"
+
+case "$origin" in
+  git@github.com:*)
+    repo_path=${origin#git@github.com:}
+    ;;
+  ssh://git@github.com/*)
+    repo_path=${origin#ssh://git@github.com/}
+    ;;
+  https://github.com/*)
+    repo_path=${origin#https://github.com/}
+    ;;
+  http://github.com/*)
+    repo_path=${origin#http://github.com/}
+    ;;
+  *)
+    echo "pushed, but cannot derive a Pages URL from $origin" >&2
+    exit 0
+    ;;
+esac
+repo_path=${repo_path%.git}
+owner=${repo_path%%/*}
+repo=${repo_path#*/}
+if [ "$repo" = "${owner}.github.io" ]; then
+  url="https://${owner}.github.io/"
+else
+  url="https://${owner}.github.io/${repo}/"
+fi
+echo "$url"
+'''
+
+[tasks.pages]
+description = "Build the WASM examples and publish them to gh-pages."
+category = "Pages"
+workspace = false
+dependencies = ["pages-build", "pages-dist", "pages-push"]

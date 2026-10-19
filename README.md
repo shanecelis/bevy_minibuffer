@@ -1,5 +1,10 @@
 # bevy_minibuffer
 
+[![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](#license)
+[![crates.io](https://img.shields.io/crates/v/bevy_minibuffer.svg)](https://crates.io/crates/bevy_minibuffer)
+[![docs.rs](https://docs.rs/bevy_minibuffer/badge.svg)](https://docs.rs/bevy_minibuffer)
+[![examples](https://img.shields.io/badge/examples-wasm-blue.svg)](https://shanecelis.github.io/bevy_minibuffer/examples/)
+
 This is a developer console for the [Bevy game engine](https://bevyengine.org).
 It is inspired by the user interface of classic Unix text editors rather than
 the Unix shell.
@@ -18,7 +23,7 @@ The video above shows the [demo-async](/examples/async/demo.rs) example.
 cargo run --example demo-async --features async
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/demo-async/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/demo-async/)
 
 # Features
 - Input prompt, i.e, a "minibuffer"
@@ -56,7 +61,7 @@ can resize to accommodate more than one-line of text.
 # Examples
 An example for every goal.
 
-WASM builds of every example are published [here](https://shanecelis.github.io/bevy_minibuffer/).
+WASM builds of every example are published [here](https://shanecelis.github.io/bevy_minibuffer/examples/).
 ## Easily opt-in to basic functionality
 <img align="right" src="https://github.com/user-attachments/assets/0e5e77a2-7c91-4660-8962-bb356d91bf98"/>
 
@@ -89,7 +94,7 @@ fn plugin(app: &mut App) {
 cargo run --example opt-in
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/opt-in/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/opt-in/)
 ## Easily add acts, i.e., commands
 <img align="right" src="https://github.com/user-attachments/assets/d7e1ec10-787b-4ce1-98c0-63960df4e435"/>
 
@@ -115,7 +120,7 @@ fn plugin(app: &mut App) {
 cargo run --example add-act
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/add-act/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/add-act/)
 
 [^1]: Any system with no input or output. This does not exclude pipelines, however,
   which are used extensively with asynchronous systems.
@@ -142,7 +147,7 @@ fn plugin(app: &mut App) {
 cargo run --example bind-hotkey
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/bind-hotkey/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/bind-hotkey/)
 ## Easily solicit user for input 
 <img align="right" src="https://github.com/user-attachments/assets/03cbb697-8263-41cb-b40f-583d1a25d429"/>
 
@@ -170,7 +175,7 @@ fn plugin(app: &mut App) {
 cargo run --example solicit-user
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/solicit-user/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/solicit-user/)
 
 Minibuffer supports the following prompts:
 - Checkboxes
@@ -187,7 +192,7 @@ See the "demo-async" example to see more prompts in action.
 cargo run --example demo-async --features=async
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/demo-async/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/demo-async/)
 
 ## Tab completion where possible
 Text centric user interfaces ought to support tab completion where possible. 
@@ -217,7 +222,7 @@ fn plugin(app: &mut App) {
 cargo run --example tab-completion vec
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/tab-completion/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/tab-completion/)
 
 ### Use a `Trie`
 One can provide a trie for more performant completion. 
@@ -238,7 +243,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
 cargo run --example tab-completion trie
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/tab-completion/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/tab-completion/)
 
 ### Use a `HashMap`
 One can provide a hash map that will provide completions and mapping to values.
@@ -312,7 +317,7 @@ fn hello_name(mut minibuffer: Minibuffer) {
 cargo run --example tab-completion trie-map
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/tab-completion/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/tab-completion/)
 ## A la carte usage is supported
 
 Minibuffer is a collection of a few distinct pieces:
@@ -357,7 +362,7 @@ release build. But I'd like to affirm that in practice before considering this g
 cargo run --example exclude-commands
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/exclude-commands/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/exclude-commands/)
 
 ``` rust no_run
 # use bevy::prelude::*;
@@ -472,7 +477,7 @@ One uses it like so, type `Ctrl-U 1 0` and this would place 10 into the
 cargo run --example universal-arg
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/universal-arg/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/universal-arg/)
 ### How is a number universal?
 
 Although universal argument accepts a number, one can use it as an on or off
@@ -524,7 +529,7 @@ one can integrate back into their application.
 cargo run --example tapes --features=fun,clipboard
 ```
 
-[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/tapes/)
+[Run in the browser.](https://shanecelis.github.io/bevy_minibuffer/examples/tapes/)
 
 ### tape_record
 The 'tape_record' act starts a tape recording. It requests a "name" for the tape

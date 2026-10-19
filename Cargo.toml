@@ -46,7 +46,7 @@ getrandom_04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] 
 
 [features]
 async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_message" ]
-fun = [ "bevy/bevy_audio" ]
+fun = [ "bevy/bevy_audio", "bevy/bevy_curve" ]
 dev-capture = []
 clipboard = ["dep:copypasta"]
 x11 = ["bevy/x11"]

@@ -1,15 +1,16 @@
 # Browser builds for the crate examples.
 #
 # Paths are relative to this file. `trunk serve` serves web/index.html, a
-# static gallery. That page has no Cargo.toml beside it, so Trunk does not
-# try to pick a binary. Pass an example page to serve that example:
+# static landing page. That page has no Cargo.toml beside it, so Trunk does
+# not try to pick a binary. The example gallery is web/examples/index.html.
+# Pass an example page to serve that example:
 #   trunk serve
 #   trunk serve opt-in/index.html
 #   trunk build --release --dist built/opt-in --public-url ./ opt-in/index.html
 #
-# Example builds live in web/built/<name>. `trunk serve` copies them next to
-# the gallery. Without that, the dev server would answer every path with the
-# gallery and relative links would nest (`/opt-in/add-act/`).
+# Example builds live in web/built/<name>. `trunk serve` copies the gallery
+# and those builds under examples/. Without that, the dev server would answer
+# every path with the landing page and relative links would nest.
 #
 # Size: examples use cargo profile `wasm-release` and `data-wasm-opt="z"`.
 # wasm32 rustflags (getrandom) live in .cargo/config.toml.
@@ -34,4 +35,4 @@ no_spa = true
 [[hooks]]
 stage = "post_build"
 command = "sh"
-command_arguments = ["-c", "case \"$TRUNK_STAGING_DIR\" in */built/*) exit 0 ;; esac; [ -d built ] || exit 0; for dir in built/*/; do [ -f \"${dir}index.html\" ] || continue; cp -R \"${dir%/}\" \"$TRUNK_STAGING_DIR/\"; done"]
+command_arguments = ["-c", "case \"$TRUNK_STAGING_DIR\" in */built/*) exit 0 ;; esac; mkdir -p \"$TRUNK_STAGING_DIR/examples\"; [ -f examples/index.html ] && cp examples/index.html \"$TRUNK_STAGING_DIR/examples/index.html\"; [ -d built ] || exit 0; for dir in built/*/; do [ -f \"${dir}index.html\" ] || continue; name=$(basename \"$dir\"); rm -rf \"$TRUNK_STAGING_DIR/examples/$name\"; cp -R \"${dir%/}\" \"$TRUNK_STAGING_DIR/examples/$name\"; rm -rf \"$TRUNK_STAGING_DIR/examples/$name/.stage\"; done"]

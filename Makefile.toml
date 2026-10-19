@@ -149,38 +149,79 @@ dependencies = [
   "pages-build-tab-completion-async",
 ]
 
+[tasks.pages-doc]
+description = "Build rustdoc for the pages site root."
+category = "Pages"
+workspace = false
+command = "cargo"
+args = ["doc", "--no-deps", "-p", "bevy_minibuffer", "--features", "async,fun"]
+
 [tasks.pages-dist]
-description = "Assemble web/dist from web/built. Extra task names run afterward."
+description = "Assemble web/dist: rustdoc at the root, WASM examples under examples/."
 category = "Pages"
 workspace = false
 cwd = "web"
+dependencies = ["pages-doc"]
 script = '''
 set -eu
 root=$(git rev-parse --show-toplevel)
 cd "$root/web"
 
+if [ -n "$CARGO_TARGET_DIR" ]; then
+  doc="$CARGO_TARGET_DIR/doc"
+else
+  doc="$root/target/doc"
+fi
+if [ ! -f "$doc/bevy_minibuffer/index.html" ]; then
+  echo "missing rustdoc; run cargo make pages-doc" >&2
+  exit 1
+fi
+
 rm -rf dist
 mkdir -p dist
+cp -a "$doc/." dist/
+# Crate pages live in bevy_minibuffer/ so their links to ../static.files work.
+# The site root sends people there.
+cat > dist/index.html << 'EOF'
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content="0; url=bevy_minibuffer/" />
+    <link rel="canonical" href="bevy_minibuffer/" />
+    <title>bevy_minibuffer</title>
+    <script>location.replace("bevy_minibuffer/")</script>
+  </head>
+  <body>
+    <p><a href="bevy_minibuffer/">bevy_minibuffer API docs</a></p>
+  </body>
+</html>
+EOF
+mkdir -p dist/examples
 for example in $PAGES_EXAMPLES; do
   if [ ! -d "built/$example" ]; then
     echo "missing web/built/$example" >&2
     exit 1
   fi
-  mkdir -p "dist/$example"
-  cp -R "built/$example/." "dist/$example/"
-  rm -rf "dist/$example/.stage"
+  mkdir -p "dist/examples/$example"
+  cp -R "built/$example/." "dist/examples/$example/"
+  rm -rf "dist/examples/$example/.stage"
 done
-cp index.html dist/index.html
+cp examples/index.html dist/examples/index.html
 : > dist/.nojekyll
 
 test -f dist/index.html
-test -f dist/opt-in/index.html
-test -f dist/demo-async/index.html
-test -f dist/tapes/index.html
+test -f dist/bevy_minibuffer/index.html
+test -f dist/examples/index.html
+test -f dist/examples/opt-in/index.html
+test -f dist/examples/demo-async/index.html
+test -f dist/examples/tapes/index.html
 for example in $PAGES_EXAMPLES; do
-  test -f "dist/$example/index.html"
+  test -f "dist/examples/$example/index.html"
+  grep -q 'href="../../">bevy_minibuffer' "dist/examples/$example/index.html"
+  grep -q 'href="../">examples' "dist/examples/$example/index.html"
   found=0
-  for wasm in "dist/$example"/*.wasm; do
+  for wasm in "dist/examples/$example"/*.wasm; do
     if [ -f "$wasm" ]; then
       found=1
       break
@@ -242,33 +283,7 @@ git -C "$tmp" commit -m "Publish WASM examples."
 git -C "$tmp" remote add origin "$origin"
 git -C "$tmp" push --force origin "HEAD:$branch"
 
-case "$origin" in
-  git@github.com:*)
-    repo_path=${origin#git@github.com:}
-    ;;
-  ssh://git@github.com/*)
-    repo_path=${origin#ssh://git@github.com/}
-    ;;
-  https://github.com/*)
-    repo_path=${origin#https://github.com/}
-    ;;
-  http://github.com/*)
-    repo_path=${origin#http://github.com/}
-    ;;
-  *)
-    echo "pushed, but cannot derive a Pages URL from $origin" >&2
-    exit 0
-    ;;
-esac
-repo_path=${repo_path%.git}
-owner=${repo_path%%/*}
-repo=${repo_path#*/}
-if [ "$repo" = "${owner}.github.io" ]; then
-  url="https://${owner}.github.io/"
-else
-  url="https://${owner}.github.io/${repo}/"
-fi
-echo "$url"
+echo "https://www.shanecelis.com/bevy_minibuffer/"
 '''
 
 [tasks.pages]

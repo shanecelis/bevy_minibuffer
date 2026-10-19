@@ -2,7 +2,8 @@
 
 ## Pages
 
-WASM builds of every example are published [here](https://shanecelis.github.io/bevy_minibuffer/).
+The site root is the rustdoc for this crate.
+WASM examples are at <https://www.shanecelis.com/bevy_minibuffer/examples>.
 Publish that site from this machine with `cargo make pages`.
 `cargo make pages` builds every example, assembles `web/dist`, and force-pushes one commit to the `gh-pages` branch.
 The Pages workflow is gone, so a push to `main` leaves the site as it is.

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FeedbackKind","MinibufferState","PromptState"],"struct":["Checkbox","CheckboxGroup","Confirm","DefaultValue","Feedback","GetKeyChord","Number","Password","Placeholder","Prompt","Radio","RadioGroup","Submit","TextField","Toggle"],"trait":["OptionPrompt"]};

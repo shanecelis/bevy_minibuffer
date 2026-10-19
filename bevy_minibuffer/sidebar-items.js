@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error"],"mod":["acts","autocomplete","event","input","prelude","prompt","sink","ui","view"],"struct":["Config","Minibuffer","MinibufferAsync","MinibufferPlugin","MinibufferPlugins"]};

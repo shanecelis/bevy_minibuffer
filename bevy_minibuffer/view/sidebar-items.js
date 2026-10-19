@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["plugin","text_view"],"struct":["View"]};

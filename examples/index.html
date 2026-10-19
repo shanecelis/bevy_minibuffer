@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>bevy_minibuffer examples</title>
+    <!-- Base is the examples directory, so ./opt-in/ stays under /examples/
+         when this page is opened without a trailing slash. -->
+    <base id="site-root" href="./" />
+    <script>
+      (function () {
+        var pages = "/bevy_minibuffer/";
+        var path = location.pathname;
+        var at = path.indexOf(pages);
+        var root = at === -1 ? "/" : path.slice(0, at + pages.length);
+        document.getElementById("site-root").href = root + "examples/";
+      })();
+    </script>
+    <style>
+      html, body {
+        margin: 0;
+        background: #111;
+        color: #ddd;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      main { max-width: 64rem; margin: 2rem auto; padding: 0 1rem 3rem; }
+      a { color: #8ecae6; }
+      .path {
+        display: flex;
+        align-items: baseline;
+        gap: 0.45rem;
+        margin: 0 0 1.25rem;
+        font-size: 0.95rem;
+      }
+      .path a { text-decoration: none; }
+      .path a:hover { text-decoration: underline; }
+      .sep { opacity: 0.45; }
+      h1 { font-weight: 600; }
+      .lead { opacity: 0.85; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+        text-decoration: none;
+        color: inherit;
+      }
+      .card:hover .name { color: #8ecae6; }
+      .shot {
+        aspect-ratio: 4 / 3;
+        background: #1b1b1b;
+        border-radius: 6px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .shot.placeholder {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 48'%3E%3Crect x='8' y='8' width='48' height='32' rx='3' fill='none' stroke='%23555' stroke-width='2'/%3E%3Ccircle cx='22' cy='20' r='4' fill='%23555'/%3E%3Cpath d='M14 36l12-10 8 7 8-6 8 9H14z' fill='%23555'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 42%;
+      }
+      .name { font-weight: 600; }
+      .blurb { margin: 0; font-size: 0.9rem; opacity: 0.75; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="path">
+        <a href="../">bevy_minibuffer</a>
+        <span class="sep">/</span>
+        <span>examples</span>
+      </p>
+      <p class="lead">Click a GIF to run the WASM example in the browser.</p>
+      <div class="grid">
+        <a class="card" href="./opt-in/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/0e5e77a2-7c91-4660-8962-bb356d91bf98" /></div>
+          <div class="name">opt-in</div>
+          <p class="blurb">Basic acts and key bindings.</p>
+        </a>
+        <a class="card" href="./add-act/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/d7e1ec10-787b-4ce1-98c0-63960df4e435" /></div>
+          <div class="name">add-act</div>
+          <p class="blurb">Add a command.</p>
+        </a>
+        <a class="card" href="./bind-hotkey/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/336a79c1-f934-4d69-a3fe-6b55778663be" /></div>
+          <div class="name">bind-hotkey</div>
+          <p class="blurb">Bind a key chord.</p>
+        </a>
+        <a class="card" href="./solicit-user/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/03cbb697-8263-41cb-b40f-583d1a25d429" /></div>
+          <div class="name">solicit-user</div>
+          <p class="blurb">Ask for input.</p>
+        </a>
+        <a class="card" href="./demo-async/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/8d8dc5cf-b20c-4d8d-97f4-de8fdf176a24" /></div>
+          <div class="name">demo-async</div>
+          <p class="blurb">Prompts: confirm, radio, checkbox, password.</p>
+        </a>
+        <a class="card" href="./tab-completion/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/8b2b8a13-1ee3-4341-b523-c33fa80d4be2" /></div>
+          <div class="name">tab-completion</div>
+          <p class="blurb">Vec, hash map, trie, and trie map.</p>
+        </a>
+        <a class="card" href="./tab-completion-async/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/af7b33e0-135d-4d6c-b748-a489a1245000" /></div>
+          <div class="name">tab-completion-async</div>
+          <p class="blurb">The same completers, async.</p>
+        </a>
+        <a class="card" href="./exclude-commands/">
+          <div class="shot placeholder"></div>
+          <div class="name">exclude-commands</div>
+          <p class="blurb">Keep one act and drop the rest.</p>
+        </a>
+        <a class="card" href="./universal-arg/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/a227b529-ba66-403d-a984-5f4c7ac1d5b2" /></div>
+          <div class="name">universal-arg</div>
+          <p class="blurb">A numeric prefix for the next act.</p>
+        </a>
+        <a class="card" href="./universal-arg-async/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/a227b529-ba66-403d-a984-5f4c7ac1d5b2" /></div>
+          <div class="name">universal-arg-async</div>
+          <p class="blurb">Universal argument, async.</p>
+        </a>
+        <a class="card" href="./tapes/">
+          <div class="shot"><img alt="" src="https://github.com/user-attachments/assets/39cee20e-44f9-4352-a9b4-fdbe94a98634" /></div>
+          <div class="name">tapes</div>
+          <p class="blurb">Record acts and play them back.</p>
+        </a>
+        <a class="card" href="./cube/">
+          <div class="shot placeholder"></div>
+          <div class="name">cube</div>
+          <p class="blurb">Change a cube’s spin from the minibuffer.</p>
+        </a>
+        <a class="card" href="./cube-async/">
+          <div class="shot placeholder"></div>
+          <div class="name">cube-async</div>
+          <p class="blurb">The cube, async.</p>
+        </a>
+        <a class="card" href="./two-commands/">
+          <div class="shot placeholder"></div>
+          <div class="name">two-commands</div>
+          <p class="blurb">Ask for a name, then an age.</p>
+        </a>
+        <a class="card" href="./two-commands-async/">
+          <div class="shot placeholder"></div>
+          <div class="name">two-commands-async</div>
+          <p class="blurb">Two prompts, async.</p>
+        </a>
+      </div>
+      <p><a href="https://github.com/shanecelis/bevy_minibuffer">Source</a></p>
+    </main>
+  </body>
+</html>

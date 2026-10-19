@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["display_universal_arg"],"struct":["Multiplier","UniversalArg","UniversalArgActs"]};

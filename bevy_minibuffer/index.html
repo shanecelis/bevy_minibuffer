@@ -1,0 +1,498 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="bevy_minibuffer"><title>bevy_minibuffer - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../static.files/rustdoc-17e0aaed.css"><script id="default-settings" 
+data-use_system_theme="false"
+data-theme="ayu"></script><meta name="rustdoc-vars" data-root-path="../" data-static-root-path="../static.files/" data-current-crate="bevy_minibuffer" data-themes="" data-resource-suffix="" data-rustdoc-version="1.97.1 (8bab26f4f 2026-07-14)" data-channel="1.97.1" data-search-js="search-fd9372ac.js" data-stringdex-js="stringdex-2da4960a.js" data-settings-js="settings-170eb4bf.js" ><script src="../static.files/storage-41dd4d93.js"></script><script defer src="../crates.js"></script><script defer src="../static.files/main-fcd733ba.js"></script><noscript><link rel="stylesheet" href="../static.files/noscript-f7c3ffd8.css"></noscript><link rel="alternate icon" type="image/png" href="../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../static.files/favicon-044be391.svg"></head><body class="rustdoc mod crate"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Crate bevy_minibuffer</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../bevy_minibuffer/index.html">bevy_<wbr>minibuffer</a><span class="version">0.8.0</span></h2></div><div class="sidebar-elems"><ul class="block"><li><a id="all-types" href="all.html">All Items</a></li></ul><section id="rustdoc-toc"><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#bevy_minibuffer" title="bevy_minibuffer">bevy_minibuffer</a></li><li><a href="#example" title="Example">Example</a></li><li><a href="#features" title="Features">Features</a></li><li><a href="#goals" title="Goals">Goals</a></li><li><a href="#antigoals" title="Antigoals">Antigoals</a></li><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#easily-opt-in-to-basic-functionality" title="Easily opt-in to basic functionality">Easily opt-in to basic functionality</a></li><li><a href="#easily-add-acts-ie-commands" title="Easily add acts, i.e., commands">Easily add acts, i.e., commands</a></li><li><a href="#easily-bind-key-chord-sequences-to-acts" title="Easily bind key chord sequences to acts">Easily bind key chord sequences to acts</a></li><li><a href="#easily-solicit-user-for-input" title="Easily solicit user for input">Easily solicit user for input</a></li><li><a href="#tab-completion-where-possible" title="Tab completion where possible">Tab completion where possible</a></li><li><a href="#a-la-carte-usage-is-supported" title="A la carte usage is supported">A la carte usage is supported</a></li><li><a href="#easily-exclude-from-build" title="Easily exclude from build">Easily exclude from build</a></li></ul></li><li><a href="#async" title="Async">Async</a></li><li><a href="#acts-and-plugins" title="Acts and Plugins">Acts and Plugins</a><ul><li><a href="#basic-acts-of-console-ness" title="Basic acts of console-ness">Basic acts of console-ness</a></li><li><a href="#universal-argument-acts" title="Universal argument acts">Universal argument acts</a></li><li><a href="#tape-acts" title="Tape acts">Tape acts</a></li></ul></li><li><a href="#features-1" title="Features">Features</a></li><li><a href="#faq" title="FAQ">FAQ</a><ul><li><a href="#why-are-minibuffer-commands-called-acts" title="Why are Minibuffer commands called acts?">Why are Minibuffer commands called acts?</a></li><li><a href="#why-not-a-shell" title="Why not a shell?">Why not a shell?</a></li></ul></li><li><a href="#todo" title="TODO">TODO</a></li><li><a href="#design-questions" title="Design Questions">Design Questions</a><ul><li><a href="#re-no-windows-antigoal" title="Re: No windows antigoal">Re: No windows antigoal</a></li></ul></li><li><a href="#compatibility" title="Compatibility">Compatibility</a></li><li><a href="#license" title="License">License</a></li></ul><h3><a href="#modules">Crate Items</a></h3><ul class="block"><li><a href="#modules" title="Modules">Modules</a></li><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li></ul></section><div id="rustdoc-modnav"></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><h1>Crate <span>bevy_<wbr>minibuffer</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../src/bevy_minibuffer/lib.rs.html#1-58">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="bevy_minibuffer"><a class="doc-anchor" href="#bevy_minibuffer">§</a>bevy_minibuffer</h2>
+<p><a href="#license"><img src="https://img.shields.io/badge/license-MIT%2FApache-blue.svg" alt="MIT/Apache 2.0" /></a>
+<a href="https://github.com/shanecelis/bevy_minibuffer"><img src="https://img.shields.io/badge/github-bevy__minibuffer-blue.svg" alt="github" /></a>
+<a href="https://crates.io/crates/bevy_minibuffer"><img src="https://img.shields.io/crates/v/bevy_minibuffer.svg" alt="crates.io" /></a>
+<a href="https://docs.rs/bevy_minibuffer"><img src="https://docs.rs/bevy_minibuffer/badge.svg" alt="docs.rs" /></a>
+<a href="https://shanecelis.github.io/bevy_minibuffer/examples/"><img src="https://img.shields.io/badge/examples-wasm-blue.svg" alt="examples" /></a></p>
+<p>This is a developer console for the <a href="https://bevyengine.org">Bevy game engine</a>.
+It is inspired by the user interface of classic Unix text editors rather than
+the Unix shell.</p>
+<blockquote>
+<p>[!CAUTION]
+<code>bevy_minibuffer</code> is currently in the early stages of development and is subject to breaking changes.</p>
+</blockquote>
+<h2 id="example"><a class="doc-anchor" href="#example">§</a>Example</h2><p align="center">
+  <img src="https://github.com/user-attachments/assets/8d8dc5cf-b20c-4d8d-97f4-de8fdf176a24"/>
+</p>
+<p>The video above shows the <a href="/examples/async/demo.rs">demo-async</a> example.</p>
+<div class="example-wrap"><pre class="language-sh"><code>cargo run --example demo-async --features async</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/demo-async/">Run in the browser.</a></p>
+<h2 id="features"><a class="doc-anchor" href="#features">§</a>Features</h2>
+<ul>
+<li>Input prompt, i.e, a “minibuffer”
+<ul>
+<li>Specialized prompts: checkboxes, radio buttons, numbers, passwords, confirm, and toggle.</li>
+<li><a href="#tab-completion-where-possible">Tab completion</a></li>
+<li><a href="#use-a-maptrie">Map to values</a></li>
+</ul>
+</li>
+<li>Run acts, i.e., commands</li>
+<li>Bind key sequences to acts <code>keyseq! { Ctrl-A Alt-C Shift-T S }</code></li>
+<li>Write your own acts (acts are just systems)
+<ul>
+<li>Support for async acts behind “async” feature flag</li>
+</ul>
+</li>
+<li>Basic acts: <code>run_act</code>, <code>list_acts</code>, <code>list_key_bindings</code>, <code>toggle_visibility</code>, and <code>describe_key</code>.</li>
+<li>Adds only one root entity named “minibuffer”</li>
+</ul>
+<h2 id="goals"><a class="doc-anchor" href="#goals">§</a>Goals</h2>
+<ul>
+<li>Easily opt-in to basic functionality</li>
+<li>Easily add acts, i.e., commands</li>
+<li>Easily bind key chord sequences to acts</li>
+<li>Easily solicit user for input</li>
+<li>Tab completion where possible</li>
+<li>A la carte usage supported</li>
+<li>Easily exclude from build</li>
+</ul>
+<h2 id="antigoals"><a class="doc-anchor" href="#antigoals">§</a>Antigoals</h2>
+<ul>
+<li>No default kitchen sink</li>
+</ul>
+<p>The default functionality should be a blank slate that does nothing if no
+commands or key bindings have been added. Basic functions like <code>run_act</code> and
+the “:” key binding should be opt-in.</p>
+<ul>
+<li>No general-purpose text editing</li>
+<li>No windows or panels</li>
+</ul>
+<p>Try to force everything through the minibuffer at the bottom of the screen. It
+can resize to accommodate more than one-line of text.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2>
+<p>An example for every goal.</p>
+<p>WASM builds of every example are published <a href="https://shanecelis.github.io/bevy_minibuffer/examples/">here</a>.</p>
+<h3 id="easily-opt-in-to-basic-functionality"><a class="doc-anchor" href="#easily-opt-in-to-basic-functionality">§</a>Easily opt-in to basic functionality</h3><img align="right" src="https://github.com/user-attachments/assets/0e5e77a2-7c91-4660-8962-bb356d91bf98"/>
+<p><code>MinibufferPlugins</code> does not include any built-in acts or key bindings, but it is
+expected that many users will want some kind of basic functionality. <code>BasicActs</code>
+provides the following acts and key bindings:</p>
+<div><table><thead><tr><th>ACT</th><th>KEY BINDING</th></tr></thead><tbody>
+<tr><td>describe_key</td><td>Ctrl-H K</td></tr>
+<tr><td>run_act</td><td>:</td></tr>
+<tr><td></td><td>Alt-X</td></tr>
+<tr><td>list_acts</td><td>Ctrl-H A</td></tr>
+<tr><td>list_key_bindings</td><td>Ctrl-H B</td></tr>
+<tr><td>toggle_visibility</td><td>`</td></tr>
+</tbody></table>
+</div>
+<p><code>BasicActs</code> is thought to constitute the bare minimum number of acts for a
+useable and discoverable console.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>plugin(app: <span class="kw-2">&amp;mut </span>App) {
+    app.add_plugins(MinibufferPlugins)
+       .add_acts(BasicActs::default());
+}</code></pre></div><div class="example-wrap"><pre class="language-sh"><code>cargo run --example opt-in</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/opt-in/">Run in the browser.</a></p>
+<h3 id="easily-add-acts-ie-commands"><a class="doc-anchor" href="#easily-add-acts-ie-commands">§</a>Easily add acts, i.e., commands</h3><img align="right" src="https://github.com/user-attachments/assets/d7e1ec10-787b-4ce1-98c0-63960df4e435"/>
+<p>Acts are systems. Any system<sup id="fnref1"><a href="#fn1">1</a></sup> will do.</p>
+<p>NOTE: We add <code>BasicActs</code> acts here only because there would be no way to run an
+act otherwise. To run an act without <code>BasicActs</code>, one would need a key binding.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>hello_world(<span class="kw-2">mut </span>minibuffer: Minibuffer) {
+    minibuffer.message(<span class="string">"Hello, World!"</span>);
+}
+
+<span class="kw">fn </span>plugin(app: <span class="kw-2">&amp;mut </span>App) {
+    app.add_acts((Act::new(hello_world).named(<span class="string">"hello_world"</span>),
+                  BasicActs::default()));
+}</code></pre></div><div class="example-wrap"><pre class="language-sh"><code>cargo run --example add-act</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/add-act/">Run in the browser.</a></p>
+<h3 id="easily-bind-key-chord-sequences-to-acts"><a class="doc-anchor" href="#easily-bind-key-chord-sequences-to-acts">§</a>Easily bind key chord sequences to acts</h3><img align="right" src="https://github.com/user-attachments/assets/336a79c1-f934-4d69-a3fe-6b55778663be"/>
+<p>We can bind key chord <code>Ctrl-W</code> or even a key chord sequence <code>Ctrl-W Alt-O Super-R Shift-L D</code> to an act.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>hello_world(<span class="kw-2">mut </span>minibuffer: Minibuffer) {
+    minibuffer.message(<span class="string">"Hello, World!"</span>);
+    minibuffer.set_visible(<span class="bool-val">true</span>);
+}
+
+<span class="kw">fn </span>plugin(app: <span class="kw-2">&amp;mut </span>App) {
+    app.add_acts(Act::new(hello_world)
+                 .named(<span class="string">"hello_world"</span>)
+                 .bind(<span class="macro">keyseq!</span> { Ctrl-W }));
+}</code></pre></div><div class="example-wrap"><pre class="language-sh"><code>cargo run --example bind-hotkey</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/bind-hotkey/">Run in the browser.</a></p>
+<h3 id="easily-solicit-user-for-input"><a class="doc-anchor" href="#easily-solicit-user-for-input">§</a>Easily solicit user for input</h3><img align="right" src="https://github.com/user-attachments/assets/03cbb697-8263-41cb-b40f-583d1a25d429"/>
+<p>Ask the user for information. Notice that no acts are added. One can use
+<code>Minibuffer</code> from within any system without having to “buy-in” to the rest of it.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>hello_name(<span class="kw-2">mut </span>minibuffer: Minibuffer) {
+  minibuffer
+    .prompt::&lt;TextField&gt;(<span class="string">"What's your name? "</span>)
+    .observe(|<span class="kw-2">mut </span>trigger: On&lt;Submit&lt;String&gt;&gt;, 
+              <span class="kw-2">mut </span>minibuffer: Minibuffer| {
+        minibuffer.message(<span class="macro">format!</span>(<span class="string">"Hello, {}."</span>, trigger.event_mut().take_result().unwrap()));
+    });
+}
+
+<span class="kw">fn </span>plugin(app: <span class="kw-2">&amp;mut </span>App) {
+    app.add_systems(Startup, 
+                    hello_name);
+}</code></pre></div><div class="example-wrap"><pre class="language-sh"><code>cargo run --example solicit-user</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/solicit-user/">Run in the browser.</a></p>
+<p>Minibuffer supports the following prompts:</p>
+<ul>
+<li>Checkboxes</li>
+<li>Confirm</li>
+<li>Numbers
+<ul>
+<li>u8, u16, u32, u64, i*, f*, usize, isize</li>
+</ul>
+</li>
+<li>Radio buttons</li>
+<li>Toggle</li>
+<li>TextField
+<ul>
+<li>Tab completion</li>
+</ul>
+</li>
+</ul>
+<p>See the “demo-async” example to see more prompts in action.</p>
+<div class="example-wrap"><pre class="language-sh"><code>cargo run --example demo-async --features=async</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/demo-async/">Run in the browser.</a></p>
+<h3 id="tab-completion-where-possible"><a class="doc-anchor" href="#tab-completion-where-possible">§</a>Tab completion where possible</h3>
+<p>Text centric user interfaces ought to support tab completion where possible.</p>
+<h4 id="use-a-vec"><a class="doc-anchor" href="#use-a-vec">§</a>Use a <code>Vec</code></h4><img align="right" src="https://github.com/user-attachments/assets/8b2b8a13-1ee3-4341-b523-c33fa80d4be2"/>
+<p>One can provide a list of strings for simple completions.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>hello_name(<span class="kw-2">mut </span>minibuffer: Minibuffer) {
+    minibuffer.prompt_lookup(<span class="string">"What's your name? "</span>,
+                             <span class="macro">vec!</span>[<span class="string">"John"</span>, <span class="string">"Sean"</span>, <span class="string">"Shane"</span>])
+        .observe(|<span class="kw-2">mut </span>trigger: On&lt;Submit&lt;String&gt;&gt;, 
+                  <span class="kw-2">mut </span>minibuffer: Minibuffer| {
+            minibuffer.message(<span class="macro">format!</span>(<span class="string">"Hello, {}."</span>, trigger.event_mut().take_result().unwrap()));
+        });
+}
+
+<span class="kw">fn </span>plugin(app: <span class="kw-2">&amp;mut </span>App) {
+    app.add_systems(Startup, hello_name);
+}</code></pre></div><div class="example-wrap"><pre class="language-sh"><code>cargo run --example tab-completion vec</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/tab-completion/">Run in the browser.</a></p>
+<h4 id="use-a-trie"><a class="doc-anchor" href="#use-a-trie">§</a>Use a <code>Trie</code></h4>
+<p>One can provide a trie for more performant completion.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>hello_name(<span class="kw-2">mut </span>minibuffer: Minibuffer) {
+    minibuffer.prompt_lookup(<span class="string">"What's your name? "</span>,
+                             Trie::from_iter([<span class="string">"John"</span>, <span class="string">"Sean"</span>, <span class="string">"Shane"</span>]))
+        .observe(|<span class="kw-2">mut </span>trigger: On&lt;Submit&lt;String&gt;&gt;, <span class="kw-2">mut </span>minibuffer: Minibuffer| {
+            minibuffer.message(<span class="macro">format!</span>(<span class="string">"Hello, {}."</span>, trigger.event_mut().take_result().unwrap()));
+        });
+}</code></pre></div><div class="example-wrap"><pre class="language-sh"><code>cargo run --example tab-completion trie</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/tab-completion/">Run in the browser.</a></p>
+<h4 id="use-a-hashmap"><a class="doc-anchor" href="#use-a-hashmap">§</a>Use a <code>HashMap</code></h4>
+<p>One can provide a hash map that will provide completions and mapping to values.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">enum </span>Popular {
+    Common,
+    Uncommon,
+    Rare,
+}
+
+<span class="kw">fn </span>hello_name_hash_map(<span class="kw-2">mut </span>minibuffer: Minibuffer) {
+    <span class="kw">let </span>map = HashMap::from_iter([
+        (<span class="string">"John"</span>, Popular::Common),
+        (<span class="string">"Sean"</span>, Popular::Uncommon),
+        (<span class="string">"Shane"</span>, Popular::Rare),
+    ]);
+    minibuffer.prompt_map(<span class="string">"What's your name? "</span>, map).observe(
+        |<span class="kw-2">mut </span>trigger: On&lt;Completed&lt;Popular&gt;&gt;, <span class="kw-2">mut </span>minibuffer: Minibuffer| {
+            <span class="kw">let </span>popular = trigger.event_mut().state.take_result().unwrap();
+            minibuffer.message(<span class="kw">match </span>popular {
+                <span class="prelude-val">Ok</span>(popular) =&gt; <span class="macro">format!</span>(<span class="string">"That's a {:?} name."</span>, popular),
+                <span class="kw">_ </span>=&gt; <span class="string">"I don't know what kind of name that is."</span>.to_string(),
+            });
+        },
+    );
+}</code></pre></div><h4 id="use-a-maptrie"><a class="doc-anchor" href="#use-a-maptrie">§</a>Use a <code>map::Trie</code></h4><img align="right" src="https://github.com/user-attachments/assets/af7b33e0-135d-4d6c-b748-a489a1245000"/>
+<p>One can provide a trie that maps to an arbitary value type <code>V</code> and receive the
+value <code>V</code> type in response in addition to the string. This is more performant
+than a hash map.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Debug, Clone)]
+</span><span class="kw">enum </span>Popular {
+    Common,
+    Uncommon,
+    Rare
+}
+
+<span class="kw">fn </span>hello_name(<span class="kw-2">mut </span>minibuffer: Minibuffer) {
+    <span class="kw">let </span>trie = Trie::from_iter([
+        (<span class="string">"John"</span>, Popular::Common),
+        (<span class="string">"Sean"</span>, Popular::Uncommon),
+        (<span class="string">"Shane"</span>, Popular::Rare),
+    ]);
+    minibuffer.prompt_map(<span class="string">"What's your name? "</span>, trie).observe(
+        |<span class="kw-2">mut </span>trigger: On&lt;Completed&lt;Popular&gt;&gt;, 
+         <span class="kw-2">mut </span>minibuffer: Minibuffer| {
+            <span class="kw">let </span>popular = trigger.event_mut().state.take_result().unwrap();
+            minibuffer.message(<span class="kw">match </span>popular {
+                <span class="prelude-val">Ok</span>(popular) =&gt; <span class="macro">format!</span>(<span class="string">"That's a {:?} name."</span>, popular),
+                <span class="kw">_ </span>=&gt; <span class="string">"I don't know what kind of name that is."</span>.into(),
+            });
+        },
+    );
+}</code></pre></div><div class="example-wrap"><pre class="language-sh"><code>cargo run --example tab-completion trie-map</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/tab-completion/">Run in the browser.</a></p>
+<h3 id="a-la-carte-usage-is-supported"><a class="doc-anchor" href="#a-la-carte-usage-is-supported">§</a>A la carte usage is supported</h3>
+<p>Minibuffer is a collection of a few distinct pieces:</p>
+<ul>
+<li>Acts, i.e., commands</li>
+<li>Key sequence bindings</li>
+<li>A “mini-buffer” or buffer, i.e., the small panel at the bottom of the screen
+to query and respond to the user.</li>
+</ul>
+<p>One can use acts without key bindings.</p>
+<p>One can use acts without the buffer.</p>
+<p>One can use the buffer without acts. That is, one can use <code>Minibuffer</code> and
+<code>MinibufferAsync</code> system parameters from within any system; they are not
+reserved for usage only within <code>Act</code> systems.</p>
+<p>One can use the buffer without key bindings.</p>
+<p>One can use key bindings without the buffer.</p>
+<h4 id="what-can-one-not-use-a-la-carte"><a class="doc-anchor" href="#what-can-one-not-use-a-la-carte">§</a>What can one not use a la carte?</h4>
+<p>One cannot use key bindings without acts in Minibuffer. If one desires key
+sequence bindings only, it may be better to use Minibuffer’s key-binding
+dependency
+<a href="https://github.com/not-elm/bevy-input-sequence">bevy-input-sequence</a>.</p>
+<p>One cannot query the user without the buffer. If one desires that, consider
+looking at Minibuffer’s custom MVC middleware that is ‘View’ agnostic:
+<a href="https://github.com/shanecelis/bevy_asky">bevy_asky</a>. It allows one to designate
+the view and the destination and in general expects the consumer to implement
+their own conventions and policy.</p>
+<h3 id="easily-exclude-from-build"><a class="doc-anchor" href="#easily-exclude-from-build">§</a>Easily exclude from build</h3>
+<p>I <em>believe</em> a project with a “minibuffer” feature flag and rust conditional
+compilation facilities ought to make it easy and practical to exclude it from a
+release build. But I’d like to affirm that in practice before considering this goal achieved.</p>
+<div class="example-wrap"><pre class="language-sh"><code>cargo run --example exclude-commands</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/exclude-commands/">Run in the browser.</a></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[cfg(feature = <span class="string">"minibuffer"</span>)]
+</span><span class="kw">fn </span>plugin(app: <span class="kw-2">&amp;mut </span>App) {
+    app.add_plugins(MinibufferPlugins)
+       .add_acts(BasicActs::default());
+}
+ </code></pre></div><h2 id="async"><a class="doc-anchor" href="#async">§</a>Async</h2>
+<p>An “async” feature flag makes the <code>MinibufferAsync</code> system parameter available.
+Unlike the regular <code>Minibuffer</code> system parameter, <code>MinibufferAsync</code> can be
+captured by closures.</p>
+<p>Although one can technically achieve the same behavior with <code>Minibuffer</code>, there
+are cases like those with many queries in succession where using
+<code>MinibufferAsync</code> is more straightforward to write and read.</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code>
+<span class="doccomment">/// Ask the user for their name. Say hello.
+</span><span class="kw">async fn </span>ask_name(<span class="kw-2">mut </span>minibuffer: MinibufferAsync) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    <span class="kw">let </span>first_name = minibuffer
+        .prompt::&lt;TextField&gt;(<span class="string">"What's your first name? "</span>)
+        .<span class="kw">await</span><span class="question-mark">?</span>;
+    <span class="kw">let </span>last_name = minibuffer
+        .prompt::&lt;TextField&gt;(<span class="string">"What's your last name? "</span>)
+        .<span class="kw">await</span><span class="question-mark">?</span>;
+    minibuffer.message(<span class="macro">format!</span>(<span class="string">"Hello, {first_name} {last_name}!"</span>));
+    <span class="prelude-val">Ok</span>(())
+}
+
+<span class="kw">fn </span>plugin(app: <span class="kw-2">&amp;mut </span>App) {
+    app.add_acts(Act::new(ask_name.pipe(sink::future_result)).named(<span class="string">"ask_name"</span>));
+}</code></pre></div>
+<p>The preceding async function <code>ask_name()</code> returns a future, technically a <code>impl Future&lt;Output = Result&lt;(), Error&gt;&gt;</code>. That has to go somewhere so that it will be evaluated.
+There are a series of pipe-able systems in the <code>sink</code> module:</p>
+<ul>
+<li>
+<p><code>sink::future</code> accepts any future and runs it.</p>
+</li>
+<li>
+<p><code>sink::future_result</code> accepts any future that returns a result and runs it but
+if the result is an error, it reports that error to the minibuffer.</p>
+</li>
+<li>
+<p><code>sink::result</code> accepts any result. If it is an error, it is reported on the
+minibuffer.</p>
+</li>
+</ul>
+<h2 id="acts-and-plugins"><a class="doc-anchor" href="#acts-and-plugins">§</a>Acts and Plugins</h2>
+<p>An <code>ActsPlugin</code> is a <code>Plugin</code> that contains <code>Act</code>s. Three <code>ActsPlugin</code>s are
+available in this crate: <code>BasicActs</code>, <code>UniversalArgActs</code>, and <code>TapeActs</code>.</p>
+<h3 id="basic-acts-of-console-ness"><a class="doc-anchor" href="#basic-acts-of-console-ness">§</a>Basic acts of console-ness</h3>
+<p><code>BasicActs</code> has the bare necessities of acts:</p>
+<ul>
+<li>run_act</li>
+</ul>
+<p>Asks for what act to run, provides tab completion.</p>
+<ul>
+<li>list_acts</li>
+</ul>
+<p>Lists acts and their key bindings.</p>
+<ul>
+<li>list_key_bindings</li>
+</ul>
+<p>Lists key bindings and their acts.</p>
+<ul>
+<li>describe_key</li>
+</ul>
+<p>Listens for key chords and reveals what act they would run.</p>
+<ul>
+<li>toggle_visibility</li>
+</ul>
+<p>Hides and shows the minibuffer.</p>
+<p>But one can trim it down further if one likes by calling <code>take_acts()</code>,
+manipulating them, and submitting that to <code>add_acts()</code>. For instance to only add
+‘run_act’, one could do the following:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="kw">fn </span>plugin(app: <span class="kw-2">&amp;mut </span>App) {
+    <span class="kw">let </span><span class="kw-2">mut </span>basic_acts = BasicActs::default();
+    <span class="comment">// Acts is a HashMap of act names and [ActBuilder]s.
+    </span><span class="kw">let </span><span class="kw-2">mut </span>acts = basic_acts.take_acts();
+    <span class="comment">// `basic_acts` no longer has any acts in it. We took them.
+    </span><span class="kw">let </span>list_acts = acts.remove(<span class="string">"list_acts"</span>).unwrap();
+    app.add_plugins(MinibufferPlugins)
+        .add_acts((basic_acts, <span class="comment">// Or one could do: `.add_plugins(basic_acts)`.
+                   </span>list_acts));
+}</code></pre></div><h3 id="universal-argument-acts"><a class="doc-anchor" href="#universal-argument-acts">§</a>Universal argument acts</h3><img align="right" src="https://github.com/user-attachments/assets/a227b529-ba66-403d-a984-5f4c7ac1d5b2"/>
+<p><code>UniversalArgActs</code> provides a univeral argument that acts can use by accessing
+the resource <code>Res&lt;UniveralArg&gt;</code>. It simply holds an option of a signed number.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">pub struct </span>UniversalArg(<span class="kw">pub </span><span class="prelude-ty">Option</span>&lt;i32&gt;);</code></pre></div>
+<p>One uses it like so, type <code>Ctrl-U 1 0</code> and this would place 10 into the
+<code>UniversalArg</code> resource. It is cleared after the next act runs. See the example.</p>
+<div class="example-wrap"><pre class="language-sh"><code>cargo run --example universal-arg</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/universal-arg/">Run in the browser.</a></p>
+<h4 id="how-is-a-number-universal"><a class="doc-anchor" href="#how-is-a-number-universal">§</a>How is a number universal?</h4>
+<p>Although universal argument accepts a number, one can use it as an on or off
+flag too. ‘Ctrl-U’ ends up functioning like an adverb.</p>
+<p>Suppose we had an act called ‘open-door’ but it only worked with the closest door.
+What if we also wanted to open all doors? We could write another act to do that
+‘open-all-doors’ and find another key binding but let us consider what this
+might look like with universal argument.</p>
+<ul>
+<li>Type ‘Alt-X open-door’ to open the closest door.</li>
+<li>Type ‘Ctrl-U Alt-X open-door’ to open all the doors.</li>
+</ul>
+<p>Likewise this will work on key bindings, so if ‘open-door’ is bound to ‘O D’,
+then one could do this:</p>
+<ul>
+<li>Type ‘O D’ to open the closest door.</li>
+<li>Type ‘Ctrl-U O D’ to open all the doors.</li>
+</ul>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>open_door(universal_arg: Res&lt;UniversalArg&gt;, <span class="kw-2">mut </span>minibuffer: Minibuffer) {
+    <span class="kw">if </span>universal_arg.is_none() {
+        minibuffer.message(<span class="string">"Open one door."</span>);
+    } <span class="kw">else </span>{
+        minibuffer.message(<span class="string">"Open all the doors."</span>);
+    }
+}</code></pre></div><h4 id="what-if-universalacts-is-not-added"><a class="doc-anchor" href="#what-if-universalacts-is-not-added">§</a>What if <code>UniversalActs</code> is not added?</h4>
+<p>The resource <code>Res&lt;UniversalArg&gt;</code> is present even if <code>UniversalActs</code> has not been
+added. Without <code>UniveralActs</code> lies inert. But it is present so that any act may
+opt-in to accepting univeral arguments while still allowing the user to opt-out
+of <code>UniversalActs</code>.</p>
+<h3 id="tape-acts"><a class="doc-anchor" href="#tape-acts">§</a>Tape acts</h3><img align="right" src="https://github.com/user-attachments/assets/39cee20e-44f9-4352-a9b4-fdbe94a98634"/>
+<p><code>TapeActs</code> provides interactive scriptability to Minibuffer. It provides a
+“tape” one can record their actions to. One can think of tapes like keyboard
+macros but they do not record key presses and replay them. Instead the acts that
+are run are recorded. These can be replayed, or they can generate a script
+one can integrate back into their application.</p>
+<div class="example-wrap"><pre class="language-sh"><code>cargo run --example tapes --features=fun,clipboard</code></pre></div>
+<p><a href="https://shanecelis.github.io/bevy_minibuffer/examples/tapes/">Run in the browser.</a></p>
+<h4 id="tape_record"><a class="doc-anchor" href="#tape_record">§</a>tape_record</h4>
+<p>The ‘tape_record’ act starts a tape recording. It requests a “name” for the tape
+which is a key or key chord of your choice. Once recording starts, it will
+continue until one runs ‘tape_record’ again.</p>
+<h4 id="tape_play"><a class="doc-anchor" href="#tape_play">§</a>tape_play</h4>
+<p>The ‘tape_play’ act requests a key and plays that tape if it exists.</p>
+<h4 id="tape_copy"><a class="doc-anchor" href="#tape_copy">§</a>tape_copy</h4>
+<p>The ‘tape_copy’ act prints a function that replicates what the tape does. If the
+feature “clipboard” is present, it will also copy it to the clipboard.</p>
+
+<div class="example-wrap ignore"><a href="#" class="tooltip" title="This example is not tested">ⓘ</a><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>tape(<span class="kw-2">mut </span>commands: Commands) {
+    commands.run_system_cached_with(tapes::set_color, 
+        <span class="prelude-val">Some</span>(Srgba { red: <span class="number">0.0</span>, green: <span class="number">0.8666667</span>, blue: <span class="number">0.0</span>, alpha: <span class="number">1.0 </span>}))
+}</code></pre></div><h4 id="repeat"><a class="doc-anchor" href="#repeat">§</a>repeat</h4>
+<p>The ‘repeat’ act is bound to the ‘.’ key and does not require a tape. It merely
+repeats the last act one invoked. This is similar to vi’s repeat last change
+command.</p>
+<p>For fun these tape acts have sound effects of an analog tape deck if the “fun”
+feature for bevy_minibuffer is enabled. It is off by default. Click on the movie
+above to hear the sounds.</p>
+<h2 id="features-1"><a class="doc-anchor" href="#features-1">§</a>Features</h2>
+<ul>
+<li>“async” makes <code>MinibufferAsync</code> available.</li>
+<li>“clipboard” makes clipboard accessible, used by ‘tape_copy’ act.</li>
+<li>“fun” adds a tape icon and tape decks sounds to tape acts.</li>
+<li>“dev-capture” is not for general use and is for generating videos as shown in
+this README.</li>
+<li>“no-name-panic” panics, instead of warning, when an act has no name and
+<code>bevy/debug</code> is disabled. Act names are taken from the system name in that
+case, and Bevy only provides system names with <code>bevy/debug</code>.</li>
+</ul>
+<h2 id="faq"><a class="doc-anchor" href="#faq">§</a>FAQ</h2><h3 id="why-are-minibuffer-commands-called-acts"><a class="doc-anchor" href="#why-are-minibuffer-commands-called-acts">§</a>Why are Minibuffer commands called acts?</h3>
+<p>Bevy has a foundational trait called <code>Command</code>. Minibuffer’s commands are called
+<code>Act</code>s to avoid the confusion of having two very different <code>Command</code> types.</p>
+<h3 id="why-not-a-shell"><a class="doc-anchor" href="#why-not-a-shell">§</a>Why not a shell?</h3>
+<p>If one surveys developer consoles, one will find that many have taken
+inspiration from command-line interfaces, Unix shells being the most prevalent.
+And the Unix shell is great; I love it and use it daily. However, I do not
+believe it represents the best interaction model for game developer consoles.</p>
+<p>A non-interactive Unix command requires one to provide the arguments it expects.
+Failure to do so results in an error message. Often one must consult the
+command’s help or documentation to determine the right arguments. This is
+tolerable partly because we can then script these interactions.</p>
+<p>In general the Unix shell trades interactive convenience for non-interactive
+scriptability, and it is a good trade. EDIT: What I
+had written next was this:</p>
+<blockquote>
+<p>Minibuffer does not provide interactive scriptability but that means we can
+make it a better interactive experience.</p>
+</blockquote>
+<p>I realized that is not true and wrote <code>TapeActs</code> to disprove myself.</p>
+<p>Instead of being required to know the arguments for any given command,
+Minibuffer acts ask the user for what is required. It is a “pull”
+model of interaction versus a “push” model.</p>
+<h4 id="why-doesnt-the-shell-use-a-pull-model"><a class="doc-anchor" href="#why-doesnt-the-shell-use-a-pull-model">§</a>Why doesn’t the shell use a pull model?</h4>
+<p>In some sense the shell can’t use a pull model because its commands run in
+another process and it does not invoke commands to interrogate them. Imagine the
+danger if a shell invoked a command to interrogate it, e.g., user types
+‘shutdown’, hits Tab, and their computer turns off. <a href="https://www.gnu.org/software/bash/manual/html_node/A-Programmable-Completion-Example.html">Bash programmable
+completions</a>
+broadens the scope of what is tab completable, but notice that the completion
+does not run the command; it runs a bash function.</p>
+<h2 id="todo"><a class="doc-anchor" href="#todo">§</a>TODO</h2>
+<ul>
+<li><input disabled="" type="checkbox"/>
+Use a “real” cursor/selection highlight.</li>
+<li><input disabled="" type="checkbox"/>
+Add case-insensitive tab-completion example.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Make a tape recording recursable.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Record universal args on tape.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Make it possible to have vim-like prompt (no space after “:”).</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Add <code>HashMap&lt;String,V&gt;</code> completer.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Make universal-arg work without async.</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Re-write <a href="https://github.com/axelvc/asky">asky</a> to be <a href="https://github.com/shanecelis/bevy_asky">bevy native</a>.</li>
+</ul>
+<h2 id="design-questions"><a class="doc-anchor" href="#design-questions">§</a>Design Questions</h2><h3 id="re-no-windows-antigoal"><a class="doc-anchor" href="#re-no-windows-antigoal">§</a>Re: No windows antigoal</h3>
+<p>The minibuffer can show more than one line of text, but what to do if its asked
+to show multiple pages of text?</p>
+<p>This is an unresolved issue.</p>
+<h2 id="compatibility"><a class="doc-anchor" href="#compatibility">§</a>Compatibility</h2><div><table><thead><tr><th>bevy_minibuffer</th><th>bevy</th></tr></thead><tbody>
+<tr><td>0.8.0</td><td>0.20</td></tr>
+<tr><td>0.7.0</td><td>0.19</td></tr>
+<tr><td>0.6.0</td><td>0.18</td></tr>
+<tr><td>0.5.0</td><td>0.17</td></tr>
+<tr><td>0.4.0</td><td>0.16</td></tr>
+<tr><td>0.3.0</td><td>0.15</td></tr>
+<tr><td>0.2.0</td><td>0.15</td></tr>
+<tr><td>0.1.0</td><td>0.14</td></tr>
+</tbody></table>
+</div><h2 id="license"><a class="doc-anchor" href="#license">§</a>License</h2>
+<p>This crate is licensed under the MIT License or the Apache License 2.0.</p>
+<div class="footnotes"><hr><ol><li id="fn1"><p>Any system with no input or output. This does not exclude pipelines, however,
+which are used extensively with asynchronous systems.&nbsp;<a href="#fnref1">↩</a></p></li></ol></div></div></details><h2 id="modules" class="section-header">Modules<a href="#modules" class="anchor">§</a></h2><dl class="item-table"><dt><a class="mod" href="acts/index.html" title="mod bevy_minibuffer::acts">acts</a></dt><dd>Acts and their flags, builders, and collections</dd><dt><a class="mod" href="autocomplete/index.html" title="mod bevy_minibuffer::autocomplete">autocomplete</a></dt><dd>Tab completion functionality</dd><dt><a class="mod" href="event/index.html" title="mod bevy_minibuffer::event">event</a></dt><dd>Events</dd><dt><a class="mod" href="input/index.html" title="mod bevy_minibuffer::input">input</a></dt><dd>Input, mainly re-exports from <a href="https://docs.rs/keyseq/0.10.0/keyseq/index.html" title="mod keyseq">keyseq</a></dd><dt><a class="mod" href="prelude/index.html" title="mod bevy_minibuffer::prelude">prelude</a></dt><dd>Prelude for convenient splat importing, e.g., <code>use bevy_minibuffer::prelude::*</code>.</dd><dt><a class="mod" href="prompt/index.html" title="mod bevy_minibuffer::prompt">prompt</a></dt><dd>Kinds of queries for user: Toggle, TextField, etc.</dd><dt><a class="mod" href="sink/index.html" title="mod bevy_minibuffer::sink">sink</a></dt><dd>Pipe systems with futures into a sink.</dd><dt><a class="mod" href="ui/index.html" title="mod bevy_minibuffer::ui">ui</a></dt><dd>UI</dd><dt><a class="mod" href="view/index.html" title="mod bevy_minibuffer::view">view</a></dt><dd>Implements Asky’s views for Minibuffer prompts</dd></dl><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.Config.html" title="struct bevy_minibuffer::Config">Config</a></dt><dd>Minibuffer config</dd><dt><a class="struct" href="struct.Minibuffer.html" title="struct bevy_minibuffer::Minibuffer">Minibuffer</a></dt><dd>Manipulate minibuffer synchronously with this [SystemParam].</dd><dt><a class="struct" href="struct.MinibufferAsync.html" title="struct bevy_minibuffer::MinibufferAsync">Minibuffer<wbr>Async</a></dt><dd>MinibufferAsync, a [SystemParam] for async.</dd><dt><a class="struct" href="struct.MinibufferPlugin.html" title="struct bevy_minibuffer::MinibufferPlugin">Minibuffer<wbr>Plugin</a></dt><dd>Minibuffer plugin</dd><dt><a class="struct" href="struct.MinibufferPlugins.html" title="struct bevy_minibuffer::MinibufferPlugins">Minibuffer<wbr>Plugins</a></dt><dd>Minibuffer plugins, includes [bevy_defer::AsyncPlugin] with default settings
+if “async” feature is present.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.Error.html" title="enum bevy_minibuffer::Error">Error</a></dt><dd>Minibuffer error</dd></dl><script type="text/json" id="notable-traits-data">{"<Arc<F> as EntityCommand>::Out":"<h3>Notable traits for <code><a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;</code></h3><pre><code><div class=\"where\">impl&lt;R&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;<div class=\"where\">where\n    R: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a R</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a>,</div></div><div class=\"where\">impl&lt;W&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;W&gt;<div class=\"where\">where\n    W: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a W</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>,</div></div>","<Arc<W> as MakeWriter<'a>>::Writer":"<h3>Notable traits for <code><a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;</code></h3><pre><code><div class=\"where\">impl&lt;R&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;<div class=\"where\">where\n    R: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a R</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a>,</div></div><div class=\"where\">impl&lt;W&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;W&gt;<div class=\"where\">where\n    W: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a W</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>,</div></div>","Arc<B>":"<h3>Notable traits for <code><a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;</code></h3><pre><code><div class=\"where\">impl&lt;R&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;<div class=\"where\">where\n    R: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a R</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a>,</div></div><div class=\"where\">impl&lt;W&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;W&gt;<div class=\"where\">where\n    W: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a W</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>,</div></div>","Arc<MaybeUninit<T>, A>":"<h3>Notable traits for <code><a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;</code></h3><pre><code><div class=\"where\">impl&lt;R&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;<div class=\"where\">where\n    R: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a R</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a>,</div></div><div class=\"where\">impl&lt;W&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;W&gt;<div class=\"where\">where\n    W: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a W</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>,</div></div>","Arc<MaybeUninit<T>>":"<h3>Notable traits for <code><a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;</code></h3><pre><code><div class=\"where\">impl&lt;R&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;<div class=\"where\">where\n    R: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a R</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a>,</div></div><div class=\"where\">impl&lt;W&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;W&gt;<div class=\"where\">where\n    W: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a W</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>,</div></div>","Arc<T, A>":"<h3>Notable traits for <code><a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;</code></h3><pre><code><div class=\"where\">impl&lt;R&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;<div class=\"where\">where\n    R: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a R</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a>,</div></div><div class=\"where\">impl&lt;W&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;W&gt;<div class=\"where\">where\n    W: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a W</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>,</div></div>","Arc<T>":"<h3>Notable traits for <code><a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;</code></h3><pre><code><div class=\"where\">impl&lt;R&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;<div class=\"where\">where\n    R: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a R</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a>,</div></div><div class=\"where\">impl&lt;W&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;W&gt;<div class=\"where\">where\n    W: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a W</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>,</div></div>","Arc<U>":"<h3>Notable traits for <code><a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;</code></h3><pre><code><div class=\"where\">impl&lt;R&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;R&gt;<div class=\"where\">where\n    R: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a R</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Read.html\" title=\"trait std::io::Read\">Read</a>,</div></div><div class=\"where\">impl&lt;W&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> for <a class=\"struct\" href=\"https://doc.rust-lang.org/1.97.1/alloc/sync/struct.Arc.html\" title=\"struct alloc::sync::Arc\">Arc</a>&lt;W&gt;<div class=\"where\">where\n    W: <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a> + IoHandle + ?<a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/core/marker/trait.Sized.html\" title=\"trait core::marker::Sized\">Sized</a>,\n    <a class=\"primitive\" href=\"https://doc.rust-lang.org/1.97.1/std/primitive.reference.html\">&amp;'a W</a>: for&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.97.1/std/io/trait.Write.html\" title=\"trait std::io::Write\">Write</a>,</div></div>"}</script></section></div></main></body></html>

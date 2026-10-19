@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CompletedState","LookupError"],"struct":["Completed","RequireMatch","SrgbaHexLookup"],"trait":["Lookup","LookupMap"]};

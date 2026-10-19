@@ -1,0 +1,9 @@
+(function() {
+    const implementors = Object.fromEntries([["bevy_minibuffer",[["impl Plugin for <a class=\"struct\" href=\"bevy_minibuffer/acts/basic/struct.BasicActs.html\" title=\"struct bevy_minibuffer::acts::basic::BasicActs\">BasicActs</a>",0],["impl Plugin for <a class=\"struct\" href=\"bevy_minibuffer/acts/basic_async/struct.BasicAsyncActs.html\" title=\"struct bevy_minibuffer::acts::basic_async::BasicAsyncActs\">BasicAsyncActs</a>",0],["impl Plugin for <a class=\"struct\" href=\"bevy_minibuffer/acts/tape/struct.TapeActs.html\" title=\"struct bevy_minibuffer::acts::tape::TapeActs\">TapeActs</a>",0],["impl Plugin for <a class=\"struct\" href=\"bevy_minibuffer/acts/universal/struct.UniversalArgActs.html\" title=\"struct bevy_minibuffer::acts::universal::UniversalArgActs\">UniversalArgActs</a>",0],["impl Plugin for <a class=\"struct\" href=\"bevy_minibuffer/struct.MinibufferPlugin.html\" title=\"struct bevy_minibuffer::MinibufferPlugin\">MinibufferPlugin</a>",0]]],["bevy_minibuffer",[["impl Plugin for <a class=\"struct\" href=\"bevy_minibuffer/acts/basic/struct.BasicActs.html\" title=\"struct bevy_minibuffer::acts::basic::BasicActs\">BasicActs</a>",0],["impl Plugin for <a class=\"struct\" href=\"bevy_minibuffer/acts/tape/struct.TapeActs.html\" title=\"struct bevy_minibuffer::acts::tape::TapeActs\">TapeActs</a>",0],["impl Plugin for <a class=\"struct\" href=\"bevy_minibuffer/acts/universal/struct.UniversalArgActs.html\" title=\"struct bevy_minibuffer::acts::universal::UniversalArgActs\">UniversalArgActs</a>",0],["impl Plugin for <a class=\"struct\" href=\"bevy_minibuffer/struct.MinibufferPlugin.html\" title=\"struct bevy_minibuffer::MinibufferPlugin\">MinibufferPlugin</a>",0]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":59,"fragment_lengths":[924,727]}

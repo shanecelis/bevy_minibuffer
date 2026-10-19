@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["describe_key","list_acts","list_key_bindings","run_act","toggle_visibility"],"struct":["BasicActs"]};

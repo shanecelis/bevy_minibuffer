@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["key","keyseq"],"struct":["Hotkey","KeyChord","Modifiers"]};

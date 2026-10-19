@@ -1,5 +1,9 @@
 //! Tab completion functionality
 use crate::{event::LookupEvent, prelude::*};
+use bevy::input_focus::{
+    tab_navigation::{NavAction, TabIndex, TabNavigation},
+    FocusCause, InputFocus,
+};
 use bevy::{
     diagnostic::FrameCount,
     ecs::system::EntityCommands,
@@ -9,16 +13,7 @@ use bevy::{
     },
     prelude::*,
 };
-use bevy_asky::{
-    construct::ConstructExt,
-    next_tab_index,
-    string_cursor::*,
-    AskySet, Submitter,
-};
-use bevy::input_focus::{
-    tab_navigation::{NavAction, TabIndex, TabNavigation},
-    FocusCause, InputFocus,
-};
+use bevy_asky::{construct::ConstructExt, next_tab_index, string_cursor::*, AskySet, Submitter};
 use std::borrow::Cow;
 mod lookup;
 pub use lookup::*;

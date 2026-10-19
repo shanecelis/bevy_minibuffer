@@ -57,6 +57,12 @@
         object-fit: cover;
         display: block;
       }
+      .shot.placeholder {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 48'%3E%3Crect x='8' y='8' width='48' height='32' rx='3' fill='none' stroke='%23555' stroke-width='2'/%3E%3Ccircle cx='22' cy='20' r='4' fill='%23555'/%3E%3Cpath d='M14 36l12-10 8 7 8-6 8 9H14z' fill='%23555'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 42%;
+      }
       .name { font-weight: 600; }
       .blurb { margin: 0; font-size: 0.9rem; opacity: 0.75; }
     </style>
@@ -102,6 +108,7 @@
           <p class="blurb">The same completers, async.</p>
         </a>
         <a class="card" href="./exclude-commands/">
+          <div class="shot placeholder"></div>
           <div class="name">exclude-commands</div>
           <p class="blurb">Keep one act and drop the rest.</p>
         </a>
@@ -121,18 +128,22 @@
           <p class="blurb">Record acts and play them back.</p>
         </a>
         <a class="card" href="./cube/">
+          <div class="shot placeholder"></div>
           <div class="name">cube</div>
           <p class="blurb">Change a cube’s spin from the minibuffer.</p>
         </a>
         <a class="card" href="./cube-async/">
+          <div class="shot placeholder"></div>
           <div class="name">cube-async</div>
           <p class="blurb">The cube, async.</p>
         </a>
         <a class="card" href="./two-commands/">
+          <div class="shot placeholder"></div>
           <div class="name">two-commands</div>
           <p class="blurb">Ask for a name, then an age.</p>
         </a>
         <a class="card" href="./two-commands-async/">
+          <div class="shot placeholder"></div>
           <div class="name">two-commands-async</div>
           <p class="blurb">Two prompts, async.</p>
         </a>

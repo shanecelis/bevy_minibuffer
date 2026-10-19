@@ -1,6 +1,7 @@
 # bevy_minibuffer
 
 [![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](#license)
+[![github](https://img.shields.io/badge/github-bevy__minibuffer-blue.svg)](https://github.com/shanecelis/bevy_minibuffer)
 [![crates.io](https://img.shields.io/crates/v/bevy_minibuffer.svg)](https://crates.io/crates/bevy_minibuffer)
 [![docs.rs](https://docs.rs/bevy_minibuffer/badge.svg)](https://docs.rs/bevy_minibuffer)
 [![examples](https://img.shields.io/badge/examples-wasm-blue.svg)](https://shanecelis.github.io/bevy_minibuffer/examples/)

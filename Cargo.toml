@@ -1,3 +1,8 @@
+[workspace]
+members = ["web/app"]
+default-members = ["."]
+resolver = "2"
+
 [package]
 name = "bevy_minibuffer"
 description = "A gamedev console inspired by classic Unix text editors"
@@ -32,6 +37,12 @@ copypasta = { version = "0.10.1", optional = true }
 variadics_please = "1.1.0"
 foldhash = "0.2"
 bevy_channel_message = { version = "0.4", optional = true }
+
+# Enable getrandom's JS backend for wasm32-unknown-unknown. Both 0.3 and 0.4
+# appear in the Bevy 0.20 tree and each needs the feature independently.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.3", features = ["wasm_js"] }
+getrandom_04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
 
 [features]
 async = [ "dep:bevy_defer", "dep:futures", "bevy_asky/async", "dep:bevy_channel_message" ]
@@ -76,6 +87,18 @@ required-features = [ "async" ]
 
 [package.metadata.docs.rs]
 features = ["x11", "async", "fun"]
+
+# Size-first profile for GitHub Pages WASM example builds via trunk.
+# Do not strip here: rustc strip removes wasm-bindgen's custom sections.
+# Trunk runs wasm-opt -Oz after bindgen (`data-wasm-opt="z"`).
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+# "symbols" drops the wasm name section; "debuginfo" leaves it (~40 MB).
+strip = "symbols"
 
 [patch.crates-io]
 # bevy_asky = { path = "../bevy_asky" }

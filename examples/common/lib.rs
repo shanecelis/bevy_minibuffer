@@ -111,12 +111,13 @@ impl VideoCapturePlugin {
             primary_window: Some({
                 let mut window = Window {
                     title: self.title.clone(),
+                    canvas: Some("#bevy".into()),
+                    fit_canvas_to_parent: true,
+                    prevent_default_event_handling: true,
                     ..Default::default()
                 };
                 let res = self.resolution;
-                // if let Some(res) = self.resolution {
                 window.resolution = [res.x as u32, res.y as u32].into();
-                // }
                 window
             }),
             ..Default::default()

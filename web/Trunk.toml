@@ -1,0 +1,37 @@
+# Browser builds for the crate examples.
+#
+# Paths are relative to this file. `trunk serve` serves web/index.html, a
+# static gallery. That page has no Cargo.toml beside it, so Trunk does not
+# try to pick a binary. Pass an example page to serve that example:
+#   trunk serve
+#   trunk serve opt-in/index.html
+#   trunk build --release --dist built/opt-in --public-url ./ opt-in/index.html
+#
+# Example builds live in web/built/<name>. `trunk serve` copies them next to
+# the gallery. Without that, the dev server would answer every path with the
+# gallery and relative links would nest (`/opt-in/add-act/`).
+#
+# Size: examples use cargo profile `wasm-release` and `data-wasm-opt="z"`.
+# wasm32 rustflags (getrandom) live in .cargo/config.toml.
+
+[build]
+target = "index.html"
+dist = "dist"
+# Relative so GitHub Pages works under /bevy_minibuffer/.
+public_url = "./"
+
+[serve]
+port = 8080
+open = false
+# Missing paths must 404. Falling back to the gallery makes /opt-in/ the same
+# page as /, so the next relative link becomes /opt-in/add-act/.
+no_spa = true
+
+# Copy prebuilt examples into the gallery dist. Trunk replaces dist on each
+# build, so the examples have to be staged again or their links 404.
+# Skip this while building an example into built/<name>: that staging dir
+# lives under built/, and copying built/ into it nests until the path overflows.
+[[hooks]]
+stage = "post_build"
+command = "sh"
+command_arguments = ["-c", "case \"$TRUNK_STAGING_DIR\" in */built/*) exit 0 ;; esac; [ -d built ] || exit 0; for dir in built/*/; do [ -f \"${dir}index.html\" ] || continue; cp -R \"${dir%/}\" \"$TRUNK_STAGING_DIR/\"; done"]

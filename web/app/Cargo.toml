@@ -1,0 +1,72 @@
+[package]
+name = "bevy_minibuffer_web"
+description = "Trunk WASM builds of bevy_minibuffer examples"
+version = "0.8.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+bevy_minibuffer = { path = "../.." }
+bevy = "0.20.0"
+rand = "0.9"
+trie-rs = "0.4.2"
+bevy_asky = { version = "0.7", default-features = false, features = ["color"], optional = true }
+bevy_defer = { version = "0.19", optional = true }
+
+[features]
+async = ["dep:bevy_asky", "dep:bevy_defer", "bevy_minibuffer/async"]
+fun = ["bevy_minibuffer/fun"]
+# Present so example `cfg(feature = "dev-capture")` checks are expected.
+dev-capture = []
+
+[[bin]]
+name = "opt-in"
+path = "../../examples/opt-in.rs"
+[[bin]]
+name = "add-act"
+path = "../../examples/add-act.rs"
+[[bin]]
+name = "bind-hotkey"
+path = "../../examples/bind-hotkey.rs"
+[[bin]]
+name = "cube"
+path = "../../examples/cube.rs"
+[[bin]]
+name = "exclude-commands"
+path = "../../examples/exclude-commands.rs"
+[[bin]]
+name = "solicit-user"
+path = "../../examples/solicit-user.rs"
+[[bin]]
+name = "tab-completion"
+path = "../../examples/tab-completion.rs"
+[[bin]]
+name = "two-commands"
+path = "../../examples/two-commands.rs"
+[[bin]]
+name = "universal-arg"
+path = "../../examples/universal-arg.rs"
+[[bin]]
+name = "tapes"
+path = "../../examples/tapes.rs"
+required-features = ["fun"]
+[[bin]]
+name = "demo-async"
+path = "../../examples/async/demo.rs"
+required-features = ["async"]
+[[bin]]
+name = "cube-async"
+path = "../../examples/async/cube.rs"
+required-features = ["async"]
+[[bin]]
+name = "two-commands-async"
+path = "../../examples/async/two-commands.rs"
+required-features = ["async"]
+[[bin]]
+name = "universal-arg-async"
+path = "../../examples/async/universal-arg.rs"
+required-features = ["async"]
+[[bin]]
+name = "tab-completion-async"
+path = "../../examples/async/tab-completion.rs"
+required-features = ["async"]

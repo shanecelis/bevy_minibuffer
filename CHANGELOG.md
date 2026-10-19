@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [unreleased]
 
 - Update to support Bevy 0.20.
+- Publish WASM builds of every example to GitHub Pages.
 
 ## [0.7.0] - 2026-09-22
 
